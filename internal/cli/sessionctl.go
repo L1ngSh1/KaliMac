@@ -3,7 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
-	"strings"
+	"io"
 
 	"kalimac/internal/runtime"
 	"kalimac/internal/session"
@@ -14,15 +14,15 @@ var newSessionController = func(endpoint string) *session.DockerController {
 	return &session.DockerController{Endpoint: endpoint}
 }
 
-// activeSessionIDs 从 km-ctl sessions 输出解析活跃会话 ID。
-func activeSessionIDs(out string) []string {
-	var ids []string
-	for _, line := range strings.Split(out, "\n") {
-		if id, ok := strings.CutPrefix(strings.TrimSpace(line), "ACTIVE "); ok && id != "" {
-			ids = append(ids, id)
-		}
+// newSessionManager 是测试注入点：生产返回固定 endpoint 的会话管理器
+// （与核验用同一 Controller，取消路径共享固定连接信息）。
+var newSessionManager = func(endpoint string, diag io.Writer, ctl *session.DockerController) *session.Manager {
+	return &session.Manager{
+		Starter:       &session.ExecStarter{Env: []string{"DOCKER_HOST=" + endpoint}},
+		Controller:    ctl,
+		Diag:          diag,
+		SkipBootstrap: true,
 	}
-	return ids
 }
 
 // resolveEngine 解析有效 endpoint、拒绝远程引擎并为 runtime.Docker 固定。

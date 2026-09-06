@@ -3,7 +3,9 @@ package cli
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -557,4 +559,103 @@ func resolveDir2(t *testing.T, dir string) string {
 		t.Fatal(err)
 	}
 	return r
+}
+
+// ---------- M0：会话查询失败/异常 → 阻断，且不执行工具 ----------
+
+// startRecorder 实现 session.Starter，记录工具启动尝试。
+type startRecorder struct {
+	started [][]string
+}
+
+func (r *startRecorder) LookPath() (string, error) { return "/usr/bin/docker", nil }
+
+func (r *startRecorder) Start(argv []string, _ io.Reader, _, _ io.Writer) (session.Proc, error) {
+	r.started = append(r.started, argv)
+	return nil, errors.New("blocked-by-test")
+}
+
+// fakeSessCtl 增加失败注入。
+type fakeSessCtlFail struct {
+	sessionsOut string
+	failExit    int
+	failErr     error
+}
+
+func (f *fakeSessCtlFail) controller() *session.DockerController {
+	return &session.DockerController{
+		RunFn: func(_ context.Context, _ []byte, args []string) (string, string, int, error) {
+			switch {
+			case args[0] == "cp":
+				return "", "", 0, nil
+			case contains(args, "sessions"):
+				return f.sessionsOut, "diag-line", f.failExit, f.failErr
+			case contains(args, "sweep"):
+				return "0", "", 0, nil
+			default:
+				return "", "", 0, nil
+			}
+		},
+	}
+}
+
+func TestSessionQueryFailureBlocksTool(t *testing.T) {
+	cases := []struct {
+		name     string
+		sessions string
+		exit     int
+		runErr   error
+		wantCode string
+		proceed  bool
+	}{
+		{"查询执行失败", "", 0, errors.New("engine boom"), "KM_SESSION_UNKNOWN", false},
+		{"查询退出码非0", "", 7, nil, "KM_SESSION_UNKNOWN", false},
+		{"输出不可解析", "garbage-line\n", 0, nil, "KM_SESSION_UNKNOWN", false},
+		{"空会话正常放行", "", 0, nil, "", true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			containers := map[string]string{}
+			dir := setupReadyProject(t, "", containers)
+			d := mkDocker(dockerResponder(t, containers, map[string]int{}))
+			sess := &fakeSessCtlFail{sessionsOut: tc.sessions, failExit: tc.exit, failErr: tc.runErr}
+			rec := &startRecorder{}
+			oldCtl, oldMgr := newSessionController, newSessionManager
+			newSessionController = func(endpoint string) *session.DockerController { return sess.controller() }
+			newSessionManager = func(endpoint string, diag io.Writer, ctl *session.DockerController) *session.Manager {
+				return &session.Manager{Starter: rec, Controller: ctl, SkipBootstrap: true}
+			}
+			defer func() { newSessionController, newSessionManager = oldCtl, oldMgr }()
+
+			code, errb := runTool(t, d, dir, "nmap", "-h")
+			if tc.proceed {
+				if len(rec.started) == 0 {
+					t.Fatalf("空会话应放行并尝试启动工具, code=%d err=%s", code, errb)
+				}
+				return
+			}
+			if code != ExitEnv || !strings.Contains(errb, tc.wantCode) {
+				t.Fatalf("code=%d err=%s", code, errb)
+			}
+			if len(rec.started) != 0 {
+				t.Fatalf("失败分支不应启动工具: %v", rec.started)
+			}
+		})
+	}
+}
+
+// doctor：会话查询失败/异常 → 检查失败（不当作无会话）。
+func TestDoctorSessionQueryFailureReported(t *testing.T) {
+	root := setupProject(t, validConfig, stateJSON(fakeContainerID, fakeImageID, localEndpoint))
+	sess := &fakeSessCtlFail{sessionsOut: "garbage\n", failExit: 3}
+	old := newSessionController
+	newSessionController = func(endpoint string) *session.DockerController { return sess.controller() }
+	defer func() { newSessionController = old }()
+	t.Setenv("DOCKER_HOST", "")
+	t.Setenv("DOCKER_CONTEXT", "")
+	var out bytes.Buffer
+	RunDoctor(context.Background(), root, &out, &runtime.Docker{Exec: doctorFake(healthyContainerOut(resolveDir2(t, root)))})
+	if !strings.Contains(out.String(), "检查失败") {
+		t.Fatalf("doctor 应报告会话检查失败:\n%s", out.String())
+	}
 }

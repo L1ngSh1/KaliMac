@@ -23,6 +23,7 @@ const (
 	CodeProjectNested     = "KM_PROJECT_NESTED"
 	CodeImageDrift        = "KM_IMAGE_DRIFT"
 	CodeSessionActive     = "KM_SESSION_ACTIVE"
+	CodeSessionUnknown    = "KM_SESSION_UNKNOWN"
 	CodeTimeout           = "KM_TIMEOUT"
 	CodeCanceled          = "KM_CANCELED"
 	CodeRuntimeMismatch   = "KM_RUNTIME_MISMATCH"

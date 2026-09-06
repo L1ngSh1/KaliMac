@@ -217,24 +217,48 @@ func baseName(p string) string {
 	return p
 }
 
-// Sessions 只读列出容器内会话状态（ACTIVE/STALE 行）。有界调用。
-func (c *DockerController) Sessions(ctx context.Context, container string) (string, error) {
+// Sessions 只读列出容器内会话状态。有界调用。
+// 协议约定：stdout 为 ACTIVE/STALE 行，stderr 仅承载诊断；exit 非 0 或
+// 输出无法解析时调用方必须视为“会话状态未知”并阻断，不得当作无会话。
+func (c *DockerController) Sessions(ctx context.Context, container string) (stdout, stderr string, exitCode int, err error) {
 	sctx, cancel := context.WithTimeout(ctx, runtime.DefaultManagementTimeout)
 	defer cancel()
-	stdout, stderr, _, err := c.rawRun(sctx, nil, "exec", container, CtlScriptPath, "sessions")
-	if err != nil {
-		return "", err
-	}
-	return stdout + stderr, nil
+	stdout, stderr, exitCode, err = c.rawRun(sctx, nil, "exec", container, CtlScriptPath, "sessions")
+	return stdout, stderr, exitCode, err
 }
 
-// Sweep 清理组已空的遗留会话目录，返回仍活跃的会话数。有界调用。
-func (c *DockerController) Sweep(ctx context.Context, container string) (string, error) {
+// Sweep 清理组已空的遗留会话目录，stdout 为仍活跃的会话数。有界调用。
+func (c *DockerController) Sweep(ctx context.Context, container string) (stdout, stderr string, exitCode int, err error) {
 	sctx, cancel := context.WithTimeout(ctx, runtime.DefaultManagementTimeout)
 	defer cancel()
-	stdout, stderr, _, err := c.rawRun(sctx, nil, "exec", container, CtlScriptPath, "sweep")
-	if err != nil {
-		return "", err
+	stdout, stderr, exitCode, err = c.rawRun(sctx, nil, "exec", container, CtlScriptPath, "sweep")
+	return stdout, stderr, exitCode, err
+}
+
+// ParseSessions 严格解析 km-ctl sessions 的 stdout。
+// 每个非空行必须是 "ACTIVE <id>" 或 "STALE <id>"；出现任何其他内容、
+// 空 id 或混入诊断文本都判为解析失败（ok=false），由调用方阻断。
+func ParseSessions(out string) (active, stale []string, ok bool) {
+	ok = true
+	for _, line := range strings.Split(out, "\n") {
+		line = strings.TrimRight(line, "\r")
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		kind, id, found := strings.Cut(line, " ")
+		id = strings.TrimSpace(id)
+		if !found || id == "" || strings.ContainsAny(id, " \t") {
+			ok = false
+			continue
+		}
+		switch kind {
+		case "ACTIVE":
+			active = append(active, id)
+		case "STALE":
+			stale = append(stale, id)
+		default:
+			ok = false
+		}
 	}
-	return strings.TrimSpace(stdout + stderr), nil
+	return active, stale, ok
 }

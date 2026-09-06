@@ -248,28 +248,21 @@ func checkContainerOwnership(r *reporter, ctx context.Context, dk *runtime.Docke
 // reportContainerSessions 报告容器内会话状态（只读；R2 的可见性部分）。
 func reportContainerSessions(r *reporter, ctx context.Context, dk *runtime.Docker, containerID string) {
 	var ctl *session.DockerController = newSessionController(dk.EndpointOverride)
-	out, err := ctl.Sessions(ctx, containerID)
+	out, errStr, exitCode, err := ctl.Sessions(ctx, containerID)
+	active, stale, parseOK := session.ParseSessions(out)
 	switch {
 	case err != nil:
 		r.line("  会话: 检查失败（%v）", err)
-	case strings.Contains(out, "no such file"), strings.TrimSpace(out) == "":
-		r.line("  会话: 无（尚未执行过工具或容器已重建）")
+	case exitCode != 0 || !parseOK:
+		r.line("  会话: 检查失败（exit=%d，stderr: %s；输出不可解析）", exitCode, strings.TrimSpace(errStr))
+	case len(active) == 0 && len(stale) == 0:
+		r.item("OK", "容器内无活跃会话")
 	default:
-		active := activeSessionIDs(out)
-		stale := 0
-		for _, line := range strings.Split(out, "\n") {
-			if strings.HasPrefix(strings.TrimSpace(line), "STALE ") {
-				stale++
-			}
-		}
 		if len(active) > 0 {
 			r.item("警告", "容器内活跃会话: %v（若宿主已无对应 km 进程，可显式 cancel 清理）", active)
 		}
-		if stale > 0 {
-			r.item("警告", "容器内遗留会话目录: %d（组已空，下次执行自动清扫）", stale)
-		}
-		if len(active) == 0 && stale == 0 {
-			r.item("OK", "容器内无活跃会话")
+		if len(stale) > 0 {
+			r.item("警告", "容器内遗留会话目录: %v（组已空，下次执行自动清扫）", stale)
 		}
 	}
 }
