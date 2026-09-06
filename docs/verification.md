@@ -1,5 +1,82 @@
 # 验证记录
 
+## 第五轮：审阅加固（R1–R5，2026-09-06，未提交）
+
+针对外部审阅的五个发现全部修复并有回归：
+
+| 项 | 修复 | 回归 |
+|---|---|---|
+| R1 会话目录消失≠组清空 | km-run 主进程退出后排空组（TERM→有界轮询→KILL，/proc 扫描排除僵尸）再写终态删目录；km-ctl 以组空/目录消失/exit 文件任一为成功终态 | 集成 TestRunCancelChildIgnoresTERM（忽略 TERM 的同组子进程被清空）、TestRunNormalExitDrainsLingeringChild（正常退出残留子进程被排空） |
+| R2 遗留锁后放行新任务 | 取锁后引导脚本并核验容器内会话：活跃 → `KM_SESSION_ACTIVE` 阻断+显式 cancel 指引；组空遗留 → sweep 清扫；doctor 报告会话 | 集成 TestStaleHostLockActiveSessionBlocked（SIGKILL 宿主 → 第二任务被阻 → doctor 报告 → 显式恢复后可执行） |
+| R3 并发 init 双环境 | init 全程持项目锁（锁内读状态），锁原子化：唯一临时文件完整内容 + link(2) 发布（消除"先建后写"窗口），Release 带 token 所有权核验 | 单测 TestConcurrentAcquireSingleHolder、TestReleaseOwnershipGuard、TestEmptyStaleLockTakeover；集成 TestConcurrentInitSingleEnvironment（并发双 init → 恰一成功/一 BUSY、单容器、串行重试复用） |
+| R4 endpoint 未贯穿 | 解析出的 endpoint 以替换式 `runtime.ReplaceEnv` 注入管理查询、docker cp、流式 exec、cancel 全部子进程（不产生重复键遮蔽）；`ExecStarter.Env`/`DockerController.Endpoint` | 单测 TestExecStarterPinsEndpointEnv、TestDockerControllerPinsEndpointEnv、TestCommandExecutorReplaceEnvNoDuplicate |
+| R5 pull/stop 超时被 10s 截断 | `runWithTimeout` 按操作类型一次生效（pull 10m、stop 30s），上层更短预算仍优先 | 单测 deadline 观察器四例（pull≈10m、stop≈30s、管理≈10s、外层 2s 优先） |
+
+修复过程中的测试缺陷也一并处理：SIGKILL 后 `cmd.Wait()` 被孤儿 docker exec 管道阻塞 → `WaitDelay`；tpid 快照改轮询；`TestInitFailureRecovery` 与重名 fixture 第二项目的容器泄漏 → 纳入登记清理。
+
+全套验证：`gofmt -l` 空；`go vet ./...`（含 integration tag）零告警；`go test -count=1 ./...` 全 ok；`go test -race -count=1 ./...` 全 ok；`go build ./...` OK。真实集成 **26/26 PASS**（原 23 项 + 新增 3 项），套件按完整容器 ID 终检零残留；另清理了历史运行遗留的 31 个测试容器（逐个核验挂载源为 go test 临时目录后按 ID 删除）。
+
+## 第四轮：P2-B 非交互最小闭环（2026-09-06，0.2.0-p2，未提交）
+
+### fake/单元（`go test -count=1 ./...`、`-race` 全绿）
+
+- 锁：获取/释放、活跃持有人 BUSY（KM_PROJECT_BUSY）、遗留锁接管（BrokeStale）、损坏锁接管；释放幂等。
+- cwd 映射：根/中文空格子目录、符号链接逃逸拒绝、根经符号链接访问。
+- init：全新创建（配置+状态+容器身份完整落盘）、幂等复用同一容器、停止容器复用时自动启动、缺失镜像拉取一次、同名冲突拒绝且不写状态、父项目拒绝（KM_PROJECT_NESTED）、引擎漂移拒绝（KM_RUNTIME_MISMATCH）。
+- run 错误路径：容器缺失（KM_NOT_FOUND→init 恢复）、镜像内容漂移（KM_IMAGE_DRIFT）、忙碌、旧版状态拒绝接管。
+- stop：运行中停止、已停止幂等（不再调用 stop）。
+
+### 真实集成（`go test -tags=integration -count=1 ./tests/integration/`：23/23 PASS，47s）
+
+P2-B 黑盒矩阵（TestMain 构建 km 二进制 + 确认/构建 kali-mac-min:0.2）：
+
+| 验收项 | 结果 |
+|---|---|
+| init→run→stop→再次执行恢复闭环（同一容器、数据保留） | PASS |
+| 重复 init（复用、零新增资源） | PASS |
+| 复杂 argv 逐元素（空/中文/引号/前导-） | PASS |
+| 二进制管道 32KiB 哈希一致 + stderr 独立 | PASS |
+| 退出码 0/7/42 原样 | PASS |
+| 中文/空格路径 + 子目录 cwd 映射 | PASS |
+| SIGINT 取消 → 130 + 会话目录清空 + tpid 回收 | PASS |
+| 多项目隔离 + 同项目 BUSY + 取消不停止容器 | PASS |
+| 引擎漂移 / 同名冲突 / 镜像身份冲突 | PASS |
+| 初始化失败恢复（拉取失败不落状态不留容器→修复后成功） | PASS |
+| 六工具 smoke（python3/curl/jq/nmap 仅回环/file/openssl 已知答案） | PASS |
+| P2-A 会话实验 11 项回归 | PASS |
+
+清理：套件按完整容器 ID 登记，TestMain 终检全部消失（exit 0）；宿主残留 0；context 未修改。
+
+### 最小镜像留证
+
+tests/evidence/kali-mac-min-0.2/build-evidence.txt：基础镜像本地 ID（kali-rolling，sha256:ed99295a…）、构建产物 ID（sha256:f3e7ae6b…，arm64）、dpkg 实查包版本（python3 3.14.6-1、curl 8.21.0-2、nmap 7.99+dfsg-1kali1 等）。包源：构建时显式改写镜像自身 kali.sources 为 USTC 公开镜像（默认 http.kali.org 经本机代理间歇 502），不触碰用户全局配置。
+
+### 结论与边界
+
+P2-B 达成：非交互最小闭环（init→run→stop→恢复）全部验收通过。**这是非交互最小可用版：shell/PTY 属 P2-C 尚未实现**；SIGKILL/宿主失联后容器任务继续运行的风险语义见 ADR-004（doctor/锁只提示不自动清理）。
+
+## 第三轮：P2-A 会话执行与取消验证（2026-09-06，未提交）
+
+### fake/单元（`go test -count=1 ./...` 与 `-race` 全绿）
+
+- state.container.id 校验：合法 64 hex/空 ID/短 ID/大写/非 hex/带前缀/65 位/含空格（8 例）。
+- doctor：inspect 返回 ID 与记录不一致 → 冲突；挂载路径规范化；非法 ID 状态损坏。
+- session 内核（fake）：argv 逐元素、正常退出无取消、取消中/取消竞争/未启动/不完整/失败兜底、启动前与引导中取消、tar 产物自检、Controller argv 与协议码 3/4 透传（新增，堵住 km-ctl "cancel" 参数漏检）。
+- 竞争修复：Manager 取消分支先非阻塞采信已就绪结果；fake ready 通道构造期初始化（曾致 race 模式死锁 603s，已修）。
+
+### 真实 Docker（`go test -tags=integration -count=1 ./tests/integration/`，11/11 PASS，23.8s）
+
+argv 逐元素（含空串/中文/引号/前导-）、64KiB 二进制往返哈希一致 + stderr 独立、退出码 0/7/42、5s 长任务不被 2s 管理超时误杀、SIGINT 取消（noclean/selfclean/grandchild 三种 fixture 均 130 + 进程组清空 + tpid 被回收）、重复取消幂等（协议码 3）、启动阶段取消无残留、多项目隔离（A 取消 B 正常）、SIGKILL 客户端单独观察（任务存活风险确认 + 显式取消仍可清理）。
+资源核对：run-id 标签残留容器 0。
+
+### 可判定 P0 实验器（tests/p0/checked/）
+
+正常模式 12 用例全 PASS、exit 0；负向控制（注入错误哈希期望）正确判定 FAIL 且 exit 1。证据：tests/p0/evidence/checked-*/（summary.json 含分类/PASS-FAIL-SKIP/耗时/完整哈希/镜像 ID/日志路径）。
+
+### 结论
+
+P2-A 通过：会话执行与取消验收全部成立，具备进入 P2-B（init→run→stop→恢复闭环）的条件。执行内核（internal/session）已就绪供 P2-B 复用。
+
 ## 第二轮：review 修复（2026-09-06，版本 0.1.1-p1）
 
 针对外部 review（F1–F5）的修复验证：

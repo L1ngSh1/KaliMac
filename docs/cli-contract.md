@@ -8,12 +8,12 @@
 |---|---|---|
 | `km` / `km --help` | 已实现 | 简短帮助；零 Docker 依赖、零副作用（单测断言外部调用次数为 0） |
 | `km --version` | 已实现 | 版本行；零 Docker 依赖 |
-| `km doctor` | 已实现 | 只读检查。流程：①平台；②项目配置与本机状态（纯客户端文件）；③仅用客户端命令解析有效 endpoint（DOCKER_HOST > DOCKER_CONTEXT > 当前 context inspect），非本地 endpoint 判 `KM_ENDPOINT_REMOTE` 并跳过一切引擎查询；本地则把该 endpoint 固定（DOCKER_HOST 注入）给本次所有后续调用并查引擎版本；④比较 `.km/state.json` 记录的 endpoint，漂移判 `KM_RUNTIME_MISMATCH` 并跳过容器/镜像检查；⑤容器归属按记录的完整容器 ID 检查（名称、`km.project` 标签、`/workspace` 挂载源、容器实际镜像内容全部比对），同名重建判冲突不接管；⑥镜像标签内容与项目记录比对，漂移报警告。环境问题作为检查结果输出（stdout），doctor 自身完成即返回 0 |
-| `km init` | 未实现（KM_NOT_IMPLEMENTED，退出 2） | P2：初始化项目 + 准备镜像 + 启动容器；幂等；检测到父项目明确提示 |
-| `km TOOL ARG...` | 未实现（KM_NOT_IMPLEMENTED，退出 2） | P2：在项目容器执行工具 |
-| `km run -- TOOL ARG...` | 未实现（KM_NOT_IMPLEMENTED，退出 2） | P2：同上长形式；`--` 必需，解决工具与 km 管理命令重名 |
-| `km shell` | 未实现（KM_NOT_IMPLEMENTED，退出 2） | P2：交互终端 |
-| `km stop` | 未实现（KM_NOT_IMPLEMENTED，退出 2） | P2：停止项目容器，数据保留，幂等 |
+| `km doctor` | 已实现 | 只读检查（含容器内活跃/遗留会话报告）。流程：①平台；②项目配置与本机状态（纯客户端文件）；③仅用客户端命令解析有效 endpoint（DOCKER_HOST > DOCKER_CONTEXT > 当前 context inspect），非本地 endpoint 判 `KM_ENDPOINT_REMOTE` 并跳过一切引擎查询；本地则把该 endpoint 固定（DOCKER_HOST 注入）给本次所有后续调用并查引擎版本；④比较 `.km/state.json` 记录的 endpoint，漂移判 `KM_RUNTIME_MISMATCH` 并跳过容器/镜像检查；⑤容器归属按记录的完整容器 ID 检查（名称、`km.project` 标签、`/workspace` 挂载源、容器实际镜像内容全部比对），同名重建判冲突不接管；⑥镜像标签内容与项目记录比对，漂移报警告。环境问题作为检查结果输出（stdout），doctor 自身完成即返回 0 |
+| `km init` | 已实现（非交互最小可用版） | 幂等：身份一致时复用；缺失镜像显式拉取（有界）；容器按记录完整 ID 校验/启动/重建；状态与配置原子写入；失败只回滚本次创建的资源；检测父项目（KM_PROJECT_NESTED） |
+| `km TOOL ARG...` | 已实现（非交互） | 会话内核执行（ADR-004）：argv 逐元素、三流流式、cwd 映射（符号链接逃逸拒绝）、退出码原样（取消 130）；停止的容器自动恢复；引擎/容器/镜像身份不符显式报错不静默重建；同项目串行（KM_PROJECT_BUSY），遗留锁清理不等于容器任务结束 |
+| `km run -- TOOL ARG...` | 已实现（非交互） | 同上长形式；`--` 必需，解决工具与 km 管理命令重名 |
+| `km shell` | 未实现（KM_NOT_IMPLEMENTED，退出 2） | P2-C：交互终端（PTY） |
+| `km stop` | 已实现 | 只停止当前项目已验证身份的容器；不删除容器/文件/镜像；幂等；执行中返回 KM_PROJECT_BUSY |
 
 ## 解析规则
 
@@ -30,7 +30,7 @@
 
 ## 错误标识
 
-`KM_RUNTIME_MISSING`（无 docker CLI / 容器内命令缺失 / context 无 endpoint）、`KM_RUNTIME_OFFLINE`（引擎不可达）、`KM_ENDPOINT_REMOTE`（远程 endpoint，v0.1 拒绝且不发引擎查询）、`KM_PROJECT_MISSING`、`KM_CONFIG_INVALID`、`KM_STATE_INVALID`、`KM_CONTAINER_CONFLICT`（ID/名称/标签/挂载/镜像内容任一不符或同名重建，不接管）、`KM_RUNTIME_MISMATCH`（状态记录的引擎与当前有效 endpoint 漂移，跳过容器/镜像检查）、`KM_TIMEOUT`（管理查询超时）、`KM_CANCELED`（km 收到取消，子进程已终止）、`KM_NOT_IMPLEMENTED`、`KM_USAGE`。
+`KM_PROJECT_NESTED`（嵌套 init；init 全程持项目锁，同项目并发/任务执行中返回 KM_PROJECT_BUSY）、`KM_PROJECT_BUSY`（同项目执行中）、`KM_IMAGE_DRIFT`（镜像标签内容与项目记录不一致）、`KM_SESSION_ACTIVE`（容器内仍有活跃会话，宿主疑似中断遗留；阻断新任务并给出显式 cancel 指引）、`KM_RUNTIME_MISSING`（无 docker CLI / 容器内命令缺失 / context 无 endpoint）、`KM_RUNTIME_OFFLINE`（引擎不可达）、`KM_ENDPOINT_REMOTE`（远程 endpoint，v0.1 拒绝且不发引擎查询）、`KM_PROJECT_MISSING`、`KM_CONFIG_INVALID`、`KM_STATE_INVALID`、`KM_CONTAINER_CONFLICT`（ID/名称/标签/挂载/镜像内容任一不符或同名重建，不接管）、`KM_RUNTIME_MISMATCH`（状态记录的引擎与当前有效 endpoint 漂移，跳过容器/镜像检查）、`KM_TIMEOUT`（管理查询超时）、`KM_CANCELED`（km 收到取消，子进程已终止）、`KM_NOT_IMPLEMENTED`、`KM_USAGE`。
 
 ## 超时
 

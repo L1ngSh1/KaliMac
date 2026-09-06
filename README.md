@@ -2,7 +2,7 @@
 
 Mac 上精简、可靠的 Kali CLI 入口：在终端输入 `km 工具 参数`，在当前项目的 Kali 容器执行；项目文件留在 Mac，工具输出与退出状态回到原终端。
 
-状态：**P0 技术验证 + P1 最小 CLI 骨架已完成（含 review 修复，0.1.1-p1）**。`init / run / shell / stop` 属于 P2，当前调用会明确报 `KM_NOT_IMPLEMENTED`（不会伪装成功）。doctor 会先解析有效 Docker endpoint（非本地引擎直接拒绝且不发引擎查询），并按记录的容器 ID、标签、挂载与镜像内容核验项目归属。
+状态：**P2-B 非交互最小可用版（0.2.0-p2）**。`init → run → stop → 再次执行恢复` 闭环可用（非交互：无 PTY/交互终端，`shell` 属 P2-C，调用明确报 `KM_NOT_IMPLEMENTED`）。执行走最小会话内核（唯一会话身份 + 容器内侧进程组清理，SIGINT 目标退出码 130）；doctor 先解析有效 Docker endpoint（非本地引擎直接拒绝且不发引擎查询），并按记录的容器 ID、标签、挂载与镜像内容核验项目归属。
 
 ## 依赖
 
@@ -13,16 +13,27 @@ Mac 上精简、可靠的 Kali CLI 入口：在终端输入 `km 工具 参数`�
 ## 快速开始
 
 ```bash
-make build          # 产出 ./bin/km
-./bin/km --help
-./bin/km --version  # 不依赖 Docker
-./bin/km doctor     # 只读检查平台/Docker/项目配置/容器归属/镜像
+make build                     # 产出 ./bin/km
+KM="$PWD/bin/km"               # 固定绝对路径（进入其他目录后 ./bin/km 不再可达）
+"$KM" --version                # 不依赖 Docker
+
+# （推荐）构建本地精选镜像并让项目使用它
+docker build -t kali-mac-min:0.2 images/kali
+
+cd /path/to/你的项目
+echo '{"schema_version":1,"image":"kali-mac-min:0.2"}' > .km.json
+"$KM" init                     # 建立项目环境（幂等；未写 .km.json 时使用默认镜像）
+echo 'print("hi")' > t.py
+"$KM" run -- python3 t.py      # 或 "$KM" python3 t.py
+"$KM" stop                     # 停止（容器与数据保留，幂等）
+"$KM" doctor                   # 只读检查平台/Docker/项目/容器归属/镜像/会话
 ```
 
-在任意目录运行 `./bin/km doctor` 会从当前目录向上查找 `.km.json` 项目配置并核对本机状态与容器归属。
+工具在项目容器内执行；项目文件经 bind mount 双向可见（容器内 /workspace），工具输出与退出状态回到原终端。镜像构建证据见 tests/evidence/。
 
 ## 文档
 
+- [docs/adr-004-session-execution.md](docs/adr-004-session-execution.md) — 会话执行与取消方案（P2-A，含取消/失联语义）
 - [docs/phase-0.md](docs/phase-0.md) — P0 实验记录：argv/stdio/退出码/挂载/信号（核心风险：docker exec 客户端死亡不传播信号，已实验证实）
 - [docs/cli-contract.md](docs/cli-contract.md) — CLI 行为合同与错误标识
 - [docs/architecture.md](docs/architecture.md) — 架构短记与设计决策
