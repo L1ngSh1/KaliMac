@@ -1,0 +1,8 @@
+## CASE binary-roundtrip (NORMAL): 二进制 stdin/stdout 往返哈希（完整64位）
+## started: 2026-09-06T03:14:30Z
+$ docker exec -i km-checked-checked-20260906-111429-c1 cat < '/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T//km-checked-checked-20260906-111429-rsvQHG/bin.in' > '/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T//km-checked-checked-20260906-111429-rsvQHG/bin.out'
+[cmd exit=0]
+ASSERT-OK 往返退出码
+ASSERT-FAIL 输出哈希等于输入-负向错误期望: 期望=[0000000000000000000000000000000000000000000000000000000000000000] 实际=[152ddaaaddcf2aa8395fa7daec0ec16b12eae8c2da154fe4db804ee35be584f2]
+## finished: 2026-09-06T03:14:30Z
+## result: FAIL (cmd_exit=0, assertion_failures=1)

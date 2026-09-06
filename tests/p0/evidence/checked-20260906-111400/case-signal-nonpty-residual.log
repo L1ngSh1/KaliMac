@@ -1,0 +1,11 @@
+## CASE signal-nonpty-residual (RISK_OBSERVE): 非 PTY 下杀死 docker exec 客户端：容器内任务应残留（已记录风险）
+## started: 2026-09-06T03:14:12Z
+$ rm -f '/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T//km-checked-checked-20260906-111400-dJsB7o/sig.log'; docker exec km-checked-checked-20260906-111400-c1 /workspace/sig.sh >/dev/null 2>&1 & CPID=$!; sleep 2; kill -KILL $CPID; wait $CPID 2>/dev/null; sleep 3; cat '/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T//km-checked-checked-20260906-111400-dJsB7o/sig.log' > '/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T//km-checked-checked-20260906-111400-dJsB7o/sig.readback' 2>/dev/null || true
+[cmd exit=0]
+ASSERT-OK 客户端已启动任务
+ASSERT-OK 风险观察-信号未到达容器任务
+$ docker exec km-checked-checked-20260906-111400-c1 ps -o pid,stat,comm 2>/dev/null | grep -c 'sig\.sh' > '/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T//km-checked-checked-20260906-111400-dJsB7o/leftover1.txt' || true
+[cmd exit=0]
+ASSERT-OK 风险观察-残留进程仍在
+## finished: 2026-09-06T03:14:17Z
+## result: PASS (cmd_exit=0, assertion_failures=0)

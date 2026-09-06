@@ -1,0 +1,23 @@
+{
+  "run_id": "1",
+  "negative_control": 1,
+  "started": "2026-09-06T03:14:29Z",
+  "finished": "2026-09-06T03:14:58Z",
+  "tool_image": {"ref": "docker.1ms.run/library/busybox:stable", "id": "sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662"},
+  "input_sha256": "152ddaaaddcf2aa8395fa7daec0ec16b12eae8c2da154fe4db804ee35be584f2",
+  "totals": {"pass": 11, "fail": 1, "skip": 0},
+  "cases": [
+    {"id": "argv-passthrough", "class": "NORMAL", "desc": "argv 复杂参数逐元素透传（空/空格/中文/引号/前导-）", "result": "PASS", "cmd_exit": 0, "duration_ms": 78, "log": "/Users/y4n9/Workspace/Projects/My-github-projects/KaliMac/tests/p0/evidence/checked-20260906-111429/case-argv-passthrough.log"},
+    {"id": "tool-help-flag", "class": "NORMAL", "desc": "工具自身的 --help 留给工具", "result": "PASS", "cmd_exit": 0, "duration_ms": 71, "log": "/Users/y4n9/Workspace/Projects/My-github-projects/KaliMac/tests/p0/evidence/checked-20260906-111429/case-tool-help-flag.log"},
+    {"id": "binary-roundtrip", "class": "NORMAL", "desc": "二进制 stdin/stdout 往返哈希（完整64位）", "result": "FAIL", "cmd_exit": 0, "duration_ms": 79, "log": "/Users/y4n9/Workspace/Projects/My-github-projects/KaliMac/tests/p0/evidence/checked-20260906-111429/case-binary-roundtrip.log"},
+    {"id": "stderr-separation", "class": "NORMAL", "desc": "stdout/stderr 分离捕获互不污染", "result": "PASS", "cmd_exit": 0, "duration_ms": 78, "log": "/Users/y4n9/Workspace/Projects/My-github-projects/KaliMac/tests/p0/evidence/checked-20260906-111429/case-stderr-separation.log"},
+    {"id": "exit-codes", "class": "EXPECT_NONZERO", "desc": "退出码 0/7/42 原样返回（7/42 为预期非零）", "result": "PASS", "cmd_exit": 42, "duration_ms": 144, "log": "/Users/y4n9/Workspace/Projects/My-github-projects/KaliMac/tests/p0/evidence/checked-20260906-111429/case-exit-codes.log"},
+    {"id": "exec-missing", "class": "EXPECT_NONZERO", "desc": "容器内命令不存在 → 127", "result": "PASS", "cmd_exit": 127, "duration_ms": 64, "log": "/Users/y4n9/Workspace/Projects/My-github-projects/KaliMac/tests/p0/evidence/checked-20260906-111429/case-exec-missing.log"},
+    {"id": "paths-persistence", "class": "NORMAL", "desc": "中文/空格路径、子目录 cwd、双向读写与 stop/start 持久化", "result": "PASS", "cmd_exit": 0, "duration_ms": 10413, "log": "/Users/y4n9/Workspace/Projects/My-github-projects/KaliMac/tests/p0/evidence/checked-20260906-111429/case-paths-persistence.log"},
+    {"id": "signal-nonpty-residual", "class": "RISK_OBSERVE", "desc": "非 PTY 下杀死 docker exec 客户端：容器内任务应残留（已记录风险）", "result": "PASS", "cmd_exit": 0, "duration_ms": 5152, "log": "/Users/y4n9/Workspace/Projects/My-github-projects/KaliMac/tests/p0/evidence/checked-20260906-111429/case-signal-nonpty-residual.log"},
+    {"id": "pty-ctrlc", "class": "NORMAL", "desc": "PTY 中键入 Ctrl-C：信号到达容器任务，客户端退出码 130", "result": "PASS", "cmd_exit": 0, "duration_ms": 5684, "log": "/Users/y4n9/Workspace/Projects/My-github-projects/KaliMac/tests/p0/evidence/checked-20260906-111429/case-pty-ctrlc.log"},
+    {"id": "pty-sigkill", "class": "RISK_OBSERVE", "desc": "PTY 下客户端被 SIGKILL：无信号传播（已记录风险）", "result": "PASS", "cmd_exit": 0, "duration_ms": 5734, "log": "/Users/y4n9/Workspace/Projects/My-github-projects/KaliMac/tests/p0/evidence/checked-20260906-111429/case-pty-sigkill.log"},
+    {"id": "kali-baseline", "class": "NORMAL", "desc": "Kali 基线：候选工具未预装（镜像缺失则 SKIP）", "result": "PASS", "cmd_exit": 0, "duration_ms": 186, "log": "/Users/y4n9/Workspace/Projects/My-github-projects/KaliMac/tests/p0/evidence/checked-20260906-111429/case-kali-baseline.log"},
+    {"id": "cleanup-verification", "class": "NORMAL", "desc": "清理核对：零残留+哈希不变", "result": "PASS", "cmd_exit": 0, "duration_ms": 0, "log": "/Users/y4n9/Workspace/Projects/My-github-projects/KaliMac/tests/p0/evidence/checked-20260906-111429/case-cleanup-verification.log"}
+  ]
+}

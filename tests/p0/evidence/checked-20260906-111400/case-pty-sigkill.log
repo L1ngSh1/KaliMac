@@ -1,0 +1,10 @@
+## CASE pty-sigkill (RISK_OBSERVE): PTY 下客户端被 SIGKILL：无信号传播（已记录风险）
+## started: 2026-09-06T03:14:23Z
+$ python3 '/Users/y4n9/Workspace/Projects/My-github-projects/KaliMac/tests/p0/checked/../pty_driver.py' sigkill 'km-checked-checked-20260906-111400-c1' '/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T//km-checked-checked-20260906-111400-dJsB7o' > '/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T//km-checked-checked-20260906-111400-dJsB7o/pty-sigkill.out'
+[cmd exit=0]
+ASSERT-OK 风险观察-无TRAP
+$ docker exec km-checked-checked-20260906-111400-c1 ps -o pid,stat,comm 2>/dev/null | grep -c 'sig\.sh' > '/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T//km-checked-checked-20260906-111400-dJsB7o/leftover2.txt' || true
+[cmd exit=0]
+ASSERT-OK 风险观察-残留进程仍在
+## finished: 2026-09-06T03:14:29Z
+## result: PASS (cmd_exit=0, assertion_failures=0)

@@ -1,0 +1,8 @@
+## CASE tool-help-flag (NORMAL): 工具自身的 --help 留给工具
+## started: 2026-09-06T03:14:30Z
+$ docker exec km-checked-checked-20260906-111429-c1 /workspace/argv.sh --help > '/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T//km-checked-checked-20260906-111429-rsvQHG/help.out'
+[cmd exit=0]
+ASSERT-OK help-退出码
+ASSERT-OK help留给工具
+## finished: 2026-09-06T03:14:30Z
+## result: PASS (cmd_exit=0, assertion_failures=0)

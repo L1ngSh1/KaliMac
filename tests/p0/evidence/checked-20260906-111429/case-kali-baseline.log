@@ -1,0 +1,10 @@
+## CASE kali-baseline (NORMAL): Kali 基线：候选工具未预装（镜像缺失则 SKIP）
+## started: 2026-09-06T03:14:57Z
+$ docker run -d --name km-checked-checked-20260906-111429-k1 --label km.owner=km-p0-test --label 'km.project=checked-20260906-111429' 'docker.1ms.run/kalilinux/kali-rolling:latest' sleep 900 >/dev/null && docker exec km-checked-checked-20260906-111429-k1 /bin/sh -c 'head -2 /etc/os-release; uname -m; for t in python3 curl jq nmap file openssl; do command -v $t >/dev/null 2>&1 && echo "$t: 有" || echo "$t: 无"; done' > '/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T//km-checked-checked-20260906-111429-rsvQHG/kali.out'
+[cmd exit=0]
+ASSERT-OK kali容器创建退出码
+ASSERT-OK kali发行版
+ASSERT-OK 无预装python
+ASSERT-OK 无预装nmap
+## finished: 2026-09-06T03:14:57Z
+## result: PASS (cmd_exit=0, assertion_failures=0)

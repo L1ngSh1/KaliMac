@@ -1,0 +1,13 @@
+## CASE exit-codes (EXPECT_NONZERO): 退出码 0/7/42 原样返回（7/42 为预期非零）
+## started: 2026-09-06T03:14:01Z
+$ docker exec km-checked-checked-20260906-111400-c1 true
+[cmd exit=0]
+ASSERT-OK true退出码
+$ docker exec km-checked-checked-20260906-111400-c1 sh -c 'exit 7'
+[cmd exit=7]
+ASSERT-OK exit7退出码
+$ docker exec km-checked-checked-20260906-111400-c1 sh -c 'exit 42'
+[cmd exit=42]
+ASSERT-OK exit42退出码
+## finished: 2026-09-06T03:14:02Z
+## result: PASS (cmd_exit=42, assertion_failures=0)

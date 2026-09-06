@@ -1,0 +1,7 @@
+## CASE exec-missing (EXPECT_NONZERO): 容器内命令不存在 → 127
+## started: 2026-09-06T03:14:02Z
+$ docker exec km-checked-checked-20260906-111400-c1 no-such-cmd-zzz >/dev/null 2>&1
+[cmd exit=127]
+ASSERT-OK 缺失命令退出码
+## finished: 2026-09-06T03:14:02Z
+## result: PASS (cmd_exit=127, assertion_failures=0)

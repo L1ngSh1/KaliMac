@@ -1,0 +1,8 @@
+## CASE pty-ctrlc (NORMAL): PTY 中键入 Ctrl-C：信号到达容器任务，客户端退出码 130
+## started: 2026-09-06T03:14:46Z
+$ python3 '/Users/y4n9/Workspace/Projects/My-github-projects/KaliMac/tests/p0/checked/../pty_driver.py' ctrl_c 'km-checked-checked-20260906-111429-c1' '/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T//km-checked-checked-20260906-111429-rsvQHG' > '/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T//km-checked-checked-20260906-111429-rsvQHG/pty-ctrlc.out'
+[cmd exit=0]
+ASSERT-OK TRAP出现
+ASSERT-OK 客户端退出码130
+## finished: 2026-09-06T03:14:51Z
+## result: PASS (cmd_exit=0, assertion_failures=0)

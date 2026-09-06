@@ -1,0 +1,9 @@
+## CASE stderr-separation (NORMAL): stdout/stderr 分离捕获互不污染
+## started: 2026-09-06T03:14:01Z
+$ docker exec km-checked-checked-20260906-111400-c1 sh -c 'echo OUT_LINE; echo ERR_LINE >&2' >'/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T//km-checked-checked-20260906-111400-dJsB7o/e4.out' 2>'/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T//km-checked-checked-20260906-111400-dJsB7o/e4.err'
+[cmd exit=0]
+ASSERT-OK 分离退出码
+ASSERT-OK stdout内容
+ASSERT-OK stderr内容
+## finished: 2026-09-06T03:14:01Z
+## result: PASS (cmd_exit=0, assertion_failures=0)

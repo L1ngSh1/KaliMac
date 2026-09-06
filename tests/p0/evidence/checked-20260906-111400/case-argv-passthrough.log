@@ -1,0 +1,8 @@
+## CASE argv-passthrough (NORMAL): argv 复杂参数逐元素透传（空/空格/中文/引号/前导-）
+## started: 2026-09-06T03:14:01Z
+$ docker exec km-checked-checked-20260906-111400-c1 /workspace/argv.sh '' 'a b' '中文参数' 'he said "hi"' --help -x '5 * ?' > '/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T//km-checked-checked-20260906-111400-dJsB7o/argv.out'
+[cmd exit=0]
+ASSERT-OK argv-退出码
+ASSERT-OK argv-7行逐字匹配
+## finished: 2026-09-06T03:14:01Z
+## result: PASS (cmd_exit=0, assertion_failures=0)

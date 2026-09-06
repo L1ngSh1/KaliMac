@@ -1,0 +1,3 @@
+cleanup 残留容器数=0; bin.in sha256=152ddaaaddcf2aa8395fa7daec0ec16b12eae8c2da154fe4db804ee35be584f2 (期望 152ddaaaddcf2aa8395fa7daec0ec16b12eae8c2da154fe4db804ee35be584f2)
+ASSERT-OK 零残留
+ASSERT-OK 哈希不变

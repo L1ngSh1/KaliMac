@@ -1,0 +1,17 @@
+## CASE paths-persistence (NORMAL): 中文/空格路径、子目录 cwd、双向读写与 stop/start 持久化
+## started: 2026-09-06T03:14:02Z
+$ docker exec -w '/workspace/中文 目录/子 目' km-checked-checked-20260906-111400-c1 pwd > '/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T//km-checked-checked-20260906-111400-dJsB7o/cwd.out'
+[cmd exit=0]
+ASSERT-OK 子目录cwd
+$ docker exec km-checked-checked-20260906-111400-c1 /bin/sh -c 'echo 容器侧写入 >> "/workspace/中文 目录/hello.txt"; echo 容器生成数据 > /workspace/created.txt'
+[cmd exit=0]
+ASSERT-OK 容器写退出码
+$ docker stop km-checked-checked-20260906-111400-c1 >/dev/null && docker start km-checked-checked-20260906-111400-c1 >/dev/null
+[cmd exit=0]
+ASSERT-OK stopstart退出码
+$ docker exec km-checked-checked-20260906-111400-c1 cat /workspace/created.txt > '/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T//km-checked-checked-20260906-111400-dJsB7o/created.readback'
+[cmd exit=0]
+ASSERT-OK stop后数据保留
+ASSERT-OK mac侧追加可见
+## finished: 2026-09-06T03:14:12Z
+## result: PASS (cmd_exit=0, assertion_failures=0)

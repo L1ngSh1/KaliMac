@@ -1,0 +1,13 @@
+P0-CHECKED 汇总: PASS=12 FAIL=0 SKIP=0 (共 12)
+  PASS NORMAL         argv-passthrough         cmd_exit=0    76ms
+  PASS NORMAL         tool-help-flag           cmd_exit=0    63ms
+  PASS NORMAL         binary-roundtrip         cmd_exit=0    80ms
+  PASS NORMAL         stderr-separation        cmd_exit=0    69ms
+  PASS EXPECT_NONZERO exit-codes               cmd_exit=42   168ms
+  PASS EXPECT_NONZERO exec-missing             cmd_exit=127  61ms
+  PASS NORMAL         paths-persistence        cmd_exit=0    10384ms
+  PASS RISK_OBSERVE   signal-nonpty-residual   cmd_exit=0    5150ms
+  PASS NORMAL         pty-ctrlc                cmd_exit=0    5676ms
+  PASS RISK_OBSERVE   pty-sigkill              cmd_exit=0    5734ms
+  PASS NORMAL         kali-baseline            cmd_exit=0    187ms
+  PASS NORMAL         cleanup-verification     cmd_exit=0    0ms
