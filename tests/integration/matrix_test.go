@@ -280,6 +280,7 @@ func TestRunEngineDriftRejected(t *testing.T) {
 	if _, errb, code := kmRun(t, dir, nil, "init"); code != 0 {
 		t.Fatalf("init: %s", errb)
 	}
+	registerProjectCleanup(t, dir)
 	// 篡改 state 的 endpoint → 漂移
 	statePath := filepath.Join(dir, ".km", "state.json")
 	raw := string(readFile(t, statePath))

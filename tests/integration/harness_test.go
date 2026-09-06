@@ -97,6 +97,12 @@ func guardResidue(t *testing.T) {
 // sessionContainer 创建一个挂载项目目录的 --init 容器并记录完整 ID。
 func sessionContainer(t *testing.T, projectDir string) (id, name string) {
 	t.Helper()
+	return sessionContainerImage(t, projectDir, toolImage)
+}
+
+// sessionContainerImage 同上，但指定镜像（C1 用精选镜像：含 bash/ps/stty）。
+func sessionContainerImage(t *testing.T, projectDir, image string) (id, name string) {
+	t.Helper()
 	guardResidue(t)
 	if !dockerUp(t) {
 		t.Skip("Docker 引擎不可达")
@@ -110,7 +116,7 @@ func sessionContainer(t *testing.T, projectDir string) (id, name string) {
 	name = "km-" + runID + "-" + uniqName()
 	out, code := runCapture(t, nil, "run", "-d", "--init",
 		"--name", name, "--label", ownerLabel, "--label", projectLbl,
-		"-v", projectDir+":/workspace", toolImage, "sleep", "900")
+		"-v", projectDir+":/workspace", image, "sleep", "900")
 	if code != 0 {
 		t.Fatalf("容器创建失败: %s", out)
 	}

@@ -1,0 +1,24 @@
+{
+ "steps": [
+  {
+   "step": 0,
+   "op": "expect",
+   "ok": true,
+   "matched": true
+  },
+  {
+   "step": 1,
+   "op": "signal",
+   "ok": true
+  }
+ ],
+ "exit_code": 143,
+ "termios_equal": true,
+ "signals_sent": [
+  "SIGHUP"
+ ],
+ "eof": false,
+ "error": null,
+ "termios_before_lflag": 1483,
+ "termios_after_lflag": 1483
+}

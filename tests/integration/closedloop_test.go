@@ -19,7 +19,10 @@ import (
 
 const minImageRef = "kali-mac-min:0.2"
 
-var kmBin string
+var (
+	kmBin    string
+	shellBin string
+)
 
 func TestMain(m *testing.M) {
 	tmp, err := os.MkdirTemp("", "km-p2b-bin-")
@@ -28,12 +31,19 @@ func TestMain(m *testing.M) {
 		os.Exit(2)
 	}
 	kmBin = filepath.Join(tmp, "km")
+	shellBin = filepath.Join(tmp, "shellproto")
 	repo, _ := filepath.Abs("../..")
 	build := exec.Command("go", "build", "-o", kmBin, "./cmd/km")
 	build.Dir = repo
 	build.Stdout, build.Stderr = os.Stdout, os.Stderr
 	if err := build.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "构建 km 失败:", err)
+		os.Exit(2)
+	}
+	sp := exec.Command("go", "build", "-o", shellBin, "./cmd/shellproto")
+	sp.Dir = repo
+	if err := sp.Run(); err != nil {
+		fmt.Fprintln(os.Stderr, "构建 shellproto 失败:", err)
 		os.Exit(2)
 	}
 	// 最小镜像：本地已存在则复用；缺失则构建（有据可查）
