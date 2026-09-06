@@ -59,6 +59,28 @@ GetState/Restore 兜底，raw mode 日常管理不在 km）。获取经 goproxy.
 非交互路径（km-run/km-ctl、argv/三流/退出码/取消语义）保持不变。交互 shell 不复用
 setsid+后台启动脚本——控制终端需要 bash 作为会话首进程，由 `-t` 直接满足。
 
+## C2：产品接入（2026-09-06，km 0.3.0-p2）
+
+`km shell` 已接入产品入口（internal/cli/shell.go + internal/session/shell.go）：
+
+1. **会话登记**：容器侧新增 `km-shell` 脚本——登记 pid/kind=shell 后 `exec bash`。
+   shell 会话与工具会话同住 /tmp/km-sessions，M0 的核验语义（KM_SESSION_ACTIVE/
+   KM_SESSION_UNKNOWN）对 shell 同样生效：宿主强杀后的活跃 shell 会阻断后续
+   run/shell（集成实测），显式 cancel 后恢复。
+2. **信号整合**：`cmd/km/main.go` 的全局 `signal.NotifyContext` 对 shell 无影响——
+   RunShell 不接收 ctx（Starter 用普通 exec.Command，非 CommandContext），并安装
+   自有 handler（SIGWINCH 转发、SIGTERM/SIGHUP 兜底恢复+143、SIGINT 忽略）。
+   NotifyContext 在 shell 期间收到的信号只会标记 ctx（无人消费），退出后恢复默认。
+3. **锁与串行**：shell 全程持有项目锁——shell 期间第二个 shell/run → BUSY；
+   容器侧活跃 shell（崩溃遗留）→ KM_SESSION_ACTIVE。
+4. **尺寸同步**：启动后延迟重发两次 SIGWINCH 给客户端（客户端转发 exec resize），
+   转发即时生效于后续窗口变化。
+5. **退出清扫**：正常退出后 km 主动 Sweep 自己的会话目录；异常路径遗留 STALE
+   由下次执行清扫（M0 语义）。SIGTERM 路径退出 143，bash 存活属 ADR-004/005
+   已记录的失联语义。
+6. 复用 `verifyNoActiveSession`：run 与 shell 共享同一核验实现（review 发现的
+   重复已消除）。
+
 ## Remaining risks（接入 km shell 前需处理）
 
 1. shell 会话尚未纳入 km-ctl 会话登记：bash 逃逸作业只能靠 doctor/ps 观测；接入时

@@ -2,7 +2,7 @@
 
 Mac 上精简、可靠的 Kali CLI 入口：在终端输入 `km 工具 参数`，在当前项目的 Kali 容器执行；项目文件留在 Mac，工具输出与退出状态回到原终端。
 
-状态：**P2-B 非交互最小可用版（0.2.0-p2）**。`init → run → stop → 再次执行恢复` 闭环可用（非交互：无 PTY/交互终端，`shell` 属 P2-C，调用明确报 `KM_NOT_IMPLEMENTED`）。执行走最小会话内核（唯一会话身份 + 容器内侧进程组清理，SIGINT 目标退出码 130）；doctor 先解析有效 Docker endpoint（非本地引擎直接拒绝且不发引擎查询），并按记录的容器 ID、标签、挂载与镜像内容核验项目归属。
+状态：**P2-C 交互版（0.3.0-p2）**。`init → run → shell → stop → 恢复` 闭环可用：非交互执行（会话级取消、退出码透传）+ 交互 bash（真实终端接管，作业控制/Ctrl-C/窗口尺寸跟随）。执行走最小会话内核（唯一会话身份 + 容器内侧进程组清理，SIGINT 目标退出码 130）；doctor 先解析有效 Docker endpoint（非本地引擎直接拒绝且不发引擎查询），并按记录的容器 ID、标签、挂载与镜像内容核验项目归属。
 
 ## 依赖
 
@@ -25,6 +25,7 @@ echo '{"schema_version":1,"image":"kali-mac-min:0.2"}' > .km.json
 "$KM" init                     # 建立项目环境（幂等；未写 .km.json 时使用默认镜像）
 echo 'print("hi")' > t.py
 "$KM" run -- python3 t.py      # 或 "$KM" python3 t.py
+"$KM" shell                    # 交互 bash（真实终端接管；Ctrl-C/作业控制可用）
 "$KM" stop                     # 停止（容器与数据保留，幂等）
 "$KM" doctor                   # 只读检查平台/Docker/项目/容器归属/镜像/会话
 ```

@@ -12,7 +12,7 @@
 | `km init` | 已实现（非交互最小可用版） | 幂等：身份一致时复用；缺失镜像显式拉取（有界）；容器按记录完整 ID 校验/启动/重建；状态与配置原子写入；失败只回滚本次创建的资源；检测父项目（KM_PROJECT_NESTED） |
 | `km TOOL ARG...` | 已实现（非交互） | 会话内核执行（ADR-004）：argv 逐元素、三流流式、cwd 映射（符号链接逃逸拒绝）、退出码原样（取消 130）；停止的容器自动恢复；引擎/容器/镜像身份不符显式报错不静默重建；同项目串行（KM_PROJECT_BUSY），遗留锁清理不等于容器任务结束 |
 | `km run -- TOOL ARG...` | 已实现（非交互） | 同上长形式；`--` 必需，解决工具与 km 管理命令重名 |
-| `km shell` | 未实现（KM_NOT_IMPLEMENTED，退出 2） | P2-C：交互终端（PTY）。C1 原型已通过（docs/adr-005-terminal-shell.md，实验二进制 cmd/shellproto），产品入口待接入 |
+| `km shell` | 已实现（C2） | 交互 bash：Docker CLI 接管真实终端（raw mode/恢复/尺寸归客户端）；会话登记进 /tmp/km-sessions（与工具会话互斥，崩溃遗留阻断后续任务）；stdin/stdout 非终端 → KM_NOT_TTY（exit 1，进入前失败）；外部 SIGTERM/SIGHUP → 恢复终端并退出 143；键盘 Ctrl-C/Ctrl-D/作业控制直达 bash；退出码原样透传 |
 | `km stop` | 已实现 | 只停止当前项目已验证身份的容器；不删除容器/文件/镜像；幂等；执行中返回 KM_PROJECT_BUSY |
 
 ## 解析规则
