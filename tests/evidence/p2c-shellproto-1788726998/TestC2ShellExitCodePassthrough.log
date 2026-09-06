@@ -1,0 +1,6 @@
+[?2004hKM_SHELL> exit 7
+[?2004lexit
+
+[1mWhat's next:[0m
+    Try Docker Debug for seamless, persistent debugging tools in any container or image → [36mdocker debug 1683f3e01c706407813faa6be95c4e93a0b37ea5e646d669ec1600747b7620ad[0m
+    Learn more at https://docs.docker.com/go/debug-cli/

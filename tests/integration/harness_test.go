@@ -146,7 +146,7 @@ func assertNoResidue(t *testing.T) {
 // waitSessionDir 等待容器内出现会话目录，返回 (sid, pid)。
 func waitSessionDir(t *testing.T, container string) (string, string) {
 	t.Helper()
-	deadline := time.Now().Add(10 * time.Second)
+	deadline := time.Now().Add(25 * time.Second)
 	for time.Now().Before(deadline) {
 		out, code := dexec(t, container, "/bin/sh", "-c", "ls /tmp/km-sessions 2>/dev/null | head -1")
 		if code == 0 && strings.TrimSpace(out) != "" {

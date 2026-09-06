@@ -1,0 +1,9 @@
+[?2004hKM_SHELL> echo WARMUP=1
+[?2004lWARMUP=1
+[?2004hKM_SHELL> 
+[1mWhat's next:[0m
+    Try Docker Debug for seamless, persistent debugging tools in any container or image → [36mdocker debug 8a93379d65f91d5c9556f5a81e3341158e6992cfac65a0d9a5927d1299178344[0m
+    Learn more at https://docs.docker.com/go/debug-cli/
+read escape sequence
+km: shell 会话存活检查失败（KM_RUNTIME_OFFLINE: docker 命令失败（退出码 -1））；登记保留，后续任务将被阻断
+KM_PROTO_CLEANUP_UNCONFIRMED: 会话收尾未确认；登记保留

@@ -44,6 +44,11 @@ func runKmShellScenario(t *testing.T, dir string, steps []step) map[string]any {
 	rawLog, _ := os.ReadFile(logPath)
 	res["raw"] = string(rawLog)
 	res["log_path"] = logPath
+	// 场景失败（步骤超时/EOF/异常退出/未退出）统一传播为测试失败（review A）
+	assertScenarioOK(t, res)
+	if _, ok := res["exit_code"]; !ok {
+		t.Fatalf("驱动器未报告退出码: %v", res)
+	}
 	return res
 }
 
@@ -56,6 +61,20 @@ func kmShellSteps() []step {
 // T1：km shell 可用、会话登记可见（kind=shell）、命令可执行；正常退出后
 // 遗留目录被自动清扫、后续 run 正常。
 func TestC2ShellInteractiveAndRegistered(t *testing.T) {
+	if os.Getenv("C2_PROBE") == "1" {
+		// 探针模式：在会话内打印登记目录与环境变量
+		dir := newP2BProject(t)
+		if _, errb, code := kmRun(t, dir, nil, "init"); code != 0 {
+			t.Fatalf("init: %s", errb)
+		}
+		res := runKmShellScenario(t, dir, append(kmShellSteps(),
+			step{"op": "send", "text": "ls /tmp/km-sessions; echo SID=$KM_SESSION_ID; ls /tmp/km-sessions/$KM_SESSION_ID\r"},
+			step{"op": "expect", "pattern": "SID=s", "timeout": 10},
+			step{"op": "send", "text": "exit\r"},
+		))
+		fmt.Println("PROBE RAW:\n" + res["raw"].(string))
+		return
+	}
 	dir := newP2BProject(t)
 	if _, errb, code := kmRun(t, dir, nil, "init"); code != 0 {
 		t.Fatalf("init: %s", errb)
@@ -146,8 +165,8 @@ func TestC2ShellSessionBlocksAfterHostKill(t *testing.T) {
 	res := runKmShellScenario(t, dir, append(kmShellSteps(),
 		step{"op": "signal", "name": "SIGKILL"},
 	))
-	if res["exit_code"].(float64) != -9 {
-		t.Fatalf("SIGKILL 应终止 km: %v", res["exit_code"])
+	if sig, ok := res["exit_sig"].(float64); !ok || sig != 9 {
+		t.Fatalf("SIGKILL 应终止 km: sig=%v exit=%v", res["exit_sig"], res["exit_code"])
 	}
 	// km 已死，登记的 shell 会话目录仍在（bash 存活）
 	_, bashPid := waitSessionDir(t, id)
@@ -201,8 +220,8 @@ func TestC2ShellSigkillBashSurvives(t *testing.T) {
 	res := runKmShellScenario(t, dir, append(kmShellSteps(),
 		step{"op": "signal", "name": "SIGKILL"},
 	))
-	if res["exit_code"].(float64) != -9 {
-		t.Fatalf("SIGKILL 应终止 km: %v", res["exit_code"])
+	if sig, ok := res["exit_sig"].(float64); !ok || sig != 9 {
+		t.Fatalf("SIGKILL 应终止 km: sig=%v exit=%v", res["exit_sig"], res["exit_code"])
 	}
 	_, bashPid := waitSessionDir(t, id)
 	time.Sleep(400 * time.Millisecond)

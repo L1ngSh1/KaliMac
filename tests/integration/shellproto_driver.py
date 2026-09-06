@@ -1,25 +1,22 @@
 #!/usr/bin/env python3
-"""C1 交互原型 PTY 驱动器。
+"""C1/C2 交互原型 PTY 驱动器（v2：消费游标 + 严格失败传播）。
 
-在真实宿主 PTY 上启动 shellproto，按场景步骤驱动键盘输入/期望输出/窗口
-尺寸/外部信号；提示符标记（KM_SHELL> ）作为同步手段，不用固定 sleep 作
-唯一同步。输出结构化 JSON（退出码、termios 前后快照、每个步骤结果）与
-原始 PTY 日志。
+在真实宿主 PTY 上启动被测进程（shellproto 或 `km shell`），按场景步骤驱动
+键盘输入/期望输出/窗口尺寸/外部信号。提示符标记（KM_SHELL> ）作为同步手段。
+
+v2 关键语义（review 修复）：
+  - 消费游标：每次 expect 只在「尚未消费的输出」中匹配，旧提示符/旧回显
+    不能满足新的等待；匹配后游标推进到匹配末尾。
+  - 严格失败传播：任何步骤超时/异常，或子进程异常退出，场景整体 ok=false
+    并中止后续步骤；Go 测试必须断言 result["ok"]==true。
+  - 统一子进程状态管理：waitpid 只由收割器执行一次，退出状态保存在
+    result["exit_code"]（正=exit，负=signal），不会丢失。
+  - 步骤结果逐条记录到 steps（每个 expect 报告 matched 与消耗的字节数）。
 
 用法:
   python3 shellproto_driver.py -container ID -proto PATH \
-      -scenario steps.json -log raw.log -json result.json
-
-步骤 op:
-  {"op":"expect","pattern":"...","timeout":15}   等待输出出现（正则搜索）
-  {"op":"send","text":"..."}                     写入文本（调用方自带 \\r）
-  {"op":"sendb","b64":"Aw=="}                    写入原始字节（控制字符用）
-  {"op":"resize","rows":40,"cols":100}           设置宿主 PTY 窗口尺寸
-  {"op":"signal","name":"SIGTERM"}               向 proto 进程发送信号
-  {"op":"settle","secs":0.3}                     小幅等待（辅助，非唯一同步）
-
-模式：-mode proto（默认，直接驱动 shellproto）| -mode km（驱动真实 `km shell`，
-配合 -cwd 指定项目目录）。
+      -scenario steps.json -log raw.log -json result.json \
+      [-mode proto|km] [-cwd DIR] [-extra-arg k=v]...
 """
 import argparse
 import base64
@@ -42,7 +39,7 @@ def set_winsize(fd, rows, cols):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("-container", required=True)
+    ap.add_argument("-container", default="unused")
     ap.add_argument("-proto", required=True)
     ap.add_argument("-scenario", required=True)
     ap.add_argument("-log", required=True)
@@ -50,23 +47,22 @@ def main():
     ap.add_argument("-extra-arg", action="append", default=[])
     ap.add_argument("-mode", default="proto", choices=["proto", "km"])
     ap.add_argument("-cwd", default=None)
+    ap.add_argument("-timeout", type=float, default=25.0, help="单次 expect 默认超时")
     args = ap.parse_args()
 
     steps = json.load(open(args.scenario))
-    result = {"steps": [], "exit_code": None, "termios_equal": None,
-              "signals_sent": [], "eof": False, "error": None}
+    result = {"ok": True, "steps": [], "exit_code": None, "exit_sig": None,
+              "termios_equal": None, "signals_sent": [], "error": None}
 
     pid, fd = pty.fork()
     if pid == 0:
-        # K 项 stdout 变体：把 stdout 换成普通文件（不再是终端）后再 exec
         redir = os.environ.get("PROTO_STDOUT_REDIRECT")
         if redir:
             f = os.open(redir, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o644)
             os.dup2(f, 1)
         if args.cwd:
-            os.chdir(args.cwd)
+            os.chdir(os.path.realpath(args.cwd))  # 解析符号链接，保证与 km Getwd 一致
         if args.mode == "km":
-            # 产品入口：km shell（容器/会话由 km 自行解析）
             argv = [args.proto, "shell"]
         else:
             argv = [args.proto, "-container", args.container]
@@ -76,19 +72,35 @@ def main():
         os.execvp(argv[0], argv)
         os._exit(127)
 
-    # 终端快照：master/slave 共享同一 termios。紧随 fork 读取（早于
-    # docker 客户端进入 raw mode 的毫秒级窗口），作为「进入前状态」基线。
+    # 进入前 termios 基线：紧随 fork 读取（早于 docker 客户端进入 raw mode）
     termios_before = termios.tcgetattr(fd)
-
-    # 子进程启动后设置初始窗口尺寸
     set_winsize(fd, 40, 120)
 
     buf = b""
+    cursor = 0          # 消费游标：expect 只匹配 buf[cursor:]
     log = open(args.log, "wb")
-    stopped = False
+    child_status = None  # 统一收割：None=未退出；(exit, sig) 元组
+    abort = False
+
+    def reap():
+        """唯一的状态回收点：WNOHANG 收割一次并保存，绝不丢弃退出状态。"""
+        nonlocal child_status
+        if child_status is not None:
+            return True
+        try:
+            wpid, wstatus = os.waitpid(pid, os.WNOHANG)
+        except ChildProcessError:
+            return False  # 已由别处收割（不应发生）
+        if wpid == pid:
+            if os.WIFEXITED(wstatus):
+                child_status = (os.WEXITSTATUS(wstatus), None)
+            elif os.WIFSIGNALED(wstatus):
+                child_status = (None, os.WTERMSIG(wstatus))
+            return True
+        return False
 
     def read_avail(timeout):
-        nonlocal buf, stopped
+        """读取当前可用输出；返回是否读到数据。子进程退出不在此判定。"""
         end = time.time() + timeout
         while time.time() < end:
             r, _, _ = select.select([fd], [], [], 0.05)
@@ -96,92 +108,118 @@ def main():
                 try:
                     chunk = os.read(fd, 65536)
                 except OSError:
-                    stopped = True
-                    return False
+                    return False  # PTY 已关闭（子进程退出后常见）
                 if chunk == b"":
-                    stopped = True
                     return False
-                buf += chunk
+                nonlocal_buf[0] += chunk
                 log.write(chunk)
                 log.flush()
                 return True
-            # 子进程是否已退出
-            try:
-                wpid, status = os.waitpid(pid, os.WNOHANG)
-                if wpid == pid:
-                    stopped = True
-                    return False
-            except ChildProcessError:
-                stopped = True
-                return False
+            time.sleep(0.005)
         return False
+
+    # read_avail 需要 rewrite buf：用列表绕开 nonlocal 限制
+    nonlocal_buf = [b""]
+
+    def expect(pattern, timeout):
+        """在 buf[cursor:] 中等待 pattern。返回 (matched, err)。"""
+        nonlocal cursor
+        pat = pattern.encode()
+        deadline = time.time() + timeout
+        while True:
+            m = re.search(pat, nonlocal_buf[0][cursor:])
+            if m:
+                cursor += m.end()
+                return True, None
+            if reap():
+                return False, "child-exited"
+            if time.time() > deadline:
+                return False, "expect-timeout"
+            end = time.time() + 0.2
+            got = False
+            while time.time() < end:
+                r, _, _ = select.select([fd], [], [], 0.05)
+                if fd in r:
+                    try:
+                        chunk = os.read(fd, 65536)
+                    except OSError:
+                        return False, "pty-eof"
+                    if chunk:
+                        nonlocal_buf[0] += chunk
+                        log.write(chunk)
+                        log.flush()
+                        got = True
+                time.sleep(0.005)
+            if not got and reap():
+                return False, "child-exited"
 
     for idx, step in enumerate(steps):
         op = step["op"]
         entry = {"step": idx, "op": op, "ok": True}
+        if abort:
+            entry["ok"] = False
+            entry["error"] = "aborted"
+            result["steps"].append(entry)
+            continue
         try:
             if op == "send":
                 os.write(fd, step["text"].encode())
+                entry["sent"] = step["text"]
+                time.sleep(0.05)
             elif op == "sendb":
                 os.write(fd, base64.b64decode(step["b64"]))
+                time.sleep(0.05)
             elif op == "expect":
-                deadline = time.time() + step.get("timeout", 15)
-                pat = step["pattern"].encode()
-                while not re.search(pat, buf):
-                    if not read_avail(0.2):
-                        if time.time() > deadline:
-                            entry["ok"] = False
-                            entry["error"] = "expect-timeout"
-                            entry["buffer_tail"] = buf[-400:].decode("utf-8", "replace")
-                            break
-                entry["matched"] = bool(re.search(pat, buf))
+                ok, err = expect(step["pattern"], step.get("timeout", args.timeout))
+                entry["ok"] = ok
+                entry["matched"] = ok
+                entry["buffer_tail"] = nonlocal_buf[0][-260:].decode("utf-8", "replace")
+                if err:
+                    entry["error"] = err
+                    abort = True
             elif op == "resize":
                 set_winsize(fd, step["rows"], step["cols"])
             elif op == "signal":
-                sig = getattr(signal, step["name"])
-                os.kill(pid, sig)
+                os.kill(pid, getattr(signal, step["name"]))
                 result["signals_sent"].append(step["name"])
             elif op == "settle":
                 end = time.time() + step.get("secs", 0.3)
                 while time.time() < end:
                     read_avail(0.1)
-            if op != "expect":
-                read_avail(0.05)
+            else:
+                entry["ok"] = False
+                entry["error"] = "unknown-op"
         except Exception as exc:  # noqa: BLE001
             entry["ok"] = False
             entry["error"] = repr(exc)
+            abort = True
+        if not entry["ok"]:
+            result["ok"] = False
         result["steps"].append(entry)
 
-    # 等待子进程退出（最多 20s）
+    # 统一等待退出（最多 20s）；收割器保证状态不丢失
     deadline = time.time() + 20
-    status = None
     while time.time() < deadline:
-        try:
-            wpid, wstatus = os.waitpid(pid, os.WNOHANG)
-        except ChildProcessError:
-            result["error"] = "child-already-reaped"
-            break
-        if wpid == pid:
-            status = wstatus
+        if reap():
             break
         read_avail(0.1)
-    if status is not None:
-        if os.WIFEXITED(status):
-            result["exit_code"] = os.WEXITSTATUS(status)
-        elif os.WIFSIGNALED(status):
-            result["exit_code"] = -os.WTERMSIG(status)
-    else:
+    if child_status is None:
+        result["ok"] = False
         result["error"] = "child-not-exited"
         try:
             os.kill(pid, signal.SIGKILL)
-            os.waitpid(pid, 0)
+            _, wstatus = os.waitpid(pid, 0)
+            if os.WIFSIGNALED(wstatus):
+                result["exit_sig"] = os.WTERMSIG(wstatus)
         except (ProcessLookupError, ChildProcessError):
             pass
+    else:
+        exit_code, exit_sig = child_status
+        result["exit_code"] = exit_code
+        result["exit_sig"] = exit_sig
 
     termios_after = termios.tcgetattr(fd)
     result["termios_equal"] = termios_before == termios_after
-    result["termios_before_lflag"] = termios_before[3]
-    result["termios_after_lflag"] = termios_after[3]
     json.dump(result, open(args.json, "w"), ensure_ascii=False, indent=1)
     log.close()
 
