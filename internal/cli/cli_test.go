@@ -49,7 +49,8 @@ func TestHelpAndVersionZeroExternalCalls(t *testing.T) {
 		{"nmap", "--help"}, {"run", "--", "stop"},
 	} {
 		code, _, _ := run(t, argv...)
-		if code != ExitOK && code != ExitUsage {
+		// ExitEnv：工具路径在未初始化目录先报 KM_PROJECT_MISSING（仍零外部调用）
+		if code != ExitOK && code != ExitUsage && code != ExitEnv {
 			t.Fatalf("%v code=%d", argv, code)
 		}
 	}
@@ -81,11 +82,8 @@ func TestDoctorRejectsArgs(t *testing.T) {
 
 // P1 边界：init/shell/stop 与工具执行必须明确报未实现，禁止空实现冒充完成。
 func TestUnimplementedCommandsAreExplicit(t *testing.T) {
-	cases := [][]string{
-		{"init"}, {"shell"}, {"stop"},
-		{"nmap", "-sV", "127.0.0.1"},
-		{"run", "--", "nmap", "-p", "1"},
-	}
+	// P2-C 边界：shell 仍未实现；init/run/stop 自 P2-B 起真实实现。
+	cases := [][]string{{"shell"}}
 	for _, argv := range cases {
 		code, _, errOut := run(t, argv...)
 		if code != ExitUsage {
@@ -94,13 +92,24 @@ func TestUnimplementedCommandsAreExplicit(t *testing.T) {
 		if !strings.Contains(errOut, "KM_NOT_IMPLEMENTED") {
 			t.Fatalf("%v 缺少 KM_NOT_IMPLEMENTED: %q", argv, errOut)
 		}
-		if strings.Contains(errOut, "成功") {
-			t.Fatalf("%v 不应声称成功: %q", argv, errOut)
-		}
+	}
+}
+
+// 未实现命令与环境前提的边界：未初始化项目下执行工具 → KM_PROJECT_MISSING（exit 1）。
+func TestToolWithoutProjectIsEnvError(t *testing.T) {
+	forbidDocker(t) // 健康路径前不发 docker 调用（FindConfig 先失败）
+	dir := t.TempDir()
+	t.Chdir(dir)
+	code, _, errOut := run(t, "nmap", "-h")
+	if code != ExitEnv || !strings.Contains(errOut, "KM_PROJECT_MISSING") {
+		t.Fatalf("code=%d err=%q", code, errOut)
 	}
 }
 
 func TestRunLongFormRequiresSeparator(t *testing.T) {
+	forbidDocker(t)
+	dir := t.TempDir()
+	t.Chdir(dir)
 	code, _, errOut := run(t, "run", "nmap", "x")
 	if code != ExitUsage || !strings.Contains(errOut, "--") {
 		t.Fatalf("code=%d err=%q", code, errOut)
@@ -112,20 +121,5 @@ func TestRunLongFormRequiresSeparator(t *testing.T) {
 	code, _, errOut = run(t, "run", "--")
 	if code != ExitUsage {
 		t.Fatalf("km run -- 无工具 code=%d err=%q", code, errOut)
-	}
-}
-
-// 与管理命令重名的工具仍可通过长形式调用（P1 仅验证解析路径与命名）。
-func TestRunLongFormReservesNameCollision(t *testing.T) {
-	_, _, errOut := run(t, "run", "--", "stop", "--now")
-	if !strings.Contains(errOut, "km run -- stop") {
-		t.Fatalf("错误信息应包含工具名 stop: %q", errOut)
-	}
-}
-
-func TestToolArgsPreservedVerbatimInMessage(t *testing.T) {
-	_, _, errOut := run(t, "nmap", "", "a b", "--help")
-	if !strings.Contains(errOut, "KM_NOT_IMPLEMENTED") {
-		t.Fatalf("err=%q", errOut)
 	}
 }

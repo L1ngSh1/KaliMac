@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 )
 
 // State is the local-only project state under <root>/.km/state.json. It
@@ -49,6 +50,11 @@ func NewProjectID() (string, error) {
 // StatePath returns the state file path inside the project root.
 func StatePath(root string) string { return filepath.Join(root, StateDirName, "state.json") }
 
+// ContainerIDPattern is the exact format of a Docker container ID: 64
+// lowercase hex chars. An empty ID is tolerated only as legacy state; all
+// ownership checks must refuse to adopt by name in that case.
+var ContainerIDPattern = regexp.MustCompile(`^[0-9a-f]{64}$`)
+
 // LoadState reads and validates local state. os.ErrNotExist passes through
 // when the project has no state yet.
 func LoadState(root string) (*State, error) {
@@ -68,6 +74,9 @@ func LoadState(root string) (*State, error) {
 	}
 	if st.Container.Name == "" {
 		return nil, &StateError{Msg: "container.name 缺失"}
+	}
+	if st.Container.ID != "" && !ContainerIDPattern.MatchString(st.Container.ID) {
+		return nil, &StateError{Msg: "container.id 不是合法的 64 位十六进制容器 ID"}
 	}
 	return &st, nil
 }

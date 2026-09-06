@@ -2,6 +2,7 @@ package project
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -98,5 +99,49 @@ func TestStateMissingContainerName(t *testing.T) {
 	var se *StateError
 	if !errors.As(err, &se) || !strings.Contains(se.Error(), "container.name") {
 		t.Fatalf("缺 container.name 应报错: %v", err)
+	}
+}
+
+func TestStateContainerIDValidation(t *testing.T) {
+	valid := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	cases := []struct {
+		name string
+		id   string
+		ok   bool
+	}{
+		{"合法64位hex", valid, true},
+		{"空ID保留旧状态语义", "", true},
+		{"短ID", "abc123", false},
+		{"大写hex", "0123456789ABCDEF0123456789abcdef0123456789abcdef0123456789abcdef", false},
+		{"非hex字符", "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdeg", false},
+		{"带sha256前缀", "sha256:" + valid, false},
+		{"65位", valid + "a", false},
+		{"含空格", valid[:63] + " ", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			if err := os.MkdirAll(filepath.Join(root, StateDirName), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			st := fmt.Sprintf(`{"state_version":1,"project_id":"p1a2b3c4d5","container":{"name":"km-p1a2b3c4d5","id":%q}}`, tc.id)
+			if err := os.WriteFile(StatePath(root), []byte(st), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			got, err := LoadState(root)
+			if tc.ok && err != nil {
+				t.Fatalf("应通过校验, got %v", err)
+			}
+			if !tc.ok {
+				var se *StateError
+				if !errors.As(err, &se) || !strings.Contains(se.Error(), "container.id") {
+					t.Fatalf("应报 container.id 错误, got %v", err)
+				}
+				return
+			}
+			if got.Container.ID != tc.id {
+				t.Fatalf("ID 往返不一致: %q", got.Container.ID)
+			}
+		})
 	}
 }

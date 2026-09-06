@@ -75,14 +75,29 @@ func (d *Docker) lookPath() (string, error) {
 // run executes docker with args and returns trimmed stdout. Each call is
 // bounded by the management timeout; failures are classified into KM_*
 // errors with the raw stderr attached.
+func (d *Docker) managementTimeout() time.Duration {
+	if d.ManagementTimeout > 0 {
+		return d.ManagementTimeout
+	}
+	return DefaultManagementTimeout
+}
+
+// run 用管理超时执行 docker 命令。
 func (d *Docker) run(ctx context.Context, args ...string) (string, error) {
+	return d.runWithTimeout(ctx, d.managementTimeout(), args...)
+}
+
+// runWithTimeout 以显式超时执行 docker 命令。若上层 ctx 已有更短 deadline，
+// 以更短者为准（context.WithTimeout 语义）；pull/stop 等专用预算不再被
+// 内层固定 10 秒截断。
+func (d *Docker) runWithTimeout(ctx context.Context, timeout time.Duration, args ...string) (string, error) {
 	bin, err := d.lookPath()
 	if err != nil {
 		return "", err
 	}
-	mt := d.ManagementTimeout
+	mt := timeout
 	if mt <= 0 {
-		mt = DefaultManagementTimeout
+		mt = d.managementTimeout()
 	}
 	cctx, cancel := context.WithTimeout(ctx, mt)
 	defer cancel()
@@ -158,8 +173,10 @@ func IsLocalEndpoint(endpoint string) bool {
 	}
 }
 
-// WithEnv returns an Executor that appends the given KEY=VALUE pairs to the
-// child environment. For non-CommandExecutor implementations (test fakes)
+// WithEnv returns an Executor that sets the given KEY=VALUE pairs in the
+// child environment, REPLACING any existing entry for the same key (appending
+// would leave a duplicate whose precedence is undefined across libc/getenv
+// implementations). For non-CommandExecutor implementations (test fakes)
 // the variables are ignored.
 func WithEnv(inner Executor, kv ...string) Executor {
 	return envExecutor{inner: inner, extra: kv}
@@ -274,4 +291,61 @@ func ExecToolArgs(container, workdir string, tty bool, tool string, toolArgs []s
 	}
 	args = append(args, container, tool)
 	return append(args, toolArgs...)
+}
+
+// ContainerCreateOpts describes the km-managed container to create.
+type ContainerCreateOpts struct {
+	Name       string // km-<project-id>
+	ProjectID  string // stamped into the km.project label
+	Image      string
+	ProjectDir string // host path bound to /workspace
+}
+
+// CreateContainer creates the project container with --init (reaping PID1)
+// and the ownership labels. The main process is `sleep infinity`, which the
+// init wrapper turns into a fast, clean stop target.
+func (d *Docker) CreateContainer(ctx context.Context, o ContainerCreateOpts) (string, error) {
+	out, err := d.run(ctx, "run", "-d", "--init",
+		"--name", o.Name,
+		"--label", ProjectLabel+"="+o.ProjectID,
+		"--label", "km.owner=km",
+		"--label", "km.schema=1",
+		"-v", o.ProjectDir+":/workspace",
+		o.Image, "sleep", "infinity")
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(out), nil
+}
+
+// StartContainer starts an existing (created or stopped) container.
+func (d *Docker) StartContainer(ctx context.Context, ref string) error {
+	_, err := d.run(ctx, "start", ref)
+	return err
+}
+
+// stopTimeout bounds docker stop; the 10s docker grace period plus margin.
+const stopTimeout = 30 * time.Second
+
+// StopContainer stops the container (data preserved). It uses its own bound
+// — longer than management queries — but is still bounded.
+func (d *Docker) StopContainer(ctx context.Context, ref string) error {
+	_, err := d.runWithTimeout(ctx, stopTimeout, "stop", ref)
+	return err
+}
+
+// PullTimeout bounds an image pull. Pulls are explicit (init) and rare.
+const PullTimeout = 10 * time.Minute
+
+// PullImage pulls the image reference with a generous but bounded timeout.
+func (d *Docker) PullImage(ctx context.Context, ref string) error {
+	_, err := d.runWithTimeout(ctx, PullTimeout, "pull", ref)
+	return err
+}
+
+// RemoveContainer removes a container by full ID (init rollback only;
+// km never removes project containers elsewhere).
+func (d *Docker) RemoveContainer(ctx context.Context, fullID string) error {
+	_, err := d.run(ctx, "rm", "-f", fullID)
+	return err
 }

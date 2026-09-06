@@ -7,13 +7,14 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"kalimac/internal/runtime"
 )
 
 // Version is the km build version reported by --version.
-const Version = "0.1.1-p1"
+const Version = "0.2.0-p2"
 
 // Exit codes per the CLI contract: 0 success, 1 environment failure,
 // 2 usage error or unimplemented command.
@@ -55,14 +56,18 @@ func Run(ctx context.Context, argv []string, stdout, stderr io.Writer) int {
 		return runDoctorCommand(ctx, argv[1:], stdout, stderr, newDocker())
 	case "run":
 		return runLongForm(ctx, argv[1:], stdout, stderr)
-	case "init", "shell", "stop":
-		return notImplemented(argv[0], stderr)
+	case "init":
+		return runInitCommand(ctx, argv[1:], stdout, stderr, newDocker())
+	case "stop":
+		return runStopCommand(ctx, argv[1:], stdout, stderr, newDocker())
+	case "shell":
+		return notImplemented("shell（交互终端，P2-C 提供）", stderr)
 	}
 	if strings.HasPrefix(argv[0], "-") {
 		return usageError(stderr, "未知选项 %q；管理命令见 km --help", argv[0])
 	}
 	// short form tool invocation: the whole argv belongs to the tool
-	return notImplemented("工具执行（km "+argv[0]+" …）", stderr)
+	return runToolCommand(ctx, argv[0], argv[1:], os.Stdin, stdout, stderr, newDocker())
 }
 
 // runLongForm parses `km run -- TOOL ARG...`. The `--` separator is required
@@ -75,7 +80,7 @@ func runLongForm(ctx context.Context, rest []string, stdout, stderr io.Writer) i
 	if len(tool) == 0 {
 		return usageError(stderr, "km run -- 之后必须跟工具名，用法: km run -- TOOL [ARG...]")
 	}
-	return notImplemented("工具执行（km run -- "+tool[0]+" …）", stderr)
+	return runToolCommand(ctx, tool[0], tool[1:], os.Stdin, stdout, stderr, newDocker())
 }
 
 func notImplemented(what string, stderr io.Writer) int {
@@ -100,11 +105,11 @@ func PrintHelp(w io.Writer) {
   km                          显示本帮助
   km --version                显示版本（不依赖 Docker）
   km doctor                   只读检查平台、Docker、项目配置与容器状态
-  km init                     初始化当前项目（P2 提供）
-  km TOOL [ARG...]            在项目容器中执行工具（P2 提供）
+  km init                     初始化当前项目（幂等；非交互最小可用版）
+  km TOOL [ARG...]            在项目容器中执行工具（非交互）
   km run -- TOOL [ARG...]     同上，长形式，用于与 km 管理命令重名的工具
-  km shell                    进入项目容器交互终端（P2 提供）
-  km stop                     停止当前项目容器，数据保留（P2 提供）
+  km shell                    交互终端（P2-C 提供，尚未实现）
+  km stop                     停止当前项目容器，数据保留（幂等）
 
 说明:
   项目文件留在 Mac；工具输出与退出状态回到原终端。

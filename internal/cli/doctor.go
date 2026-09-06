@@ -12,6 +12,7 @@ import (
 
 	"kalimac/internal/project"
 	"kalimac/internal/runtime"
+	"kalimac/internal/session"
 )
 
 // doctorBudget caps the total wall time of one doctor run. Each docker
@@ -216,6 +217,11 @@ func checkContainerOwnership(r *reporter, ctx context.Context, dk *runtime.Docke
 		return
 	}
 	r.item("OK", "容器: %s（%s…，%s，按记录 ID 查找）", res.Name, shortID(res.ID), res.State)
+	// inspect 返回的 ID 必须与记录完全一致（按 ID 查询本应如此；
+	// 显式比对防止任何按名回退或实现疏漏造成的身份错配）。
+	if res.ID != st.Container.ID {
+		r.item("失败", "%s: inspect 返回的容器 ID 与记录不一致（返回 %s…，记录 %s…）", runtime.CodeContainerConflict, shortID(res.ID), shortID(st.Container.ID))
+	}
 	if res.Name != st.Container.Name {
 		r.item("失败", "%s: 容器名称 %q 与记录 %q 不一致", runtime.CodeContainerConflict, res.Name, st.Container.Name)
 	}
@@ -224,7 +230,7 @@ func checkContainerOwnership(r *reporter, ctx context.Context, dk *runtime.Docke
 	} else {
 		r.item("OK", "标签归属: km.project=%s 匹配", st.ProjectID)
 	}
-	if res.MountSource == root {
+	if filepath.Clean(res.MountSource) == filepath.Clean(root) {
 		r.item("OK", "挂载: %s => /workspace", root)
 	} else {
 		r.item("失败", "%s: /workspace 挂载源为 %q，预期 %q", runtime.CodeContainerConflict, res.MountSource, root)
@@ -234,6 +240,36 @@ func checkContainerOwnership(r *reporter, ctx context.Context, dk *runtime.Docke
 			r.item("OK", "容器镜像内容与项目记录一致")
 		} else {
 			r.item("失败", "%s: 容器实际镜像 %s… 与项目记录 %s… 不一致", runtime.CodeContainerConflict, shortID(res.Image), shortID(st.Container.ImageID))
+		}
+	}
+	reportContainerSessions(r, ctx, dk, res.ID)
+}
+
+// reportContainerSessions 报告容器内会话状态（只读；R2 的可见性部分）。
+func reportContainerSessions(r *reporter, ctx context.Context, dk *runtime.Docker, containerID string) {
+	var ctl *session.DockerController = newSessionController(dk.EndpointOverride)
+	out, err := ctl.Sessions(ctx, containerID)
+	switch {
+	case err != nil:
+		r.line("  会话: 检查失败（%v）", err)
+	case strings.Contains(out, "no such file"), strings.TrimSpace(out) == "":
+		r.line("  会话: 无（尚未执行过工具或容器已重建）")
+	default:
+		active := activeSessionIDs(out)
+		stale := 0
+		for _, line := range strings.Split(out, "\n") {
+			if strings.HasPrefix(strings.TrimSpace(line), "STALE ") {
+				stale++
+			}
+		}
+		if len(active) > 0 {
+			r.item("警告", "容器内活跃会话: %v（若宿主已无对应 km 进程，可显式 cancel 清理）", active)
+		}
+		if stale > 0 {
+			r.item("警告", "容器内遗留会话目录: %d（组已空，下次执行自动清扫）", stale)
+		}
+		if len(active) == 0 && stale == 0 {
+			r.item("OK", "容器内无活跃会话")
 		}
 	}
 }

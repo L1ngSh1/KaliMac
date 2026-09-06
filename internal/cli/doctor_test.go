@@ -12,12 +12,13 @@ import (
 
 	"kalimac/internal/project"
 	"kalimac/internal/runtime"
+	"kalimac/internal/session"
 )
 
 const (
 	fakeVersionOut  = "29.6.1|29.6.1|linux|aarch64"
-	fakeContainerID = "sha256:c1abc123def4567890abcdef1234567890abcdef1234567890abcdef1234567890"
-	rebuiltID       = "sha256:9999aaaabbbbccccddddeeeeffff00001111222233334444555566667777888"
+	fakeContainerID = "c1abc123def4567890abcdef1234567890abcdef1234567890abcdef12345678"
+	rebuiltID       = "9999aaaabbbbccccddddeeeeffff000011112222333344445555666677778888"
 	fakeImageID     = "sha256:imgabc123"
 	fakeProjectID   = "p1a2b3c4d5"
 	localEndpoint   = "unix:///Users/x/.docker/run/docker.sock"
@@ -84,6 +85,14 @@ func doctor(t *testing.T, dir string, fe *runtime.FakeExecutor) (int, string) {
 	t.Helper()
 	t.Setenv("DOCKER_HOST", "")
 	t.Setenv("DOCKER_CONTEXT", "")
+	// 隔离会话检查：默认无会话脚本（各用例可再覆盖）
+	old := newSessionController
+	newSessionController = func(endpoint string) *session.DockerController {
+		return &session.DockerController{RunFn: func(_ context.Context, _ []byte, _ []string) (string, string, int, error) {
+			return "", "", 0, nil
+		}}
+	}
+	t.Cleanup(func() { newSessionController = old })
 	var out bytes.Buffer
 	code := RunDoctor(context.Background(), dir, &out, &runtime.Docker{Exec: fe})
 	return code, out.String()
@@ -332,7 +341,7 @@ func TestDoctorContainerRebuiltSameName(t *testing.T) {
 	if !strings.Contains(out, runtime.CodeContainerConflict) || !strings.Contains(out, "同名重建") {
 		t.Fatalf("应报告同名重建冲突:\n%s", out)
 	}
-	if !strings.Contains(out, "sha256:c1abc") || !strings.Contains(out, "sha256:9999a") {
+	if !strings.Contains(out, "c1abc123def4") || !strings.Contains(out, "9999aaaabb") {
 		t.Fatalf("应指出两个不同 ID:\n%s", out)
 	}
 }
@@ -501,4 +510,47 @@ func snapshot(t *testing.T, root string) string {
 		t.Fatal(err)
 	}
 	return sb.String()
+}
+
+// F2 边界回归：inspect 返回的 ID 与记录不一致必须报冲突。
+func TestDoctorInspectIDMismatch(t *testing.T) {
+	root := setupProject(t, validConfig, stateJSON(fakeContainerID, fakeImageID, localEndpoint))
+	// fake 按 ID 查询却返回另一个 ID（模拟异常实现/伪造响应）
+	wrongID := containerLine(rebuiltID, "km-"+fakeProjectID, "running", fakeProjectID, fakeImageID, root)
+	_, out := doctor(t, root, doctorFake(wrongID))
+	if !strings.Contains(out, "inspect 返回的容器 ID 与记录不一致") {
+		t.Fatalf("应报告 inspect ID 不一致:\n%s", out)
+	}
+	if !strings.Contains(out, runtime.CodeContainerConflict) {
+		t.Fatalf("缺少 %s:\n%s", runtime.CodeContainerConflict, out)
+	}
+}
+
+// 挂载路径规范化：结尾斜杠应视为同一目录。
+func TestDoctorMountPathNormalized(t *testing.T) {
+	root := setupProject(t, validConfig, stateJSON(fakeContainerID, fakeImageID, localEndpoint))
+	out2 := containerLine(fakeContainerID, "km-"+fakeProjectID, "running", fakeProjectID, fakeImageID, root+"/")
+	_, out := doctor(t, root, doctorFake(out2))
+	if !strings.Contains(out, "=> /workspace") || strings.Contains(out, "挂载源为") {
+		t.Fatalf("结尾斜杠的挂载源应规范化匹配:\n%s", out)
+	}
+}
+
+// 非法容器 ID 的状态应被 LoadState 拒绝（doctor 报状态损坏）。
+func TestDoctorIllegalContainerIDState(t *testing.T) {
+	root := setupProject(t, validConfig, stateJSON("abc123", fakeImageID, localEndpoint))
+	_, out := doctor(t, root, doctorFake(""))
+	if !strings.Contains(out, runtime.CodeStateInvalid) || !strings.Contains(out, "container.id") {
+		t.Fatalf("非法容器 ID 应判状态损坏:\n%s", out)
+	}
+}
+
+// F2 回归：inspect 返回的容器名与记录不一致 → 冲突。
+func TestDoctorContainerNameMismatch(t *testing.T) {
+	root := setupProject(t, validConfig, stateJSON(fakeContainerID, fakeImageID, localEndpoint))
+	out2 := containerLine(fakeContainerID, "km-someoneelse", "running", fakeProjectID, fakeImageID, root)
+	_, out := doctor(t, root, doctorFake(out2))
+	if !strings.Contains(out, `容器名称 "km-someoneelse" 与记录`) {
+		t.Fatalf("应报告容器名称不一致:\n%s", out)
+	}
 }
