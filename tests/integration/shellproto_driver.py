@@ -17,6 +17,9 @@
   {"op":"resize","rows":40,"cols":100}           设置宿主 PTY 窗口尺寸
   {"op":"signal","name":"SIGTERM"}               向 proto 进程发送信号
   {"op":"settle","secs":0.3}                     小幅等待（辅助，非唯一同步）
+
+模式：-mode proto（默认，直接驱动 shellproto）| -mode km（驱动真实 `km shell`，
+配合 -cwd 指定项目目录）。
 """
 import argparse
 import base64
@@ -45,6 +48,8 @@ def main():
     ap.add_argument("-log", required=True)
     ap.add_argument("-json", required=True)
     ap.add_argument("-extra-arg", action="append", default=[])
+    ap.add_argument("-mode", default="proto", choices=["proto", "km"])
+    ap.add_argument("-cwd", default=None)
     args = ap.parse_args()
 
     steps = json.load(open(args.scenario))
@@ -58,11 +63,16 @@ def main():
         if redir:
             f = os.open(redir, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o644)
             os.dup2(f, 1)
-        # 子进程：slave 成为控制终端；exec shellproto
-        argv = [args.proto, "-container", args.container]
-        for extra in args.extra_arg:
-            k, _, v = extra.partition("=")
-            argv += [f"-{k}", v] if v != "" or k == "detach-keys" else [f"-{k}"]
+        if args.cwd:
+            os.chdir(args.cwd)
+        if args.mode == "km":
+            # 产品入口：km shell（容器/会话由 km 自行解析）
+            argv = [args.proto, "shell"]
+        else:
+            argv = [args.proto, "-container", args.container]
+            for extra in args.extra_arg:
+                k, _, v = extra.partition("=")
+                argv += [f"-{k}", v] if v != "" or k == "detach-keys" else [f"-{k}"]
         os.execvp(argv[0], argv)
         os._exit(127)
 

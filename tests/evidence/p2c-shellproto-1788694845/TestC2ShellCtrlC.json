@@ -1,0 +1,65 @@
+{
+ "steps": [
+  {
+   "step": 0,
+   "op": "expect",
+   "ok": true,
+   "matched": true
+  },
+  {
+   "step": 1,
+   "op": "send",
+   "ok": true
+  },
+  {
+   "step": 2,
+   "op": "settle",
+   "ok": true
+  },
+  {
+   "step": 3,
+   "op": "sendb",
+   "ok": true
+  },
+  {
+   "step": 4,
+   "op": "expect",
+   "ok": true,
+   "matched": true
+  },
+  {
+   "step": 5,
+   "op": "send",
+   "ok": true
+  },
+  {
+   "step": 6,
+   "op": "expect",
+   "ok": true,
+   "matched": true
+  },
+  {
+   "step": 7,
+   "op": "send",
+   "ok": true
+  },
+  {
+   "step": 8,
+   "op": "expect",
+   "ok": true,
+   "matched": true
+  },
+  {
+   "step": 9,
+   "op": "send",
+   "ok": true
+  }
+ ],
+ "exit_code": 0,
+ "termios_equal": true,
+ "signals_sent": [],
+ "eof": false,
+ "error": null,
+ "termios_before_lflag": 1483,
+ "termios_after_lflag": 1483
+}

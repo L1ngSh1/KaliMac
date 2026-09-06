@@ -147,7 +147,10 @@ func kmRunAsync(t *testing.T, dir string, args ...string) *exec.Cmd {
 // newP2BProject 创建挂载 fixture 的临时项目目录。
 func newP2BProject(t *testing.T) string {
 	t.Helper()
-	dir := t.TempDir()
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	// 指向本地已构建的最小精选镜像（拉取路径由 TestInitFailureRecovery 单独覆盖）
 	if err := os.WriteFile(filepath.Join(dir, ".km.json"),
 		[]byte(fmt.Sprintf(`{"schema_version":1,"image":%q}`, minImageRef)), 0o644); err != nil {
