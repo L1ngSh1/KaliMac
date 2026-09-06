@@ -139,6 +139,18 @@ esac
 exit 2
 `
 
+// kmShellSh 登记交互 shell 会话后以交互 bash 替换自身。
+// 控制终端由 docker exec -t 提供；PS1/PROMPT_COMMAND 由调用方经 -e 注入。
+// Usage: km-shell <sid>
+const kmShellSh = `#!/bin/sh
+SID="$1"
+DIR="__SESSIONS__/$SID"
+mkdir -p "$DIR" || exit 90
+printf '%s\n' "$$" > "$DIR/pid" || exit 91
+echo shell > "$DIR/kind"
+exec bash --noprofile --norc -i
+`
+
 // kmObserveSh is a test/diagnostic helper: independent, /proc-based process
 // observation scoped by process group — no name matching, no procps.
 // Usage: km-observe all | km-observe pgid:<n>
@@ -159,6 +171,7 @@ func scripts() map[string]string {
 	return map[string]string{
 		RunScriptPath:              replace(kmRunSh),
 		CtlScriptPath:              replace(kmCtlSh),
+		ScriptsDir + "/km-shell":   replace(kmShellSh),
 		ScriptsDir + "/km-observe": replace(kmObserveSh),
 	}
 }

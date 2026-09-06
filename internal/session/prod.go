@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 	"time"
 
 	"kalimac/internal/runtime"
@@ -70,6 +71,8 @@ func (p *osProc) Wait() (int, error) {
 }
 
 func (p *osProc) Kill() error { return p.cmd.Process.Kill() }
+
+func (p *osProc) Signal(sig syscall.Signal) error { return p.cmd.Process.Signal(sig) }
 
 // rawRunner 执行一条 docker 命令：喂入 stdin、捕获输出、返回协议级退出码。
 // exitCode 为 -1 且 err 非 nil 表示真实故障（引擎不可达等）。

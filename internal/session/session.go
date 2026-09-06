@@ -78,6 +78,8 @@ type Manager struct {
 	Diag io.Writer
 	// SkipBootstrap：调用方已完成引导（幂等）时置位，避免重复 docker cp。
 	SkipBootstrap bool
+	// shellSignaled：RunShell 的外部信号路径标志（SIGTERM/SIGHUP）。
+	shellSignaled int32
 }
 
 // NewSessionID returns a fresh session identity like "s1a2b3c4d5e6f7a8b9".
