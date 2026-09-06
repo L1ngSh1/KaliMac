@@ -1,0 +1,27 @@
+# kali-mac-min:0.2 构建证据（2026-09-06TUTC）
+## 基础镜像
+本地ID=sha256:ed99295a386abde2fb31e01a441b7c2800d9bcf19a20028b77d642c3ef068363
+## 构建产物
+ID=sha256:f3e7ae6b16811f9ea685052da083834261886ac943346b99fa4fb9ce820b7367
+RepoDigests=kali-mac-min@sha256:f3e7ae6b16811f9ea685052da083834261886ac943346b99fa4fb9ce820b7367 
+Arch=arm64
+## 包版本清单（dpkg -l，构建内实查）
+ii  coreutils      9.10-1           arm64        GNU core utilities
+ii  curl           8.21.0-2         arm64        command line tool for transferring data with URL syntax
+ii  file           1:5.47-4         arm64        Recognize the type of data in a file using "magic" numbers
+ii  jq             1.8.2-1          arm64        lightweight and flexible command-line JSON processor
+ii  nmap           7.99+dfsg-1kali1 arm64        The Network Mapper
+ii  openssl        3.6.3-1          arm64        Secure Sockets Layer toolkit - cryptographic utility
+ii  procps         2:4.0.6-3        arm64        /proc file system utilities
+ii  python3        3.14.6-1         arm64        interactive high-level object-oriented language (default python3 version)
+ii  util-linux     2.42.2-2         arm64        miscellaneous system utilities
+
+## 六工具在位确认
+python3: 有
+curl: 有
+jq: 有
+nmap: 有
+file: 有
+openssl: 有
+setsid: 有
+ps: 有
