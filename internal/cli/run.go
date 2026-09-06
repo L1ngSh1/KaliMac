@@ -19,6 +19,9 @@ func loadProjectStack(dir string) (root string, cfg *project.Config, st *project
 	if err != nil {
 		return "", nil, nil, err
 	}
+	if ok {
+		root = project.CanonicalPath(root)
+	}
 	if !ok {
 		return "", nil, nil, &runtime.Error{Code: runtime.CodeProjectMissing,
 			Msg: "从当前目录向上未找到 .km.json；请在项目根运行 km init"}

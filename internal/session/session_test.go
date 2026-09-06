@@ -114,6 +114,14 @@ func (f *fakeController) Bootstrap(ctx context.Context, container string) error 
 	return f.bootstrapErr
 }
 
+func (f *fakeController) Sessions(ctx context.Context, container string) (string, string, int, error) {
+	return "", "", 0, nil
+}
+
+func (f *fakeController) Alive(ctx context.Context, container, sid string) (int, string, error) {
+	return 1, "", nil // 测试中默认 bash 已退出（走清理路径）
+}
+
 func (f *fakeController) Cancel(ctx context.Context, container, sid string) (int, string, error) {
 	f.cancelCalls++
 	if f.cancelHook != nil {

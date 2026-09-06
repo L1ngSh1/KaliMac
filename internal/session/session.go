@@ -44,6 +44,10 @@ type Controller interface {
 	Bootstrap(ctx context.Context, container string) error
 	// Cancel asks the container-side controller to finalize one session.
 	Cancel(ctx context.Context, container, sid string) (ctlExit int, output string, err error)
+	// Alive 只读判定登记会话的 bash 是否仍存活（shell 收尾用）。
+	Alive(ctx context.Context, container, sid string) (ctlExit int, output string, err error)
+	// Sessions 只读列出容器内全部会话状态（诊断用）。
+	Sessions(ctx context.Context, container string) (stdout, stderr string, ctlExit int, err error)
 }
 
 // CancelDetail classifies what the cancel path actually did.
@@ -78,8 +82,8 @@ type Manager struct {
 	Diag io.Writer
 	// SkipBootstrap：调用方已完成引导（幂等）时置位，避免重复 docker cp。
 	SkipBootstrap bool
-	// shellSignaled：RunShell 的外部信号路径标志（SIGTERM/SIGHUP）。
-	shellSignaled int32
+	// ShellDetachKeys：交互 shell 的 docker exec --detach-keys 参数。
+	ShellDetachKeys string
 }
 
 // NewSessionID returns a fresh session identity like "s1a2b3c4d5e6f7a8b9".

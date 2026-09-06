@@ -72,16 +72,38 @@ exit "$CODE"
 //
 // Usage: km-ctl cancel <sid>  （也兼容 km-ctl <sid>）
 const kmCtlSh = `#!/bin/sh
-group_busy() {
+# 会话成员判定（review C）：以 SID 域为准——同一 PTY 会话内的全部进程
+# （bash、所有作业组成员、管道成员）SID 相同；setsid 主动脱离者不在域内，
+# 属于记录在案的逃逸者。仅用 bash 的 PGID 会漏掉其他作业组。
+sess_busy() {
   for p in /proc/[0-9]*; do
-    read -r pid comm st ppid pg rest < "$p/stat" 2>/dev/null || continue
+    read -r pid comm st ppid pgrp sess rest < "$p/stat" 2>/dev/null || continue
     [ "$st" = "Z" ] && continue
-    [ "$pg" = "$TPID" ] && return 0
+    [ "$sess" = "$TPID" ] && return 0
   done
   return 1
 }
+# 按 SID 域清理：TERM 全部成员 → 有界轮询 → KILL 兜底。
+sess_kill() {
+  for p in /proc/[0-9]*; do
+    read -r pid comm st ppid pgrp sess rest < "$p/stat" 2>/dev/null || continue
+    [ "$st" = "Z" ] && continue
+    [ "$sess" = "$TPID" ] && kill -TERM "$pid" 2>/dev/null
+  done
+  i=0
+  while sess_busy && [ $i -lt 50 ]; do sleep 0.1; i=$((i+1)); done
+  sess_busy || return 0
+  for p in /proc/[0-9]*; do
+    read -r pid comm st ppid pgrp sess rest < "$p/stat" 2>/dev/null || continue
+    [ "$st" = "Z" ] && continue
+    [ "$sess" = "$TPID" ] && kill -KILL "$pid" 2>/dev/null
+  done
+  i=0
+  while sess_busy && [ $i -lt 50 ]; do sleep 0.1; i=$((i+1)); done
+  sess_busy && return 1 || return 0
+}
 CMD="$1"
-[ "$CMD" = "cancel" ] && shift
+shift
 BASE="__SESSIONS__"
 case "$CMD" in
 cancel)
@@ -97,30 +119,25 @@ cancel)
   done
   [ -f "$DIR/pid" ] || { rm -rf "$DIR"; exit 3; }
   TPID=$(cat "$DIR/pid")
-  kill -TERM "-$TPID" 2>/dev/null || kill -TERM "$TPID" 2>/dev/null || true
-  i=0
-  while [ $i -lt 50 ]; do
-    [ ! -d "$DIR" ] && exit 0
-    [ -f "$DIR/exit" ] && { rm -rf "$DIR"; exit 0; }
-    group_busy || { rm -rf "$DIR"; exit 0; }
-    sleep 0.1; i=$((i+1))
-  done
-  kill -KILL "-$TPID" 2>/dev/null || true
-  i=0
-  while [ $i -lt 50 ]; do
-    [ ! -d "$DIR" ] && exit 0
-    [ -f "$DIR/exit" ] && { rm -rf "$DIR"; exit 0; }
-    group_busy || { rm -rf "$DIR"; exit 0; }
-    sleep 0.1; i=$((i+1))
-  done
+  [ -f "$DIR/exit" ] && { rm -rf "$DIR"; exit 0; }
+  if sess_kill; then rm -rf "$DIR"; exit 0; fi
   exit 4
+  ;;
+alive)
+  SID="$1"
+  DIR="$BASE/$SID"
+  [ -f "$DIR/pid" ] || exit 3
+  TPID=$(cat "$DIR/pid")
+  # 排除僵尸态：bash 退出后 /proc 短暂残留（Z），不算存活
+  ST=$(cut -d" " -f3 "/proc/$TPID/stat" 2>/dev/null)
+  if [ -d "/proc/$TPID" ] && [ "$ST" != "Z" ]; then exit 0; else exit 1; fi
   ;;
 sessions)
   for d in "$BASE"/*/; do
     [ -d "$d" ] || continue
     sid=$(basename "$d")
     TPID=$(cat "$d/pid" 2>/dev/null) || { echo "STALE $sid"; continue; }
-    if group_busy; then echo "ACTIVE $sid"; else echo "STALE $sid"; fi
+    if sess_busy; then echo "ACTIVE $sid"; else echo "STALE $sid"; fi
   done
   exit 0
   ;;
@@ -130,7 +147,7 @@ sweep)
     [ -d "$d" ] || continue
     sid=$(basename "$d")
     TPID=$(cat "$d/pid" 2>/dev/null) || { rm -rf "$d"; continue; }
-    if group_busy; then n=$((n+1)); else rm -rf "$d"; fi
+    if sess_busy; then n=$((n+1)); else rm -rf "$d"; fi
   done
   echo "$n"
   exit 0

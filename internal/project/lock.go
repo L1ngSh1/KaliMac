@@ -12,6 +12,21 @@ import (
 	"time"
 )
 
+// CanonicalPath 解析符号链接后的绝对路径；解析失败时退回 Clean 后的路径。
+// Go 的 os.Getwd 会信任 stat 等价的 $PWD（如 macOS /tmp 与 /private/tmp），
+// 同一项目在不同入口可能得到不同写法——身份比较与挂载源必须统一用本函数
+// 规范化，否则出现 KM_CONTAINER_CONFLICT 假冲突。
+func CanonicalPath(p string) string {
+	abs, err := filepath.Abs(p)
+	if err != nil {
+		return filepath.Clean(p)
+	}
+	if resolved, err := filepath.EvalSymlinks(abs); err == nil {
+		return resolved
+	}
+	return abs
+}
+
 // LockPath returns the project lock file path (inside .km/).
 func LockPath(root string) string { return filepath.Join(root, StateDirName, "lock") }
 

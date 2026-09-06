@@ -230,6 +230,18 @@ func (c *DockerController) Sessions(ctx context.Context, container string) (stdo
 	return stdout, stderr, exitCode, err
 }
 
+// Alive 只读判定登记会话的 bash 是否仍存活（exit 0=存活，1=已退出，
+// 3=登记缺失）。有界调用。
+func (c *DockerController) Alive(ctx context.Context, container, sid string) (int, string, error) {
+	sctx, cancel := context.WithTimeout(ctx, runtime.DefaultManagementTimeout)
+	defer cancel()
+	stdout, stderr, code, err := c.rawRun(sctx, nil, "exec", container, CtlScriptPath, "alive", sid)
+	if err != nil {
+		return -1, stderr, err
+	}
+	return code, strings.TrimSpace(stdout + stderr), nil
+}
+
 // Sweep 清理组已空的遗留会话目录，stdout 为仍活跃的会话数。有界调用。
 func (c *DockerController) Sweep(ctx context.Context, container string) (stdout, stderr string, exitCode int, err error) {
 	sctx, cancel := context.WithTimeout(ctx, runtime.DefaultManagementTimeout)

@@ -75,6 +75,8 @@ func runInitCommand(ctx context.Context, rest []string, stdout, stderr io.Writer
 		fmt.Fprintf(stderr, "KM_ENV: 无法获取当前目录: %v\n", err)
 		return ExitEnv
 	}
+	// 规范化（/tmp 与 /private/tmp 等价写法会导致身份假冲突）
+	wd = project.CanonicalPath(wd)
 
 	// 嵌套项目检测
 	if parent, ok, perr := project.ParentProject(wd); perr == nil && ok {
