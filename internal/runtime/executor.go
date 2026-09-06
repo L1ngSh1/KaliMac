@@ -7,6 +7,7 @@ import (
 	"context"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 // RunError carries the exit status and captured stderr of a failed command.
@@ -46,7 +47,13 @@ func (c CommandExecutor) Run(ctx context.Context, name string, args ...string) (
 	var stdout, stderr bytes.Buffer
 	cmd := exec.CommandContext(ctx, name, args...)
 	if len(c.ExtraEnv) > 0 {
-		cmd.Env = append(os.Environ(), c.ExtraEnv...)
+		env := os.Environ()
+		for _, kv := range c.ExtraEnv {
+			if k, _, ok := strings.Cut(kv, "="); ok {
+				env = ReplaceEnv(env, k, kv[len(k)+1:])
+			}
+		}
+		cmd.Env = env
 	}
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -61,6 +68,29 @@ func (c CommandExecutor) Run(ctx context.Context, name string, args ...string) (
 		re.ExitCode = ee.ExitCode()
 	}
 	return stdout.Bytes(), stderr.Bytes(), re
+}
+
+// ReplaceEnv returns environ with every KEY=VALUE replaced by the given
+// value, or appended when absent. 追加式会产生重复键，其读取优先级取决于
+// libc 实现——所有 km 子进程环境注入统一走本函数。
+func ReplaceEnv(environ []string, key, value string) []string {
+	prefix := key + "="
+	out := make([]string, 0, len(environ)+1)
+	replaced := false
+	for _, kv := range environ {
+		if strings.HasPrefix(kv, prefix) {
+			if !replaced {
+				out = append(out, prefix+value)
+				replaced = true
+			}
+			continue
+		}
+		out = append(out, kv)
+	}
+	if !replaced {
+		out = append(out, prefix+value)
+	}
+	return out
 }
 
 func errors_As(err error, target **exec.ExitError) bool {
