@@ -122,3 +122,27 @@ func ParentProject(startDir string) (root string, ok bool, err error) {
 	parent := filepath.Dir(dir)
 	return FindConfig(parent)
 }
+
+// WriteConfig writes a new .km.json atomically (temp file + rename). It is
+// only used by init for a MISSING config; existing files are never silently
+// overwritten.
+func WriteConfig(path string, cfg *Config) error {
+	raw, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return err
+	}
+	raw = append(raw, '\n')
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".km.json.tmp-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmp.Name())
+	if _, err := tmp.Write(raw); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmp.Name(), path)
+}
