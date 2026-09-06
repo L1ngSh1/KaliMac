@@ -14,7 +14,7 @@ import (
 )
 
 // Version is the km build version reported by --version.
-const Version = "0.2.0-p2"
+const Version = "0.3.0-p2"
 
 // Exit codes per the CLI contract: 0 success, 1 environment failure,
 // 2 usage error or unimplemented command.
@@ -61,7 +61,7 @@ func Run(ctx context.Context, argv []string, stdout, stderr io.Writer) int {
 	case "stop":
 		return runStopCommand(ctx, argv[1:], stdout, stderr, newDocker())
 	case "shell":
-		return notImplemented("shell（交互终端，P2-C 提供）", stderr)
+		return runShellCommand(ctx, argv[1:], stdout, stderr, newDocker())
 	}
 	if strings.HasPrefix(argv[0], "-") {
 		return usageError(stderr, "未知选项 %q；管理命令见 km --help", argv[0])
@@ -108,7 +108,7 @@ func PrintHelp(w io.Writer) {
   km init                     初始化当前项目（幂等；非交互最小可用版）
   km TOOL [ARG...]            在项目容器中执行工具（非交互）
   km run -- TOOL [ARG...]     同上，长形式，用于与 km 管理命令重名的工具
-  km shell                    交互终端（P2-C 提供，尚未实现）
+  km shell                    交互 bash（真实终端接管；Ctrl-C/Ctrl-D/作业控制）
   km stop                     停止当前项目容器，数据保留（幂等）
 
 说明:

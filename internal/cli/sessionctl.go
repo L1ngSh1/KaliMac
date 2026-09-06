@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 
 	"kalimac/internal/runtime"
 	"kalimac/internal/session"
@@ -23,6 +24,35 @@ var newSessionManager = func(endpoint string, diag io.Writer, ctl *session.Docke
 		Diag:          diag,
 		SkipBootstrap: true,
 	}
+}
+
+// verifyNoActiveSession 核验容器内会话状态（M0 语义）：
+// 查询失败/退出码非 0/输出解析失败 → KM_SESSION_UNKNOWN 阻断；
+// 活跃会话 → KM_SESSION_ACTIVE 阻断；组空遗留 → 清扫（失败仅告警）。
+// run 与 shell 共用，保证两条入口的阻断语义一致。
+func verifyNoActiveSession(ctx context.Context, ctl *session.DockerController, containerID string, stderr io.Writer) error {
+	sOut, sErrStr, sExit, serr := ctl.Sessions(ctx, containerID)
+	switch {
+	case serr != nil:
+		return &runtime.Error{Code: runtime.CodeSessionUnknown,
+			Msg: "容器内会话状态查询失败，无法确认是否仍有任务在运行；请人工检查后重试", Err: serr}
+	case sExit != 0:
+		return &runtime.Error{Code: runtime.CodeSessionUnknown,
+			Msg: fmt.Sprintf("容器内会话状态查询退出码 %d（stderr: %s）；请人工检查后重试", sExit, strings.TrimSpace(sErrStr))}
+	}
+	active, _, parseOK := session.ParseSessions(sOut)
+	if !parseOK {
+		return &runtime.Error{Code: runtime.CodeSessionUnknown,
+			Msg: fmt.Sprintf("容器内会话状态输出异常（%q）；请人工检查后重试", strings.TrimSpace(sOut))}
+	}
+	if len(active) > 0 {
+		return &runtime.Error{Code: runtime.CodeSessionActive,
+			Msg: fmt.Sprintf("容器内存在活跃会话 %v（疑似宿主中断遗留，任务可能仍在运行）；确认后执行 docker exec %s /tmp/km-bin/km-ctl cancel %s 显式清理，再重试", active, shortID(containerID), active[0])}
+	}
+	if _, swErrStr, swExit, swErr := ctl.Sweep(ctx, containerID); swErr != nil || swExit != 0 {
+		fmt.Fprintf(stderr, "km: 遗留会话清扫未完成（exit=%d, %s）；不影响本次执行\n", swExit, strings.TrimSpace(swErrStr))
+	}
+	return nil
 }
 
 // resolveEngine 解析有效 endpoint、拒绝远程引擎并为 runtime.Docker 固定。

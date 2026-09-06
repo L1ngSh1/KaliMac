@@ -82,16 +82,12 @@ func TestDoctorRejectsArgs(t *testing.T) {
 
 // P1 边界：init/shell/stop 与工具执行必须明确报未实现，禁止空实现冒充完成。
 func TestUnimplementedCommandsAreExplicit(t *testing.T) {
-	// P2-C 边界：shell 仍未实现；init/run/stop 自 P2-B 起真实实现。
-	cases := [][]string{{"shell"}}
-	for _, argv := range cases {
-		code, _, errOut := run(t, argv...)
-		if code != ExitUsage {
-			t.Fatalf("%v code=%d", argv, code)
-		}
-		if !strings.Contains(errOut, "KM_NOT_IMPLEMENTED") {
-			t.Fatalf("%v 缺少 KM_NOT_IMPLEMENTED: %q", argv, errOut)
-		}
+	// C2 起全部管理命令已实现；此处验证 shell 的 tty 前检（无终端环境 → KM_NOT_TTY，
+	// 且发生在任何 docker 调用之前）。
+	forbidDocker(t)
+	code, _, errOut := run(t, "shell")
+	if code != ExitEnv || !strings.Contains(errOut, "KM_NOT_TTY") {
+		t.Fatalf("shell 无终端应 KM_NOT_TTY: code=%d err=%q", code, errOut)
 	}
 }
 
