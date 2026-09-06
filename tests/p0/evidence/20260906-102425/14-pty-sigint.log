@@ -1,0 +1,12 @@
+--- 启动后 容器任务日志 (/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T//km-p0-20260906-102425-D60CnV/sig.log) ---
+start pid=33 ppid=0
+child=39
+>>> 已向 docker 客户端(91902)发送 SIGINT
+--- 动作后 容器任务日志 (/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T//km-p0-20260906-102425-D60CnV/sig.log) ---
+start pid=33 ppid=0
+child=39
+--- 容器内残留 sig.sh 进程（STAT 列，Z=僵尸）---
+   25     1 Z    sig.sh
+   33     0 S    sig.sh
+   39    33 S    sig.sh
+docker 客户端: 已退出 wait status=0 exitcode=0

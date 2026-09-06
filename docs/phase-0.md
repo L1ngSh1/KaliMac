@@ -48,4 +48,4 @@ Docker Hub 直连超时；实际经镜像站 `docker.1ms.run` 拉取镜像。此
 
 ## 原始证据位置
 
-实验脚本与输出：`/tmp/km-p0-20260906a/`（e1-argv-stdio-exit.sh、e9-persist.sh、e10-e13-signal.sh、pty_driver.py；清理前的输出摘要已收录本文件表格）。
+可重跑实验集已入库：`tests/p0/`（`run-p0.sh` 编排、`pty_driver.py` PTY 中断注入、`fixtures/` 容器内 fixture）。原始输出与完整哈希在 `tests/p0/evidence/20260906-102425/`（修复轮全量重跑：E1–E14、K1 与清理核对，各文件含完整 64 位哈希与镜像 ID）。运行方法与判据见 tests/p0/README.md。首轮（2026-09-06 凌晨）证据曾放在 /tmp 并已随清理删除；本重跑证据与首轮结论一致。

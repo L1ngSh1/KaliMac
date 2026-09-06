@@ -6,9 +6,9 @@
 
 | 命令 | 状态（P1） | 合同 |
 |---|---|---|
-| `km` / `km --help` | 已实现 | 简短帮助；零 Docker 依赖、零副作用 |
+| `km` / `km --help` | 已实现 | 简短帮助；零 Docker 依赖、零副作用（单测断言外部调用次数为 0） |
 | `km --version` | 已实现 | 版本行；零 Docker 依赖 |
-| `km doctor` | 已实现 | 只读检查：平台、Docker CLI/引擎、context/endpoint、项目配置、本机状态、容器归属（标签+挂载）、镜像。环境问题作为检查结果输出（stdout），doctor 自身完成即返回 0 |
+| `km doctor` | 已实现 | 只读检查。流程：①平台；②项目配置与本机状态（纯客户端文件）；③仅用客户端命令解析有效 endpoint（DOCKER_HOST > DOCKER_CONTEXT > 当前 context inspect），非本地 endpoint 判 `KM_ENDPOINT_REMOTE` 并跳过一切引擎查询；本地则把该 endpoint 固定（DOCKER_HOST 注入）给本次所有后续调用并查引擎版本；④比较 `.km/state.json` 记录的 endpoint，漂移判 `KM_RUNTIME_MISMATCH` 并跳过容器/镜像检查；⑤容器归属按记录的完整容器 ID 检查（名称、`km.project` 标签、`/workspace` 挂载源、容器实际镜像内容全部比对），同名重建判冲突不接管；⑥镜像标签内容与项目记录比对，漂移报警告。环境问题作为检查结果输出（stdout），doctor 自身完成即返回 0 |
 | `km init` | 未实现（KM_NOT_IMPLEMENTED，退出 2） | P2：初始化项目 + 准备镜像 + 启动容器；幂等；检测到父项目明确提示 |
 | `km TOOL ARG...` | 未实现（KM_NOT_IMPLEMENTED，退出 2） | P2：在项目容器执行工具 |
 | `km run -- TOOL ARG...` | 未实现（KM_NOT_IMPLEMENTED，退出 2） | P2：同上长形式；`--` 必需，解决工具与 km 管理命令重名 |
@@ -30,10 +30,14 @@
 
 ## 错误标识
 
-`KM_RUNTIME_MISSING`（无 docker CLI / 容器内命令缺失）、`KM_RUNTIME_OFFLINE`（引擎不可达）、`KM_ENDPOINT_REMOTE`（远程 endpoint，v0.1 拒绝）、`KM_PROJECT_MISSING`、`KM_CONFIG_INVALID`、`KM_STATE_INVALID`、`KM_CONTAINER_CONFLICT`（名称/标签/挂载任一不符，不接管）、`KM_NOT_IMPLEMENTED`、`KM_USAGE`。
+`KM_RUNTIME_MISSING`（无 docker CLI / 容器内命令缺失 / context 无 endpoint）、`KM_RUNTIME_OFFLINE`（引擎不可达）、`KM_ENDPOINT_REMOTE`（远程 endpoint，v0.1 拒绝且不发引擎查询）、`KM_PROJECT_MISSING`、`KM_CONFIG_INVALID`、`KM_STATE_INVALID`、`KM_CONTAINER_CONFLICT`（ID/名称/标签/挂载/镜像内容任一不符或同名重建，不接管）、`KM_RUNTIME_MISMATCH`（状态记录的引擎与当前有效 endpoint 漂移，跳过容器/镜像检查）、`KM_TIMEOUT`（管理查询超时）、`KM_CANCELED`（km 收到取消，子进程已终止）、`KM_NOT_IMPLEMENTED`、`KM_USAGE`。
+
+## 超时
+
+管理查询（version/inspect/ps/image 等）单项默认 10 秒上限，doctor 整体预算 45 秒；超时返回 `KM_TIMEOUT`，用户取消返回 `KM_CANCELED`，两种情况子进程都会被终止。该超时只用于管理操作；P2 的长工具执行不套用。
 
 ## 项目身份
 
 - `.km.json`（可共享，声明式）：`schema_version`（当前仅 1）、`image`（必填）、`name`/`platform`（可选）。未知字段即报错并指出字段名；km 不执行其中任何内容。
-- `.km/state.json`（本机，勿提交）：`project_id`（随机 `p`+10 hex）、容器名 `km-<project_id>`、docker context/endpoint 身份、镜像内容标识、创建时间。
-- 归属认定 = 容器 ID + `km.project` 标签 + `/workspace` 挂载源三者同时匹配，缺一按 `KM_CONTAINER_CONFLICT` 处理。
+- `.km/state.json`（本机，勿提交）：`project_id`（随机 `p`+10 hex）、`container.id`（完整不可变容器 ID，归属检查的唯一入口）、`container.name`（`km-<project_id>`，仅信息展示与同名重建诊断）、`container.image_id`（init 时的镜像内容 ID）、docker context/endpoint 身份、创建时间。缺少容器 ID 的旧状态会被判为不完整，不按名称接管。
+- 归属认定 = 记录的容器 ID 存在 + 名称 + `km.project` 标签 + `/workspace` 挂载源 + 容器实际镜像内容全部匹配；记录 ID 不存在而同名容器存在时判"同名重建"冲突。缺一按 `KM_CONTAINER_CONFLICT` 处理。

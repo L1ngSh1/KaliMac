@@ -20,6 +20,9 @@ const (
 	CodeContainerConflict = "KM_CONTAINER_CONFLICT"
 	CodeNotImplemented    = "KM_NOT_IMPLEMENTED"
 	CodeUsage             = "KM_USAGE"
+	CodeTimeout           = "KM_TIMEOUT"
+	CodeCanceled          = "KM_CANCELED"
+	CodeRuntimeMismatch   = "KM_RUNTIME_MISMATCH"
 )
 
 // Error is a km infrastructure error carrying a stable KM_* code.
@@ -78,6 +81,12 @@ func IsNotFound(err error) bool { return hasCode(err, CodeNotFound) }
 
 // IsMissing reports whether err is a KM_RUNTIME_MISSING error.
 func IsMissing(err error) bool { return hasCode(err, CodeRuntimeMissing) }
+
+// IsTimeout reports whether err is a KM_TIMEOUT error.
+func IsTimeout(err error) bool { return hasCode(err, CodeTimeout) }
+
+// IsCanceled reports whether err is a KM_CANCELED error.
+func IsCanceled(err error) bool { return hasCode(err, CodeCanceled) }
 
 func hasCode(err error, code string) bool {
 	var kmerr *Error

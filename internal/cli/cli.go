@@ -13,7 +13,7 @@ import (
 )
 
 // Version is the km build version reported by --version.
-const Version = "0.1.0-p1"
+const Version = "0.1.1-p1"
 
 // Exit codes per the CLI contract: 0 success, 1 environment failure,
 // 2 usage error or unimplemented command.
@@ -27,6 +27,14 @@ const (
 var managementCommands = map[string]bool{
 	"help": true, "version": true, "init": true, "shell": true,
 	"doctor": true, "stop": true, "run": true,
+}
+
+// newDocker is the injection point for tests: swapping it lets tests assert
+// that some code paths (help/version) never touch an external command.
+var newDocker = newProductionDocker
+
+func newProductionDocker() *runtime.Docker {
+	return &runtime.Docker{Exec: runtime.CommandExecutor{}}
 }
 
 // Run dispatches argv. Management options belong to km; everything after a
@@ -44,7 +52,7 @@ func Run(ctx context.Context, argv []string, stdout, stderr io.Writer) int {
 		PrintVersion(stdout)
 		return ExitOK
 	case "doctor":
-		return runDoctorCommand(ctx, argv[1:], stdout, stderr)
+		return runDoctorCommand(ctx, argv[1:], stdout, stderr, newDocker())
 	case "run":
 		return runLongForm(ctx, argv[1:], stdout, stderr)
 	case "init", "shell", "stop":

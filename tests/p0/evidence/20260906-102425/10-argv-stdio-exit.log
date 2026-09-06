@@ -1,0 +1,25 @@
+===== E1: argv 复杂参数（空/空格/中文/引号/前导-）=====
+1[]
+2[a b]
+3[中文参数]
+4[he said "hi"]
+5[--help]
+6[-x]
+7[5 * ?]
+E1 exit=0
+===== E2: 工具自身的 --help 留给工具 =====
+1[--help]
+E2 exit=0
+===== E3: 二进制 stdin/stdout 往返哈希（完整 64 位）=====
+mac 侧: 6ed96d46d2504eada8ddb4326c8dfb60b519fe627ab97586e05f0ba26376bcb1
+容器侧: 6ed96d46d2504eada8ddb4326c8dfb60b519fe627ab97586e05f0ba26376bcb1
+E3 exit=0
+===== E4: stdout/stderr 分离捕获 =====
+E4 exit=0 stdout=[OUT_LINE] stderr=[ERR_LINE]
+===== E5: 退出码 0/7/42 =====
+true exit=0
+exit7 exit=7
+exit42 exit=42
+===== E6: 容器内命令不存在 =====
+OCI runtime exec failed: exec failed: unable to start container process: exec: "no-such-cmd-zzz": executable file not found in $PATH
+E6 exit=127（期望 127）

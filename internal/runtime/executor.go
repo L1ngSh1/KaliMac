@@ -5,6 +5,7 @@ package runtime
 import (
 	"bytes"
 	"context"
+	"os"
 	"os/exec"
 )
 
@@ -31,32 +32,38 @@ type Executor interface {
 	Run(ctx context.Context, name string, args ...string) (stdout []byte, stderr []byte, err error)
 }
 
-// CommandExecutor is the production Executor backed by os/exec.
-type CommandExecutor struct{}
+// CommandExecutor is the production Executor backed by os/exec. ExtraEnv,
+// when set, is appended to the child environment (used to pin DOCKER_HOST).
+type CommandExecutor struct {
+	ExtraEnv []string
+}
 
-func (CommandExecutor) LookPath(name string) (string, error) {
+func (c CommandExecutor) LookPath(name string) (string, error) {
 	return exec.LookPath(name)
 }
 
-func (CommandExecutor) Run(ctx context.Context, name string, args ...string) ([]byte, []byte, error) {
+func (c CommandExecutor) Run(ctx context.Context, name string, args ...string) ([]byte, []byte, error) {
 	var stdout, stderr bytes.Buffer
 	cmd := exec.CommandContext(ctx, name, args...)
+	if len(c.ExtraEnv) > 0 {
+		cmd.Env = append(os.Environ(), c.ExtraEnv...)
+	}
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 
-	re := &RunError{Err: err, Stderr: stderr.Bytes(), ExitCode: -1}
-	var ee *exec.ExitError
-	if ok := asExitError(err, &ee); ok {
-		re.ExitCode = ee.ExitCode()
-	}
 	if err == nil {
 		return stdout.Bytes(), stderr.Bytes(), nil
+	}
+	re := &RunError{Err: err, Stderr: stderr.Bytes(), ExitCode: -1}
+	var ee *exec.ExitError
+	if errors_As(err, &ee) {
+		re.ExitCode = ee.ExitCode()
 	}
 	return stdout.Bytes(), stderr.Bytes(), re
 }
 
-func asExitError(err error, target **exec.ExitError) bool {
+func errors_As(err error, target **exec.ExitError) bool {
 	ee, ok := err.(*exec.ExitError)
 	if ok {
 		*target = ee

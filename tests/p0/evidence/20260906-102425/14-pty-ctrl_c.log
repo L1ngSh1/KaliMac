@@ -1,0 +1,11 @@
+--- 启动后 容器任务日志 (/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T//km-p0-20260906-102425-D60CnV/sig.log) ---
+start pid=19 ppid=0
+child=25
+>>> 已向 PTY 写入 0x03 (Ctrl-C 字节)
+--- 动作后 容器任务日志 (/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T//km-p0-20260906-102425-D60CnV/sig.log) ---
+start pid=19 ppid=0
+child=25
+TRAP pid=19 time=1788661505
+--- 容器内残留 sig.sh 进程（STAT 列，Z=僵尸）---
+   25     1 Z    sig.sh
+docker 客户端: 已退出 wait status=33280 exitcode=130

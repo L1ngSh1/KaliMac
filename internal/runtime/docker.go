@@ -2,8 +2,16 @@ package runtime
 
 import (
 	"context"
+	"errors"
+	"net/url"
+	"os"
 	"strings"
+	"time"
 )
+
+// DefaultManagementTimeout bounds every docker management query (version,
+// inspect, ps, ...). Long-running tool executions (P2) must not use it.
+const DefaultManagementTimeout = 10 * time.Second
 
 // Docker wraps the local docker CLI. Every call goes through the injectable
 // Executor so that unit tests can assert the exact argv km builds.
@@ -11,6 +19,13 @@ type Docker struct {
 	Exec Executor
 	// DockerPath overrides the docker binary lookup; used by tests.
 	DockerPath string
+	// ManagementTimeout bounds each docker management query; 0 selects
+	// DefaultManagementTimeout.
+	ManagementTimeout time.Duration
+	// EndpointOverride, when set, is injected as DOCKER_HOST into every
+	// child docker process so that all calls of one km run hit the same
+	// engine regardless of concurrent environment changes.
+	EndpointOverride string
 }
 
 // Version holds the minimal identity fields of client and server.
@@ -28,13 +43,21 @@ type ContainerSummary struct {
 	State string
 }
 
+// EndpointInfo describes the endpoint the docker CLI will actually use.
+type EndpointInfo struct {
+	Source   string // "DOCKER_HOST" | "DOCKER_CONTEXT" | "context"
+	Context  string // context name, empty when DOCKER_HOST overrides
+	Endpoint string
+}
+
 // InspectResult is the trimmed result of `docker container inspect` for one
-// container: identity, state, project label and mounts.
+// container: identity, state, project label, image content and mounts.
 type InspectResult struct {
 	ID          string
 	Name        string
 	State       string
 	ProjectID   string
+	Image       string // container's actual image ID (content identity)
 	MountSource string // source path of the /workspace bind mount, empty if absent
 }
 
@@ -49,15 +72,34 @@ func (d *Docker) lookPath() (string, error) {
 	return path, nil
 }
 
-// run executes docker with args and returns trimmed stdout. Failures are
-// classified into KM_* errors; the raw stderr travels inside the error.
+// run executes docker with args and returns trimmed stdout. Each call is
+// bounded by the management timeout; failures are classified into KM_*
+// errors with the raw stderr attached.
 func (d *Docker) run(ctx context.Context, args ...string) (string, error) {
 	bin, err := d.lookPath()
 	if err != nil {
 		return "", err
 	}
-	stdout, stderr, rerr := d.Exec.Run(ctx, bin, args...)
+	mt := d.ManagementTimeout
+	if mt <= 0 {
+		mt = DefaultManagementTimeout
+	}
+	cctx, cancel := context.WithTimeout(ctx, mt)
+	defer cancel()
+
+	ex := d.Exec
+	if d.EndpointOverride != "" {
+		ex = WithEnv(ex, "DOCKER_HOST="+d.EndpointOverride)
+	}
+
+	stdout, stderr, rerr := ex.Run(cctx, bin, args...)
 	if rerr != nil {
+		if errors.Is(cctx.Err(), context.Canceled) {
+			return "", errf(CodeCanceled, "km 已取消 docker %s 调用", args[0])
+		}
+		if errors.Is(cctx.Err(), context.DeadlineExceeded) {
+			return "", errf(CodeTimeout, "docker %s 超时（超过 %s 未响应）", args[0], mt)
+		}
 		re := &RunError{Err: rerr, Stderr: stderr, ExitCode: -1}
 		if re2, ok := rerr.(*RunError); ok {
 			re = re2
@@ -65,6 +107,79 @@ func (d *Docker) run(ctx context.Context, args ...string) (string, error) {
 		return "", ClassifyCommandError(re)
 	}
 	return strings.TrimRight(string(stdout), "\n"), nil
+}
+
+// EffectiveEndpoint resolves the endpoint the docker CLI would use, without
+// contacting the daemon. Precedence mirrors the docker CLI: DOCKER_HOST >
+// DOCKER_CONTEXT > current context (`docker context show`).
+func (d *Docker) EffectiveEndpoint(ctx context.Context) (EndpointInfo, error) {
+	if host := os.Getenv("DOCKER_HOST"); host != "" {
+		return EndpointInfo{Source: "DOCKER_HOST", Endpoint: host}, nil
+	}
+	ctxName := os.Getenv("DOCKER_CONTEXT")
+	source := "DOCKER_CONTEXT"
+	if ctxName == "" {
+		name, err := d.run(ctx, "context", "show")
+		if err != nil {
+			return EndpointInfo{}, err
+		}
+		ctxName = name
+		source = "context"
+	}
+	ep, err := d.run(ctx, "context", "inspect", "--format", "{{.Endpoints.docker.Host}}", ctxName)
+	if err != nil {
+		return EndpointInfo{}, err
+	}
+	if ep == "" {
+		return EndpointInfo{}, errf(CodeRuntimeMissing, "context %q 未定义 docker endpoint", ctxName)
+	}
+	return EndpointInfo{Source: source, Context: ctxName, Endpoint: ep}, nil
+}
+
+// IsLocalEndpoint reports whether the endpoint targets this machine: unix
+// sockets, Windows named pipes, or TCP loopback. Everything else (ssh,
+// non-loopback tcp, ...) counts as remote for v0.1.
+func IsLocalEndpoint(endpoint string) bool {
+	u, err := url.Parse(endpoint)
+	if err != nil {
+		return false
+	}
+	switch strings.ToLower(u.Scheme) {
+	case "unix", "npipe":
+		return true
+	case "tcp":
+		switch strings.ToLower(u.Hostname()) {
+		case "127.0.0.1", "localhost", "::1":
+			return true
+		}
+		return false
+	default:
+		return false
+	}
+}
+
+// WithEnv returns an Executor that appends the given KEY=VALUE pairs to the
+// child environment. For non-CommandExecutor implementations (test fakes)
+// the variables are ignored.
+func WithEnv(inner Executor, kv ...string) Executor {
+	return envExecutor{inner: inner, extra: kv}
+}
+
+type envExecutor struct {
+	inner Executor
+	extra []string
+}
+
+func (e envExecutor) LookPath(name string) (string, error) {
+	return e.inner.LookPath(name)
+}
+
+func (e envExecutor) Run(ctx context.Context, name string, args ...string) ([]byte, []byte, error) {
+	if ce, ok := e.inner.(CommandExecutor); ok {
+		ce.ExtraEnv = append(append([]string(nil), ce.ExtraEnv...), e.extra...)
+		return ce.Run(ctx, name, args...)
+	}
+	return e.inner.Run(ctx, name, args...)
 }
 
 // Version returns client and server identity. It fails with
@@ -79,11 +194,6 @@ func (d *Docker) Version(ctx context.Context) (Version, error) {
 		return Version{}, errf(CodeRuntimeOffline, "docker version 输出格式异常: %q", out)
 	}
 	return Version{Client: parts[0], Server: parts[1], ServerOS: parts[2], ServerArc: parts[3]}, nil
-}
-
-// ContextShow returns the current docker context name.
-func (d *Docker) ContextShow(ctx context.Context) (string, error) {
-	return d.run(ctx, "context", "show")
 }
 
 // ContainerName returns the km container name for a project id.
@@ -111,19 +221,20 @@ func (d *Docker) FindContainersByLabel(ctx context.Context, label, value string)
 	return result, nil
 }
 
-// InspectContainer returns identity, state, project label and workspace
-// mount for one container. ok=false when the container does not exist.
-func (d *Docker) InspectContainer(ctx context.Context, name string) (InspectResult, bool, error) {
-	format := "{{.Id}}|{{.Name}}|{{.State.Status}}|{{index .Config.Labels \"" + ProjectLabel + "\"}}|{{range .Mounts}}{{if eq .Destination \"/workspace\"}}{{.Source}}{{end}}{{end}}"
-	out, err := d.run(ctx, "container", "inspect", "--format", format, name)
+// InspectContainer inspects a container by any reference (full ID preferred
+// or name) and returns identity, state, project label, actual image content
+// and the /workspace mount. ok=false when the container does not exist.
+func (d *Docker) InspectContainer(ctx context.Context, ref string) (InspectResult, bool, error) {
+	format := "{{.Id}}|{{.Name}}|{{.State.Status}}|{{index .Config.Labels \"" + ProjectLabel + "\"}}|{{.Image}}|{{range .Mounts}}{{if eq .Destination \"/workspace\"}}{{.Source}}{{end}}{{end}}"
+	out, err := d.run(ctx, "container", "inspect", "--format", format, ref)
 	if err != nil {
 		if IsNotFound(err) {
 			return InspectResult{}, false, nil
 		}
 		return InspectResult{}, false, err
 	}
-	parts := strings.SplitN(out, "|", 5)
-	if len(parts) < 5 {
+	parts := strings.SplitN(out, "|", 6)
+	if len(parts) < 6 {
 		return InspectResult{}, false, errf(CodeStateInvalid, "docker inspect 输出格式异常: %q", out)
 	}
 	res := InspectResult{
@@ -131,7 +242,8 @@ func (d *Docker) InspectContainer(ctx context.Context, name string) (InspectResu
 		Name:        strings.TrimPrefix(parts[1], "/"),
 		State:       parts[2],
 		ProjectID:   parts[3],
-		MountSource: parts[4],
+		Image:       parts[4],
+		MountSource: parts[5],
 	}
 	return res, true, nil
 }

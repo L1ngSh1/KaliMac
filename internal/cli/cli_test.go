@@ -17,29 +17,44 @@ func run(t *testing.T, argv ...string) (int, string, string) {
 	return code, out.String(), errb.String()
 }
 
-// failIfRun fails the test if the fake executor is asked to run anything.
-func failIfRun() *runtime.FakeExecutor {
-	return &runtime.FakeExecutor{
+// forbidDocker swaps the newDocker injection point for a fake that fails
+// the test on any external command, and restores it when done.
+func forbidDocker(t *testing.T) *runtime.FakeExecutor {
+	t.Helper()
+	fe := &runtime.FakeExecutor{
 		Respond: func(name string, args []string) ([]byte, []byte, error) {
-			return nil, nil, errors.New("测试失败：help/version 不应调用外部命令")
+			t.Errorf("该代码路径不应调用外部命令: %s %v", name, args)
+			return nil, nil, errors.New("forbidden external call")
 		},
 	}
+	old := newDocker
+	newDocker = func() *runtime.Docker { return &runtime.Docker{Exec: fe} }
+	t.Cleanup(func() { newDocker = old })
+	return fe
 }
 
 func TestEmptyArgvShowsHelp(t *testing.T) {
+	forbidDocker(t)
 	code, out, _ := run(t)
 	if code != ExitOK || !strings.Contains(out, "km —") || !strings.Contains(out, "doctor") {
 		t.Fatalf("code=%d out=%q", code, out)
 	}
 }
 
-func TestHelpAndVersionNoDocker(t *testing.T) {
-	_ = failIfRun() // 若被调用会使测试失败
-	for _, argv := range [][]string{{"--help"}, {"help"}, {"--version"}, {"version"}} {
+// F4 补强：help/version（及未实现命令分支）必须零外部调用。
+func TestHelpAndVersionZeroExternalCalls(t *testing.T) {
+	fe := forbidDocker(t)
+	for _, argv := range [][]string{
+		{"--help"}, {"help"}, {"--version"}, {"version"}, {},
+		{"nmap", "--help"}, {"run", "--", "stop"},
+	} {
 		code, _, _ := run(t, argv...)
-		if code != ExitOK {
+		if code != ExitOK && code != ExitUsage {
 			t.Fatalf("%v code=%d", argv, code)
 		}
+	}
+	if len(fe.Calls) != 0 {
+		t.Fatalf("外部调用次数应为 0, 实际 %d: %+v", len(fe.Calls), fe.Calls)
 	}
 }
 

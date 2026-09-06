@@ -16,6 +16,9 @@ type State struct {
 	StateVersion int    `json:"state_version"`
 	ProjectID    string `json:"project_id"`
 	Container    struct {
+		// ID is the full immutable container ID recorded at init. All
+		// ownership checks must go through it; the name is informational.
+		ID      string `json:"id,omitempty"`
 		Name    string `json:"name"`
 		ImageID string `json:"image_id,omitempty"`
 	} `json:"container"`

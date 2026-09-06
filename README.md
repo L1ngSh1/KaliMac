@@ -2,7 +2,7 @@
 
 Mac 上精简、可靠的 Kali CLI 入口：在终端输入 `km 工具 参数`，在当前项目的 Kali 容器执行；项目文件留在 Mac，工具输出与退出状态回到原终端。
 
-状态：**P0 技术验证 + P1 最小 CLI 骨架已完成**。`init / run / shell / stop` 属于 P2，当前调用会明确报 `KM_NOT_IMPLEMENTED`（不会伪装成功）。
+状态：**P0 技术验证 + P1 最小 CLI 骨架已完成（含 review 修复，0.1.1-p1）**。`init / run / shell / stop` 属于 P2，当前调用会明确报 `KM_NOT_IMPLEMENTED`（不会伪装成功）。doctor 会先解析有效 Docker endpoint（非本地引擎直接拒绝且不发引擎查询），并按记录的容器 ID、标签、挂载与镜像内容核验项目归属。
 
 ## 依赖
 
@@ -36,4 +36,4 @@ make vet    # go vet ./...
 make all    # vet + test + build
 ```
 
-单测不需要 Docker（runtime 层 executor 可注入）；真实 Docker 集成验证当前以实验记录形式保存在 docs/phase-0.md。
+单测不需要 Docker（runtime 层 executor 可注入）。P0 实验集可重跑：`bash tests/p0/run-p0.sh`（自动创建唯一标签的实验容器、生成证据到 `tests/p0/evidence/`、结束后清理并核对）。

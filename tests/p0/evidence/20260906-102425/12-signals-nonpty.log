@@ -1,0 +1,40 @@
+===== E10a: 非 PTY（无 -i -t），docker exec 客户端被 SIGKILL =====
+--- 启动后 sig.log ---
+start pid=13 ppid=0
+child=19
+客户端(91517) 收到 KILL 后 wait 退出码=137
+--- 动作后 sig.log（出现 TRAP = 信号到达容器内任务）---
+start pid=13 ppid=0
+child=19
+--- 容器内残留 ---
+   13     0 S    sig.sh
+   19    13 S    sig.sh
+===== E10b: 非 PTY（无 -i -t），docker exec 客户端被 SIGINT =====
+--- 启动后 sig.log ---
+start pid=26 ppid=0
+child=31
+客户端(91590) 收到 INT 后 wait 退出码=0
+--- 动作后 sig.log（出现 TRAP = 信号到达容器内任务）---
+start pid=26 ppid=0
+child=31
+--- 容器内残留 ---
+   13     0 S    sig.sh
+   19    13 S    sig.sh
+   26     0 S    sig.sh
+   31    26 S    sig.sh
+===== E11: -i 无 -t，docker exec 客户端被 SIGINT =====
+--- 启动后 sig.log ---
+start pid=38 ppid=0
+child=44
+客户端(91657) 收到 INT 后 wait 退出码=0
+--- 动作后 sig.log（出现 TRAP = 信号到达容器内任务）---
+start pid=38 ppid=0
+child=44
+--- 容器内残留 ---
+   13     0 S    sig.sh
+   19    13 S    sig.sh
+   26     0 S    sig.sh
+   31    26 S    sig.sh
+   38     0 S    sig.sh
+   44    38 S    sig.sh
+结论判据：sig.log 无 TRAP 且 sig.sh/sleep 进程仍在 = 客户端死亡不传播信号

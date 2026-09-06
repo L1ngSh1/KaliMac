@@ -1,4 +1,33 @@
-# 本轮验证记录（P0＋P1，2026-09-06）
+# 验证记录
+
+## 第二轮：review 修复（2026-09-06，版本 0.1.1-p1）
+
+针对外部 review（F1–F5）的修复验证：
+
+```text
+$ gofmt -l .                   → 无输出
+$ go vet ./...                 → PASS
+$ go test ./...                → ok internal/cli (0.9s) / internal/project / internal/runtime
+$ go build -o ./bin/km ./cmd/km → PASS（版本 0.1.1-p1）
+```
+
+新增回归（fake Docker，断言调用序列）：
+- F1：远程 context（`context inspect` 得 ssh://）→ `KM_ENDPOINT_REMOTE` 且零 daemon 查询；`DOCKER_CONTEXT` 覆盖同样拦截；状态 endpoint 漂移 → `KM_RUNTIME_MISMATCH` 且跳过容器/镜像查询；`DOCKER_HOST`+`DOCKER_CONTEXT` 冲突提示；`DOCKER_HOST` 本地 tcp 正常放行。
+- F2：同名重建（按记录 ID 查无、按名查得新 ID）→ 冲突不接管；旧状态缺容器 ID → 警告且不按名称查询。
+- F3：标签内容漂移 → 警告；容器实际镜像与记录不符 → 失败。
+- F4：卡死的 docker（真实 sleep 脚本经 DockerPath 注入）→ `KM_TIMEOUT`，300ms 内返回；取消 → `KM_CANCELED`；help/version/未实现命令外部调用次数断言为 0。
+- F5：P0 实验集入库并可重跑（tests/p0/），重跑证据与首轮结论一致（tests/p0/evidence/20260906-102425/）。
+
+真实 Docker 冒烟（本机 desktop-linux，临时项目唯一标签，见本轮汇报）：
+- 健康栈（state 含真实容器 ID + 镜像内容 ID + endpoint）→ 0 失败；
+- 同名重建容器 → `KM_CONTAINER_CONFLICT`（同名重建）；
+- 镜像内容漂移（state 记录假 ID）→ 漂移警告 + 容器内容冲突；
+- 旧状态（删 container.id）→ 不完整警告，不接管；
+- `DOCKER_HOST=ssh://fixture.invalid` → `KM_ENDPOINT_REMOTE`，无引擎查询、立即返回；
+- 远程分类单元表（unix/npipe/tcp 回环/ssh/tcp 非回环）通过。
+- 测试容器清理后 km.owner=km-p0-test 残留 0；context 未修改。
+
+## 第一轮：P0＋P1 基线（2026-09-06，版本 0.1.0-p1）
 
 ## 环境检查（只读）
 

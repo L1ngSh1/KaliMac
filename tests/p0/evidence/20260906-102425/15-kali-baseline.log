@@ -1,0 +1,15 @@
+===== K1: Kali 基线 =====
+镜像 ID: sha256:ed99295a386abde2fb31e01a441b7c2800d9bcf19a20028b77d642c3ef068363
+PRETTY_NAME="Kali GNU/Linux Rolling"
+NAME="Kali GNU/Linux"
+aarch64
+--- 候选工具预装情况 ---
+python3: 无
+curl: 无
+jq: 无
+nmap: 无
+file: 无
+openssl: 无
+--- apt 源可达性（限时 25s，仅观察）---
+Fetched 21.6 MB in 10s (2188 kB/s)
+Reading package lists...

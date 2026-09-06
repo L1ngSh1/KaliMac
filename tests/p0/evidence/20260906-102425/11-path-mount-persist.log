@@ -1,0 +1,24 @@
+===== E7: 中文/空格路径 + 子目录 cwd =====
+/workspace/中文 目录
+mac 初始内容
+E7a exit=0
+/workspace/中文 目录/子 目
+E7b exit=0
+===== E8: 容器写 → Mac 读（双向）=====
+--- Mac 侧文件内容 ---
+mac 初始内容
+容器侧写入
+E8 exit=0
+===== E9a: 容器创建新文件，Mac 可编辑 =====
+容器生成的数据行1
+Mac 追加编辑：
+E9a exit=0
+===== E9b: stop 再 start，数据与执行恢复 =====
+stop exit=0
+start exit=0
+容器生成的数据行1
+Mac 追加编辑：
+E9b exit=0
+===== E9c: Mac 侧文件完好 =====
+容器生成的数据行1
+Mac 追加编辑：

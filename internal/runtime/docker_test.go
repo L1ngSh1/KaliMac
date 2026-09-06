@@ -136,7 +136,7 @@ func TestInspectContainerNotFound(t *testing.T) {
 }
 
 func TestInspectContainerFields(t *testing.T) {
-	const out = "sha256:abc123def456789|/km-p1a2b3c4d5|running|p1a2b3c4d5|/Users/me/我的 项目"
+	const out = "sha256:abc123def456789|/km-p1a2b3c4d5|running|p1a2b3c4d5|sha256:img123|/Users/me/我的 项目"
 	fe := &FakeExecutor{
 		Respond: func(name string, args []string) ([]byte, []byte, error) {
 			return []byte(out), nil, nil
@@ -149,6 +149,9 @@ func TestInspectContainerFields(t *testing.T) {
 	}
 	if res.Name != "km-p1a2b3c4d5" || res.ProjectID != "p1a2b3c4d5" || res.State != "running" {
 		t.Fatalf("字段解析不正确: %+v", res)
+	}
+	if res.Image != "sha256:img123" {
+		t.Fatalf("容器实际镜像解析不正确: %q", res.Image)
 	}
 	if res.MountSource != "/Users/me/我的 项目" {
 		t.Fatalf("挂载源解析不正确: %q", res.MountSource)

@@ -1,0 +1,15 @@
+===== 清理（只处理本 run-id 资源）=====
+km-p0-20260906-102425-c1
+km-p0-20260906-102425-k1
+--- 残留核对（按 label km.project=20260906-102425，应无输出）---
+残留数: 0
+--- 临时项目最终文件清单（证据摘要用）---
+total 152
+drwx------@    7 y4n9  staff    224 Sep  6 10:25 .
+drwx------@ 2249 y4n9  staff  71968 Sep  6 10:25 ..
+-rwxr-xr-x@    1 y4n9  staff    171 Sep  6 10:24 argv.sh
+-rw-r--r--@    1 y4n9  staff  65536 Sep  6 10:24 bin.in
+-rw-r--r--@    1 y4n9  staff     46 Sep  6 10:24 created_in_container.txt
+-rwxr-xr-x@    1 y4n9  staff    503 Sep  6 10:24 sig.sh
+drwxr-xr-x@    4 y4n9  staff    128 Sep  6 10:24 中文 目录
+bin.in sha256 = 6ed96d46d2504eada8ddb4326c8dfb60b519fe627ab97586e05f0ba26376bcb1（应与 6ed96d46d2504eada8ddb4326c8dfb60b519fe627ab97586e05f0ba26376bcb1 一致）

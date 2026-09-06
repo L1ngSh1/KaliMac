@@ -1,0 +1,21 @@
+===== E14a: stop 前容器内进程（上一步残留仍在）=====
+PID   PPID  STAT COMMAND
+    1     0 S    sleep
+   13     0 S    sig.sh
+   19    13 S    sig.sh
+   26     0 S    sig.sh
+   31    26 S    sig.sh
+   38     0 S    sig.sh
+   44    38 S    sig.sh
+   51     0 R    ps
+===== E14b: docker stop（计时）=====
+stop exit=0
+start exit=0
+===== E14c: stop 后容器内进程（应仅剩 PID1 与 ps）=====
+PID   PPID  STAT COMMAND
+    1     0 S    sleep
+    7     0 R    ps
+===== E14d: 挂载数据完好 =====
+容器生成的数据行1
+Mac 追加编辑：
+stop 耗时参考：PID1 为 sleep（不处理 SIGTERM）时通常等满 10s 宽限期

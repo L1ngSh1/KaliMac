@@ -17,27 +17,48 @@ import (
 const (
 	fakeVersionOut  = "29.6.1|29.6.1|linux|aarch64"
 	fakeContainerID = "sha256:c1abc123def4567890abcdef1234567890abcdef1234567890abcdef1234567890"
+	rebuiltID       = "sha256:9999aaaabbbbccccddddeeeeffff00001111222233334444555566667777888"
+	fakeImageID     = "sha256:imgabc123"
 	fakeProjectID   = "p1a2b3c4d5"
+	localEndpoint   = "unix:///Users/x/.docker/run/docker.sock"
 )
 
-// doctorFake builds an executor answering the docker calls doctor makes.
+// doctorFake builds an executor answering the client-side and daemon calls
+// doctor makes. containerOut is returned for container inspect; pass a
+// special value to control that branch.
 func doctorFake(containerOut string) *runtime.FakeExecutor {
 	return &runtime.FakeExecutor{
 		Respond: func(name string, args []string) ([]byte, []byte, error) {
-			switch args[0] {
-			case "version":
-				return []byte(fakeVersionOut), nil, nil
-			case "context":
+			switch {
+			case args[0] == "context" && args[1] == "show":
 				return []byte("desktop-linux"), nil, nil
-			case "container":
+			case args[0] == "context" && args[1] == "inspect":
+				return []byte(localEndpoint), nil, nil
+			case args[0] == "version":
+				return []byte(fakeVersionOut), nil, nil
+			case args[0] == "container":
 				return []byte(containerOut), nil, nil
-			case "image":
-				return []byte("sha256:imgabc123"), nil, nil
+			case args[0] == "image":
+				return []byte(fakeImageID), nil, nil
 			default:
 				return nil, nil, fmt.Errorf("fake: 未预期的调用 %v", args)
 			}
 		},
 	}
+}
+
+// containerLine builds an inspect output row: ID|Name|State|Label|Image|Mount.
+func containerLine(id, name, state, label, image, mount string) string {
+	return id + "|/" + name + "|" + state + "|" + label + "|" + image + "|" + mount
+}
+
+func healthyContainerOut(root string) string {
+	return containerLine(fakeContainerID, "km-"+fakeProjectID, "running", fakeProjectID, fakeImageID, root)
+}
+
+func stateJSON(id, imageID, endpoint string) string {
+	return fmt.Sprintf(`{"state_version":1,"project_id":%q,"container":{"id":%q,"name":"km-%s","image_id":%q},"runtime":{"context":"desktop-linux","endpoint":%q},"created_at":"2026-09-06T00:00:00Z"}`,
+		fakeProjectID, id, fakeProjectID, imageID, endpoint)
 }
 
 func setupProject(t *testing.T, cfg, state string) string {
@@ -62,10 +83,13 @@ func setupProject(t *testing.T, cfg, state string) string {
 func doctor(t *testing.T, dir string, fe *runtime.FakeExecutor) (int, string) {
 	t.Helper()
 	t.Setenv("DOCKER_HOST", "")
+	t.Setenv("DOCKER_CONTEXT", "")
 	var out bytes.Buffer
 	code := RunDoctor(context.Background(), dir, &out, &runtime.Docker{Exec: fe})
 	return code, out.String()
 }
+
+const validConfig = `{"schema_version":1,"image":"img:1"}`
 
 func TestDoctorNoDockerCLI(t *testing.T) {
 	fe := &runtime.FakeExecutor{LookPathErr: errors.New("not found")}
@@ -81,7 +105,16 @@ func TestDoctorNoDockerCLI(t *testing.T) {
 func TestDoctorEngineOffline(t *testing.T) {
 	fe := &runtime.FakeExecutor{
 		Respond: func(name string, args []string) ([]byte, []byte, error) {
-			return nil, []byte("Cannot connect to the Docker daemon. Is the docker daemon running?"), runtime.RunErr("Cannot connect", 1)
+			switch {
+			case args[0] == "context" && args[1] == "show":
+				return []byte("desktop-linux"), nil, nil
+			case args[0] == "context" && args[1] == "inspect":
+				return []byte(localEndpoint), nil, nil
+			case args[0] == "version":
+				return nil, []byte("Cannot connect to the Docker daemon. Is the docker daemon running?"), runtime.RunErr("Cannot connect", 1)
+			default:
+				return nil, nil, fmt.Errorf("fake: 未预期的调用 %v", args)
+			}
 		},
 	}
 	_, out := doctor(t, t.TempDir(), fe)
@@ -90,16 +123,133 @@ func TestDoctorEngineOffline(t *testing.T) {
 	}
 }
 
-func TestDoctorRemoteEndpointRejected(t *testing.T) {
-	// 不走 doctor() 辅助函数：它会把 DOCKER_HOST 清空。
-	t.Setenv("DOCKER_HOST", "tcp://remote-host:2375")
+func TestDoctorRemoteHostSkipsDaemonQueries(t *testing.T) {
+	t.Setenv("DOCKER_HOST", "ssh://fixture.invalid")
 	var out bytes.Buffer
 	code := RunDoctor(context.Background(), t.TempDir(), &out, &runtime.Docker{Exec: doctorFake("")})
 	if code != ExitOK {
 		t.Fatalf("code=%d", code)
 	}
+	s := out.String()
+	if !strings.Contains(s, runtime.CodeEndpointRemote) || !strings.Contains(s, "跳过所有引擎查询") {
+		t.Fatalf("缺少远程判定:\n%s", s)
+	}
+	if strings.Contains(s, "client=") {
+		t.Fatalf("远程 endpoint 下不应有引擎查询结果:\n%s", s)
+	}
+}
+
+// F1 回归：默认 context 是远程时，必须先判失败且不发任何 daemon 请求。
+func TestDoctorRemoteContextNoDaemonCalls(t *testing.T) {
+	fe := &runtime.FakeExecutor{
+		Respond: func(name string, args []string) ([]byte, []byte, error) {
+			switch {
+			case args[0] == "context" && args[1] == "show":
+				return []byte("review-remote"), nil, nil
+			case args[0] == "context" && args[1] == "inspect":
+				if args[len(args)-1] != "review-remote" {
+					t.Errorf("inspect 的 context 名不正确: %v", args)
+				}
+				return []byte("ssh://fixture.invalid"), nil, nil
+			case args[0] == "-productVersion": // macVersion 的 sw_vers 调用
+				return []byte("26.6.2"), nil, nil
+			default:
+				t.Errorf("远程 endpoint 下不应发起 daemon/资源查询: %v", args)
+				return nil, nil, errors.New("forbidden daemon query")
+			}
+		},
+	}
+	_, out := doctor(t, t.TempDir(), fe)
+	if !strings.Contains(out, runtime.CodeEndpointRemote) {
+		t.Fatalf("缺少 %s:\n%s", runtime.CodeEndpointRemote, out)
+	}
+}
+
+// F1 回归：DOCKER_CONTEXT 指向远程 context 时同样拦截。
+func TestDoctorRemoteViaEnvContextNoDaemonCalls(t *testing.T) {
+	// 不走 doctor() 辅助函数：它会把 DOCKER_HOST/DOCKER_CONTEXT 清空。
+	t.Setenv("DOCKER_HOST", "")
+	t.Setenv("DOCKER_CONTEXT", "review-remote")
+	fe := &runtime.FakeExecutor{
+		Respond: func(name string, args []string) ([]byte, []byte, error) {
+			switch {
+			case args[0] == "context" && args[1] == "inspect":
+				if args[len(args)-1] != "review-remote" {
+					t.Errorf("应 inspect DOCKER_CONTEXT 指定的 context: %v", args)
+				}
+				return []byte("ssh://fixture.invalid"), nil, nil
+			case args[0] == "-productVersion":
+				return []byte("26.6.2"), nil, nil
+			default:
+				if args[0] == "context" && args[1] == "show" {
+					t.Errorf("DOCKER_CONTEXT 已设置时不应调用 context show: %v", args)
+				}
+				t.Errorf("远程 endpoint 下不应发起 daemon/资源查询: %v", args)
+				return nil, nil, errors.New("forbidden daemon query")
+			}
+		},
+	}
+	var out bytes.Buffer
+	RunDoctor(context.Background(), t.TempDir(), &out, &runtime.Docker{Exec: fe})
 	if !strings.Contains(out.String(), runtime.CodeEndpointRemote) {
-		t.Fatalf("缺少 %s: %q", runtime.CodeEndpointRemote, out.String())
+		t.Fatalf("缺少 %s:\n%s", runtime.CodeEndpointRemote, out.String())
+	}
+}
+
+// F1 回归：本机状态记录的 endpoint 与当前有效 endpoint 漂移 → 失败并跳过容器/镜像检查。
+func TestDoctorStoredRuntimeDrift(t *testing.T) {
+	root := setupProject(t, validConfig, stateJSON(fakeContainerID, fakeImageID, "unix:///other/engine.sock"))
+	calls := 0
+	fe := &runtime.FakeExecutor{
+		Respond: func(name string, args []string) ([]byte, []byte, error) {
+			switch {
+			case args[0] == "context" && args[1] == "show":
+				return []byte("desktop-linux"), nil, nil
+			case args[0] == "context" && args[1] == "inspect":
+				return []byte(localEndpoint), nil, nil
+			case args[0] == "version":
+				return []byte(fakeVersionOut), nil, nil
+			case args[0] == "container", args[0] == "image", args[0] == "ps":
+				t.Errorf("身份漂移后不应查询容器/镜像: %v", args)
+				return nil, nil, errors.New("forbidden")
+			default:
+				calls++
+				return nil, nil, fmt.Errorf("fake: 未预期的调用 %v", args)
+			}
+		},
+	}
+	_, out := doctor(t, root, fe)
+	if !strings.Contains(out, runtime.CodeRuntimeMismatch) || !strings.Contains(out, "跳过容器与镜像检查") {
+		t.Fatalf("缺少漂移判定:\n%s", out)
+	}
+	if strings.Contains(out, "标签归属") || strings.Contains(out, "镜像:") {
+		t.Fatalf("漂移后不应有容器/镜像结论:\n%s", out)
+	}
+	_ = calls
+}
+
+// F1 回归：DOCKER_HOST 与 DOCKER_CONTEXT 冲突时提示 DOCKER_HOST 生效。
+func TestDoctorEnvConflictWarning(t *testing.T) {
+	// 不走 doctor() 辅助函数：它会把 DOCKER_HOST/DOCKER_CONTEXT 清空。
+	t.Setenv("DOCKER_HOST", "tcp://127.0.0.1:2375")
+	t.Setenv("DOCKER_CONTEXT", "some-context")
+	fe := &runtime.FakeExecutor{
+		Respond: func(name string, args []string) ([]byte, []byte, error) {
+			switch args[0] {
+			case "version":
+				return []byte(fakeVersionOut), nil, nil
+			case "-productVersion": // macVersion 的 sw_vers 调用
+				return []byte("26.6.2"), nil, nil
+			default:
+				t.Errorf("DOCKER_HOST 生效时不应有其他调用: %v", args)
+				return nil, nil, errors.New("forbidden")
+			}
+		},
+	}
+	var out bytes.Buffer
+	RunDoctor(context.Background(), t.TempDir(), &out, &runtime.Docker{Exec: fe})
+	if !strings.Contains(out.String(), "DOCKER_HOST 生效") {
+		t.Fatalf("缺少冲突提示:\n%s", out.String())
 	}
 }
 
@@ -119,7 +269,7 @@ func TestDoctorInvalidConfig(t *testing.T) {
 }
 
 func TestDoctorCorruptState(t *testing.T) {
-	root := setupProject(t, `{"schema_version":1,"image":"img:1"}`, "{broken")
+	root := setupProject(t, validConfig, "{broken")
 	_, out := doctor(t, root, doctorFake(""))
 	if !strings.Contains(out, runtime.CodeStateInvalid) {
 		t.Fatalf("缺少 %s: %q", runtime.CodeStateInvalid, out)
@@ -127,16 +277,22 @@ func TestDoctorCorruptState(t *testing.T) {
 }
 
 func TestDoctorHealthyStack(t *testing.T) {
-	root := setupProject(t,
-		`{"schema_version":1,"image":"img:1"}`,
-		fmt.Sprintf(`{"state_version":1,"project_id":%q,"container":{"name":"km-%s"},"runtime":{"context":"desktop-linux","endpoint":"unix:///x.sock"},"created_at":"2026-09-06T00:00:00Z"}`,
-			fakeProjectID, fakeProjectID))
-	container := fmt.Sprintf("%s|/km-%s|running|%s|%s", fakeContainerID, fakeProjectID, fakeProjectID, root)
-	code, out := doctor(t, root, doctorFake(container))
+	root := setupProject(t, validConfig, stateJSON(fakeContainerID, fakeImageID, localEndpoint))
+	code, out := doctor(t, root, doctorFake(healthyContainerOut(root)))
 	if code != ExitOK {
 		t.Fatalf("code=%d", code)
 	}
-	for _, want := range []string{"client=29.6.1", "标签归属", "匹配", "挂载", "=> /workspace", "sha256:imgabc123"} {
+	for _, want := range []string{
+		"有效 endpoint: " + localEndpoint,
+		"client=29.6.1",
+		"运行时身份与项目记录一致",
+		"按记录 ID 查找",
+		"标签归属",
+		"匹配",
+		"=> /workspace",
+		"容器镜像内容与项目记录一致",
+		"镜像: " + fakeImageID,
+	} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("缺少 %q:\n%s", want, out)
 		}
@@ -146,13 +302,73 @@ func TestDoctorHealthyStack(t *testing.T) {
 	}
 }
 
+// F2 回归：容器被同名重建（记录 ID 已不存在，名字指向新容器）→ 冲突且不接管。
+func TestDoctorContainerRebuiltSameName(t *testing.T) {
+	root := setupProject(t, validConfig, stateJSON(fakeContainerID, fakeImageID, localEndpoint))
+	fe := &runtime.FakeExecutor{
+		Respond: func(name string, args []string) ([]byte, []byte, error) {
+			switch {
+			case args[0] == "context" && args[1] == "show":
+				return []byte("desktop-linux"), nil, nil
+			case args[0] == "context" && args[1] == "inspect":
+				return []byte(localEndpoint), nil, nil
+			case args[0] == "version":
+				return []byte(fakeVersionOut), nil, nil
+			case args[0] == "container":
+				ref := args[len(args)-1]
+				if ref == fakeContainerID {
+					return nil, []byte("Error response from daemon: No such container: " + ref), runtime.RunErr("No such container", 1)
+				}
+				// 按名字查询 → 返回重建后的新容器
+				return []byte(containerLine(rebuiltID, "km-"+fakeProjectID, "running", fakeProjectID, fakeImageID, root)), nil, nil
+			case args[0] == "image":
+				return []byte(fakeImageID), nil, nil
+			default:
+				return nil, nil, fmt.Errorf("fake: 未预期的调用 %v", args)
+			}
+		},
+	}
+	_, out := doctor(t, root, fe)
+	if !strings.Contains(out, runtime.CodeContainerConflict) || !strings.Contains(out, "同名重建") {
+		t.Fatalf("应报告同名重建冲突:\n%s", out)
+	}
+	if !strings.Contains(out, "sha256:c1abc") || !strings.Contains(out, "sha256:9999a") {
+		t.Fatalf("应指出两个不同 ID:\n%s", out)
+	}
+}
+
+// F2 回归：旧版状态没有容器 ID → 报不完整，且不按名称接管。
+func TestDoctorOldStateWithoutContainerID(t *testing.T) {
+	root := setupProject(t, validConfig, stateJSON("", fakeImageID, localEndpoint))
+	fe := &runtime.FakeExecutor{
+		Respond: func(name string, args []string) ([]byte, []byte, error) {
+			switch {
+			case args[0] == "context" && args[1] == "show":
+				return []byte("desktop-linux"), nil, nil
+			case args[0] == "context" && args[1] == "inspect":
+				return []byte(localEndpoint), nil, nil
+			case args[0] == "version":
+				return []byte(fakeVersionOut), nil, nil
+			case args[0] == "container":
+				t.Errorf("状态缺少容器 ID 时不应按名称查询容器: %v", args)
+				return nil, nil, errors.New("forbidden")
+			case args[0] == "image":
+				return []byte(fakeImageID), nil, nil
+			default:
+				return nil, nil, fmt.Errorf("fake: 未预期的调用 %v", args)
+			}
+		},
+	}
+	_, out := doctor(t, root, fe)
+	if !strings.Contains(out, "缺少容器 ID") || !strings.Contains(out, "无法核验容器归属") {
+		t.Fatalf("应报告状态不完整:\n%s", out)
+	}
+}
+
 func TestDoctorContainerLabelConflict(t *testing.T) {
-	root := setupProject(t,
-		`{"schema_version":1,"image":"img:1"}`,
-		fmt.Sprintf(`{"state_version":1,"project_id":%q,"container":{"name":"km-%s"}}`, fakeProjectID, fakeProjectID))
-	// 容器存在但标签属于别的项目，且挂载不对
-	container := fmt.Sprintf("%s|/km-%s|running|pOTHER|/somewhere/else", fakeContainerID, fakeProjectID)
-	_, out := doctor(t, root, doctorFake(container))
+	root := setupProject(t, validConfig, stateJSON(fakeContainerID, fakeImageID, localEndpoint))
+	out2 := containerLine(fakeContainerID, "km-"+fakeProjectID, "running", "pOTHER", fakeImageID, "/somewhere/else")
+	_, out := doctor(t, root, doctorFake(out2))
 	if !strings.Contains(out, runtime.CodeContainerConflict) {
 		t.Fatalf("缺少 %s:\n%s", runtime.CodeContainerConflict, out)
 	}
@@ -162,41 +378,87 @@ func TestDoctorContainerLabelConflict(t *testing.T) {
 }
 
 func TestDoctorContainerMissing(t *testing.T) {
-	root := setupProject(t,
-		`{"schema_version":1,"image":"img:1"}`,
-		fmt.Sprintf(`{"state_version":1,"project_id":%q,"container":{"name":"km-%s"}}`, fakeProjectID, fakeProjectID))
+	root := setupProject(t, validConfig, stateJSON(fakeContainerID, fakeImageID, localEndpoint))
 	fe := &runtime.FakeExecutor{
 		Respond: func(name string, args []string) ([]byte, []byte, error) {
-			switch args[0] {
-			case "version":
-				return []byte(fakeVersionOut), nil, nil
-			case "context":
+			switch {
+			case args[0] == "context" && args[1] == "show":
 				return []byte("desktop-linux"), nil, nil
-			case "container":
-				return nil, []byte("Error response from daemon: No such container: km-" + fakeProjectID), runtime.RunErr("No such container", 1)
-			case "image":
-				return []byte("sha256:imgabc123"), nil, nil
+			case args[0] == "context" && args[1] == "inspect":
+				return []byte(localEndpoint), nil, nil
+			case args[0] == "version":
+				return []byte(fakeVersionOut), nil, nil
+			case args[0] == "container":
+				return nil, []byte("Error response from daemon: No such container"), runtime.RunErr("No such container", 1)
+			case args[0] == "image":
+				return []byte(fakeImageID), nil, nil
 			default:
 				return nil, nil, fmt.Errorf("fake: 未预期的调用 %v", args)
 			}
 		},
 	}
 	_, out := doctor(t, root, fe)
-	if !strings.Contains(out, "不存在") {
-		t.Fatalf("应报告容器缺失:\n%s", out)
+	if !strings.Contains(out, "不存在") || !strings.Contains(out, "init") {
+		t.Fatalf("应报告容器缺失并提示 init:\n%s", out)
+	}
+}
+
+// F3 回归：镜像标签内容与项目记录漂移 → 警告；容器实际内容与记录一致。
+func TestDoctorImageTagDrift(t *testing.T) {
+	root := setupProject(t, validConfig, stateJSON(fakeContainerID, fakeImageID, localEndpoint))
+	const newImage = "sha256:dddd4444eeee5555aaaaaaaaaaaabbbbccccddddeeeeffff00001111222233"
+	fe := &runtime.FakeExecutor{
+		Respond: func(name string, args []string) ([]byte, []byte, error) {
+			switch {
+			case args[0] == "context" && args[1] == "show":
+				return []byte("desktop-linux"), nil, nil
+			case args[0] == "context" && args[1] == "inspect":
+				return []byte(localEndpoint), nil, nil
+			case args[0] == "version":
+				return []byte(fakeVersionOut), nil, nil
+			case args[0] == "container":
+				return []byte(containerLine(fakeContainerID, "km-"+fakeProjectID, "running", fakeProjectID, fakeImageID, root)), nil, nil
+			case args[0] == "image":
+				return []byte(newImage), nil, nil
+			default:
+				return nil, nil, fmt.Errorf("fake: 未预期的调用 %v", args)
+			}
+		},
+	}
+	_, out := doctor(t, root, fe)
+	if !strings.Contains(out, "漂移") {
+		t.Fatalf("应报告镜像标签漂移:\n%s", out)
+	}
+	if !strings.Contains(out, "容器镜像内容与项目记录一致") {
+		t.Fatalf("容器内容与记录一致时不应报冲突:\n%s", out)
+	}
+}
+
+// F3 回归：容器实际镜像与项目记录不一致 → 失败。
+func TestDoctorContainerImageMismatch(t *testing.T) {
+	root := setupProject(t, validConfig, stateJSON(fakeContainerID, fakeImageID, localEndpoint))
+	const otherImage = "sha256:eeee5555ffffffff0000111111111111222233334444555566667777888899aa"
+	out2 := containerLine(fakeContainerID, "km-"+fakeProjectID, "running", fakeProjectID, otherImage, root)
+	_, out := doctor(t, root, doctorFake(out2))
+	if !strings.Contains(out, "容器实际镜像") || !strings.Contains(out, runtime.CodeContainerConflict) {
+		t.Fatalf("应报告容器镜像内容不一致:\n%s", out)
 	}
 }
 
 func TestDoctorMissingImage(t *testing.T) {
-	root := setupProject(t, `{"schema_version":1,"image":"img:1"}`, "")
+	root := setupProject(t, validConfig, stateJSON(fakeContainerID, fakeImageID, localEndpoint))
 	fe := &runtime.FakeExecutor{
 		Respond: func(name string, args []string) ([]byte, []byte, error) {
-			switch args[0] {
-			case "version":
-				return []byte(fakeVersionOut), nil, nil
-			case "context":
+			switch {
+			case args[0] == "context" && args[1] == "show":
 				return []byte("desktop-linux"), nil, nil
-			case "image":
+			case args[0] == "context" && args[1] == "inspect":
+				return []byte(localEndpoint), nil, nil
+			case args[0] == "version":
+				return []byte(fakeVersionOut), nil, nil
+			case args[0] == "container":
+				return []byte(healthyContainerOut(root)), nil, nil
+			case args[0] == "image":
 				return nil, []byte("Error: No such image: img:1"), runtime.RunErr("No such image", 1)
 			default:
 				return nil, nil, fmt.Errorf("fake: 未预期的调用 %v", args)
@@ -211,9 +473,9 @@ func TestDoctorMissingImage(t *testing.T) {
 
 // doctor 必须是只读的：整个检查过程不得写项目目录。
 func TestDoctorDoesNotWrite(t *testing.T) {
-	root := setupProject(t, `{"schema_version":1,"image":"img:1"}`, "")
+	root := setupProject(t, validConfig, stateJSON(fakeContainerID, fakeImageID, localEndpoint))
 	before := snapshot(t, root)
-	doctor(t, root, doctorFake(""))
+	doctor(t, root, doctorFake(healthyContainerOut(root)))
 	after := snapshot(t, root)
 	if before != after {
 		t.Fatalf("doctor 改动了项目目录:\nbefore=%s\nafter=%s", before, after)
