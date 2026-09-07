@@ -1,10 +1,0 @@
-[?2004hKM_SHELL> sleep 290 &
-[?2004l[1] 15
-[?2004hKM_SHELL> sh -c 'trap "" HUP TERM INT; sleep 300' &
-[?2004l[2] 16
-[?2004hKM_SHELL> exit
-[?2004lexit
-
-[1mWhat's next:[0m
-    Try Docker Debug for seamless, persistent debugging tools in any container or image → [36mdocker debug f8a56b696cbbf4272e8368aa32fabbbac07de7f14e3fa0c53d27e3606bc8845f[0m
-    Learn more at https://docs.docker.com/go/debug-cli/

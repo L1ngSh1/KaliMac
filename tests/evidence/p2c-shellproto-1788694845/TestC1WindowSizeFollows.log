@@ -1,10 +1,0 @@
-[?2004hKM_SHELL> [KKM_SHELL> stty size
-[?2004l40 100
-[?2004hKM_SHELL> [KKM_SHELL> stty size
-[?2004l24 80
-[?2004hKM_SHELL> exit
-[?2004lexit
-
-[1mWhat's next:[0m
-    Try Docker Debug for seamless, persistent debugging tools in any container or image → [36mdocker debug eb48f5b3f9a00ea6d7c312e539381183413adbc7b445b917da2f120149e6c255[0m
-    Learn more at https://docs.docker.com/go/debug-cli/
