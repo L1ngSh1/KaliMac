@@ -38,12 +38,17 @@ GetState/Restore 兜底，raw mode 日常管理不在 km）。获取经 goproxy.
   在退出时对全部作业发 TERM。忽略 HUP/TERM 的作业属记录在案的逃逸者：可观测
   （doctor/ps）、按记录 pid 显式清理，不用容器停止或进程名匹配掩盖。
 
-## detach keys（实验结论）
+## detach keys（实验结论，review D 更正）
 
-`docker exec` **不存在客户端脱离机制**：默认情况下 ctrl-p,q 字节直达 bash；显式传
-`--detach-keys ctrl-p,ctrl-q` 也不被客户端拦截，bash readline 读到转义序列后退出
-（exit 1）。因此「客户端脱离被误判为已清理」的风险在 exec 路径不存在：客户端退出
-即会话结束。`--detach-keys ""`（禁用）被 docker 接受，保留为显式声明。
+更正初版结论：`docker exec` **存在** detach 机制。显式启用 keys 后，客户端收到
+序列即脱离退出（exit 1，输出 "read escape sequence"），而容器内 bash **继续运行**
+——脱离 ≠ 会话清理。另经两轮实测，`--detach-keys ""` 并非可靠的"禁用"（一次字节
+直达 bash、一次触发默认序列脱离）。
+
+km 的处理不依赖 detach 的具体行为：无论客户端以何种方式退出（正常退出/脱离），
+finalize 先判定 bash 存活性——已退出则按 SID 域清理同会话作业；仍存活则保留登记
+（Detached），后续任务被 `KM_SESSION_ACTIVE` 阻断，显式 cancel 可清理。两种结果
+都不会卡死或静默吞任务。
 
 ## 失败处理
 
@@ -80,6 +85,24 @@ setsid+后台启动脚本——控制终端需要 bash 作为会话首进程，�
    已记录的失联语义。
 6. 复用 `verifyNoActiveSession`：run 与 shell 共享同一核验实现（review 发现的
    重复已消除）。
+
+## C2 加固轮（review 修复，2026-09-07）
+
+三个真 bug（均有现场取证与回归）：
+
+1. **/proc/stat 字段错位**：km-ctl 的 read 把第 5 字段 pgrp 当 session 读，
+   判定与清理漏掉全部作业组——「sleep A | sleep B & 泄漏」的真正根因
+   （管道成员 pgrp=组长 pid ≠ bash pid）。修正为第 6 字段 sess；
+   sessions/sweep/cancel 三处一致。
+2. **km-ctl alive 漏 shift**：拿 "alive" 字面量当 sid 查询 → 恒 exit 3 →
+   finalize 误判「登记缺失」永不清理。补 shift；alive 排除僵尸态。
+3. **项目根未规范化**：os.Getwd 信任 stat 等价的 $PWD（macOS /tmp 与
+   /private/tmp），经符号链接进入项目即假报 KM_CONTAINER_CONFLICT。
+   新增 project.CanonicalPath 统一 init/loadProjectStack/doctor。
+
+RunShell 生命周期：快照移到 Start 前（失败不启动）；Notify 提前消除空窗；
+SIGTERM/SIGHUP 路径「杀客户端→SID 域清理→恢复 termios→同步→143」；
+finalize 轮询区分「bash 退出中」与「真脱离」（Detached 保留登记阻断）。
 
 ## Remaining risks（接入 km shell 前需处理）
 

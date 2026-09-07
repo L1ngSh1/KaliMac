@@ -12,6 +12,8 @@ Mac 上精简、可靠的 Kali CLI 入口：在终端输入 `km 工具 参数`�
 
 ## 快速开始
 
+**第一次使用？先看 [km 使用指南](docs/user-guide.md)**：从构建、练习项目到日常命令，区分 Mac 终端与容器 shell，并提供报错排查和当前已知问题。
+
 ```bash
 make build                     # 产出 ./bin/km
 KM="$PWD/bin/km"               # 固定绝对路径（进入其他目录后 ./bin/km 不再可达）
@@ -26,6 +28,7 @@ echo '{"schema_version":1,"image":"kali-mac-min:0.2"}' > .km.json
 echo 'print("hi")' > t.py
 "$KM" run -- python3 t.py      # 或 "$KM" python3 t.py
 "$KM" shell                    # 交互 bash（真实终端接管；Ctrl-C/作业控制可用）
+# 在容器内输入 exit 回到 Mac 后，再执行以下命令
 "$KM" stop                     # 停止（容器与数据保留，幂等）
 "$KM" doctor                   # 只读检查平台/Docker/项目/容器归属/镜像/会话
 ```
@@ -34,6 +37,7 @@ echo 'print("hi")' > t.py
 
 ## 文档
 
+- [docs/user-guide.md](docs/user-guide.md) — 面向使用者：首次配置、命令速查、文件共享、退出与排错
 - [docs/adr-004-session-execution.md](docs/adr-004-session-execution.md) — 会话执行与取消方案（P2-A，含取消/失联语义）
 - [docs/phase-0.md](docs/phase-0.md) — P0 实验记录：argv/stdio/退出码/挂载/信号（核心风险：docker exec 客户端死亡不传播信号，已实验证实）
 - [docs/cli-contract.md](docs/cli-contract.md) — CLI 行为合同与错误标识
