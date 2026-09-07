@@ -1,0 +1,5 @@
+run-id=20260907-075728 image=kali-mac-min:0.2
+首次准备(init,镜像已缓存): 267ms
+冷启动(stop→run 含 start): 328ms
+热调用中位数(20轮): km=223ms  docker exec=59ms  开销=164ms
+热调用最小: km=191ms  docker=52ms

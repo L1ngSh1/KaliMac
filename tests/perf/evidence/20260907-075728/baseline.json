@@ -1,0 +1,14 @@
+{
+  "run_id": "20260907-075728",
+  "image": "kali-mac-min:0.2",
+  "container": "c84998daa4f0cf7a4351d9cc1d7182eb196398eeb5d39506f4f082c77a92046f",
+  "init_first_prepare_ms": 267,
+  "cold_start_ms": 328,
+  "warm_km_median_ms": 223,
+  "warm_km_min_ms": 191,
+  "warm_docker_exec_median_ms": 59,
+  "warm_docker_exec_min_ms": 52,
+  "rounds": 20,
+  "km_samples_ms": [201,225,214,202,225,204,230,213,230,233,224,191,241,203,223,191,235,231,241,216],
+  "docker_samples_ms": [65,61,60,53,57,55,56,60,66,59,53,67,60,53,60,52,75,56,72,59]
+}
