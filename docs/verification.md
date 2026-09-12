@@ -1,5 +1,31 @@
 # 验证记录
 
+## 第六轮：审计修复（2026-09-12）
+
+用户发起冗余代码审计，实测冒烟中发现两个行为缺陷，连同审计死代码一并修复。
+
+### 行为修复
+
+| 项 | 问题 | 修复 | 回归 |
+|---|---|---|---|
+| B1 doctor 挂载归属假冲突 | /tmp 项目 doctor 判 `KM_CONTAINER_CONFLICT`（挂载源 `/private/tmp/...` vs 项目根 `/tmp/...`）：init/run 均以 CanonicalPath 比较，唯独 doctor 未规范化 | `checkProjectConfig` 规范化项目根；`checkContainerOwnership` 挂载源与项目根**对称**做 CanonicalPath 后比较（等价拼写=同一物理目录） | TestDoctorMountSourceCanonicalized（macOS TempDir 非规范路径，fake 挂载源用规范化路径）；修复后 /tmp 真实冒烟 doctor 11 通过 0 失败 |
+| B2 家目录成为隐式项目 | 家目录曾被误 init 成项目（残留 `~/.km.json`+容器）：任意目录下的 km 调用经向上查找被劫持到挂载整个 HOME 的容器，且污染 `TestHelpAndVersionZeroExternalCalls` | `FindConfig` 家目录硬边界：家目录不作为项目根，家目录之下的查找到 HOME 即止 | TestFindConfigHomeIsBoundary（t.Setenv HOME，覆盖家目录本身/子目录止步/HOME 内正常项目三态） |
+| B3 cli 单测依赖宿主目录树 | `TestHelpAndVersionZeroExternalCalls` 等从包目录运行，向上查找会撞上宿主任意祖先目录里的 `.km.json`（环境相关失败） | 六个用例补 `t.Chdir(t.TempDir())`，与宿主 cwd/环境解耦 | 单测在污染前后的家目录状态下均稳定绿色 |
+
+### 死代码与文案清理
+
+- 删除零调用：`cli.notImplemented`（含过期"P1 骨架"文案）、`cli.requireLocalEngine`（与 `resolveEngine` 重复）、`runtime.ExecToolArgs`（生产路径被 `session.ExecSessionArgs` 取代，仅剩自测）、`runtime.CodeNotImplemented`、`executor.errors_As`（改用 stdlib `errors.As`）、`prod.baseName`（改用 `filepath.Base`）、`init.writeConfigAtomic`（透传别名，直接调 `project.WriteConfig`）。
+- 过期文案：doctor "init 将在 P2 提供"/"P2 由 init 处理"→ 现行指引；endpoint 报错去掉 v0.1/v0.2 版本号措辞；cli.go 包注释、cli-contract.md 错误标识列表（移除 KM_NOT_IMPLEMENTED）同步。
+
+### 环境清理
+
+- 删除家目录残留项目：容器 km-pdbecd9fe4a（挂载整个 HOME，exited）+ `~/.km.json` + `~/.km/`（内容核验为 9 月 6 日测试残留后删除）。
+- 集成套件本轮泄漏 1 个容器（km-p7a0d0063de，TestC1DetachKeys 临时项目，running）——按挂载源为 go test 临时目录核验后删除；"终检零残留"在该用例上未生效，待查。
+
+### 全套验证
+
+`gofmt -l` 空；`go vet ./...` 零告警；`go test -count=1 ./...` 全 ok；`go test -race -count=1 ./...` 全 ok；`go test -tags=integration -count=1 ./tests/integration/` ok（172s）；修复后 /tmp 真实冒烟（init→run→doctor→stop）doctor 11 通过 0 警告 0 失败。
+
 ## 第五轮：审阅加固（R1–R5，2026-09-06，未提交）
 
 针对外部审阅的五个发现全部修复并有回归：
