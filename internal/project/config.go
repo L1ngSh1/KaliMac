@@ -94,12 +94,19 @@ func LoadConfig(path string) (*Config, error) {
 
 // FindConfig walks up from startDir and returns the nearest directory that
 // contains .km.json. ok=false when no project root is found.
+// 家目录是硬边界：家目录本身不作为项目根，位于家目录之下的查找到家目录
+// 即止——否则误在家目录 init 一次，整个 HOME 就成为隐式项目，把任意目录
+// 下的 km 调用劫持到一个挂载整个家目录的容器上。
 func FindConfig(startDir string) (root string, ok bool, err error) {
 	dir, err := filepath.Abs(startDir)
 	if err != nil {
 		return "", false, err
 	}
+	home, homeErr := os.UserHomeDir()
 	for {
+		if homeErr == nil && home != "" && dir == home {
+			return "", false, nil
+		}
 		path := filepath.Join(dir, ConfigFileName)
 		if st, statErr := os.Stat(path); statErr == nil && !st.IsDir() {
 			return dir, true, nil

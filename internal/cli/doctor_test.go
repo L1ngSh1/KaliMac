@@ -536,6 +536,22 @@ func TestDoctorMountPathNormalized(t *testing.T) {
 	}
 }
 
+// 回归（真实冒烟发现）：init 记录与容器挂载源都是符号链接解析后的路径
+// （macOS 上 /tmp → /private/tmp、/var/folders → /private/var/folders），
+// doctor 的项目根必须做同一规范化，否则健康项目被误判 KM_CONTAINER_CONFLICT。
+func TestDoctorMountSourceCanonicalized(t *testing.T) {
+	root := setupProject(t, validConfig, stateJSON(fakeContainerID, fakeImageID, localEndpoint))
+	canon := project.CanonicalPath(root)
+	if canon == root {
+		t.Skipf("TempDir 已是规范化路径（%s），本用例无区分度", root)
+	}
+	// 容器实际挂载源是规范化路径（init 以 CanonicalPath 写入 docker -v）
+	_, out := doctor(t, root, doctorFake(healthyContainerOut(canon)))
+	if strings.Contains(out, "挂载源为") || !strings.Contains(out, "0 失败") {
+		t.Fatalf("等价写法的挂载源不应误报冲突:\n%s", out)
+	}
+}
+
 // 非法容器 ID 的状态应被 LoadState 拒绝（doctor 报状态损坏）。
 func TestDoctorIllegalContainerIDState(t *testing.T) {
 	root := setupProject(t, validConfig, stateJSON("abc123", fakeImageID, localEndpoint))

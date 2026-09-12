@@ -130,3 +130,38 @@ func TestParentProjectExcludesSelf(t *testing.T) {
 		t.Fatalf("子目录应找到父项目: root=%q ok=%v err=%v", got, ok, err)
 	}
 }
+
+// 家目录是查找硬边界：家目录本身不是项目根，家目录之下的查找到 HOME 即止；
+// HOME 内的正常项目不受影响。回归背景：家目录曾被误 init 成项目，把任意
+// 目录下的 km 调用劫持到一个挂载整个家目录的容器上。
+func TestFindConfigHomeIsBoundary(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	if real, err := os.UserHomeDir(); err != nil || real != home {
+		t.Skipf("本平台无法经 HOME 环境变量控制家目录（real=%q, %v）", real, err)
+	}
+
+	// 家目录里误放了 .km.json
+	writeConfig(t, home, `{"schema_version":1,"image":"x"}`)
+	if root, ok, err := FindConfig(home); ok || err != nil {
+		t.Fatalf("家目录不应作为项目根: root=%q ok=%v err=%v", root, ok, err)
+	}
+	sub := filepath.Join(home, "docs", "deep")
+	if err := os.MkdirAll(sub, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok, _ := FindConfig(sub); ok {
+		t.Fatal("家目录之下的查找到 HOME 即止，不应发现家目录项目")
+	}
+
+	// 正常项目不受边界影响
+	proj := filepath.Join(home, "work", "proj")
+	if err := os.MkdirAll(proj, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeConfig(t, proj, `{"schema_version":1,"image":"x"}`)
+	got, ok, err := FindConfig(proj)
+	if err != nil || !ok || got != proj {
+		t.Fatalf("HOME 内正常项目应可找到: root=%q ok=%v err=%v", got, ok, err)
+	}
+}

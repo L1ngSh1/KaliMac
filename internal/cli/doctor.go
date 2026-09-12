@@ -102,10 +102,13 @@ func checkProjectConfig(r *reporter, dir string) (*project.Config, *project.Stat
 		return nil, nil, ""
 	}
 	if !found {
-		r.item("警告", "%s: 从当前目录向上未找到 .km.json；init 将在 P2 提供", runtime.CodeProjectMissing)
+		r.item("警告", "%s: 从当前目录向上未找到 .km.json；请在项目根运行 km init", runtime.CodeProjectMissing)
 		return nil, nil, ""
 	}
-	if abs, aerr := filepath.Abs(dir); aerr == nil && root != abs {
+	// 与 init/run 同一规范化：挂载源与项目身份比较前必须解析符号链接，
+	// 否则 /tmp 与 /private/tmp 等价写法造成挂载归属假冲突。
+	root = project.CanonicalPath(root)
+	if canDir := project.CanonicalPath(dir); canDir != root {
 		r.item("警告", "当前位于项目子目录，项目根: %s", root)
 	} else {
 		r.line("  项目根: %s", root)
@@ -149,7 +152,7 @@ func checkEndpointAndEngine(r *reporter, ctx context.Context, dk *runtime.Docker
 		r.item("警告", "DOCKER_HOST 与 DOCKER_CONTEXT 同时设置；DOCKER_HOST 生效（endpoint %s）", ep.Endpoint)
 	}
 	if !runtime.IsLocalEndpoint(ep.Endpoint) {
-		r.item("失败", "%s: 有效 endpoint %s（来源 %s）不是本地引擎；v0.1 只使用本地引擎，已跳过所有引擎查询", runtime.CodeEndpointRemote, ep.Endpoint, ep.Source)
+		r.item("失败", "%s: 有效 endpoint %s（来源 %s）不是本地引擎；仅支持本地引擎，已跳过所有引擎查询", runtime.CodeEndpointRemote, ep.Endpoint, ep.Source)
 		return ep, false
 	}
 	dk.EndpointOverride = ep.Endpoint
@@ -230,7 +233,10 @@ func checkContainerOwnership(r *reporter, ctx context.Context, dk *runtime.Docke
 	} else {
 		r.item("OK", "标签归属: km.project=%s 匹配", st.ProjectID)
 	}
-	if filepath.Clean(res.MountSource) == filepath.Clean(root) {
+	// 挂载源与项目根都做符号链接解析后比较：init 以 CanonicalPath 写入
+	// docker -v，而 doctor 的项目根来自调用方 cwd 的写法，/tmp 与
+	// /private/tmp 这类等价拼写必须判为同一目录。
+	if project.CanonicalPath(res.MountSource) == root {
 		r.item("OK", "挂载: %s => /workspace", root)
 	} else {
 		r.item("失败", "%s: /workspace 挂载源为 %q，预期 %q", runtime.CodeContainerConflict, res.MountSource, root)
@@ -279,7 +285,7 @@ func checkImage(r *reporter, ctx context.Context, dk *runtime.Docker, cfg *proje
 		return
 	}
 	if !exists {
-		r.item("警告", "镜像 %s 不在本地（首次准备需要下载，P2 由 init 处理）", cfg.Image)
+		r.item("警告", "镜像 %s 不在本地（运行 km init 会自动拉取）", cfg.Image)
 		return
 	}
 	if st != nil && st.Container.ImageID != "" && id != st.Container.ImageID {
