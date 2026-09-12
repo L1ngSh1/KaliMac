@@ -34,6 +34,7 @@ func forbidDocker(t *testing.T) *runtime.FakeExecutor {
 }
 
 func TestEmptyArgvShowsHelp(t *testing.T) {
+	t.Chdir(t.TempDir()) // 与宿主 cwd/祖先目录解耦：查找 .km.json 不得受环境影响
 	forbidDocker(t)
 	code, out, _ := run(t)
 	if code != ExitOK || !strings.Contains(out, "km —") || !strings.Contains(out, "doctor") {
@@ -43,6 +44,7 @@ func TestEmptyArgvShowsHelp(t *testing.T) {
 
 // F4 补强：help/version（及未实现命令分支）必须零外部调用。
 func TestHelpAndVersionZeroExternalCalls(t *testing.T) {
+	t.Chdir(t.TempDir()) // 工具路径会向上查找 .km.json，须与宿主目录树隔离
 	fe := forbidDocker(t)
 	for _, argv := range [][]string{
 		{"--help"}, {"help"}, {"--version"}, {"version"}, {},
@@ -60,6 +62,7 @@ func TestHelpAndVersionZeroExternalCalls(t *testing.T) {
 }
 
 func TestVersionOutput(t *testing.T) {
+	t.Chdir(t.TempDir())
 	_, out, _ := run(t, "--version")
 	if !strings.Contains(out, "km "+Version) {
 		t.Fatalf("版本输出: %q", out)
@@ -67,6 +70,7 @@ func TestVersionOutput(t *testing.T) {
 }
 
 func TestUnknownOptionUsageError(t *testing.T) {
+	t.Chdir(t.TempDir())
 	code, _, errOut := run(t, "--frobnicate")
 	if code != ExitUsage || !strings.Contains(errOut, "KM_USAGE") {
 		t.Fatalf("code=%d err=%q", code, errOut)
@@ -74,6 +78,7 @@ func TestUnknownOptionUsageError(t *testing.T) {
 }
 
 func TestDoctorRejectsArgs(t *testing.T) {
+	t.Chdir(t.TempDir())
 	code, _, errOut := run(t, "doctor", "--json")
 	if code != ExitUsage || !strings.Contains(errOut, "不接受参数") {
 		t.Fatalf("code=%d err=%q", code, errOut)
@@ -84,6 +89,7 @@ func TestDoctorRejectsArgs(t *testing.T) {
 func TestUnimplementedCommandsAreExplicit(t *testing.T) {
 	// C2 起全部管理命令已实现；此处验证 shell 的 tty 前检（无终端环境 → KM_NOT_TTY，
 	// 且发生在任何 docker 调用之前）。
+	t.Chdir(t.TempDir()) // tty 前检虽在项目查找之前，仍与宿主目录树隔离
 	forbidDocker(t)
 	code, _, errOut := run(t, "shell")
 	if code != ExitEnv || !strings.Contains(errOut, "KM_NOT_TTY") {
