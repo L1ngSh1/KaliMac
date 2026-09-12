@@ -277,22 +277,6 @@ func (d *Docker) ImageID(ctx context.Context, ref string) (string, bool, error) 
 	return out, true, nil
 }
 
-// ExecToolArgs builds the argv for running a tool inside a container without
-// a shell: docker exec [flags] CONTAINER TOOL ARG...  The tool argv is kept
-// verbatim; nothing is ever joined into a shell string.
-func ExecToolArgs(container, workdir string, tty bool, tool string, toolArgs []string) []string {
-	args := []string{"exec"}
-	if workdir != "" {
-		args = append(args, "-w", workdir)
-	}
-	args = append(args, "-i")
-	if tty {
-		args = append(args, "-t")
-	}
-	args = append(args, container, tool)
-	return append(args, toolArgs...)
-}
-
 // ContainerCreateOpts describes the km-managed container to create.
 type ContainerCreateOpts struct {
 	Name       string // km-<project-id>

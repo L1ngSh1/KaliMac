@@ -63,7 +63,7 @@ func resolveEngine(ctx context.Context, dk *runtime.Docker) (runtime.EndpointInf
 	}
 	if !runtime.IsLocalEndpoint(ep.Endpoint) {
 		return ep, &runtime.Error{Code: runtime.CodeEndpointRemote,
-			Msg: fmt.Sprintf("有效 endpoint %s（来源 %s）不是本地引擎；v0.2 只使用本地引擎", ep.Endpoint, ep.Source)}
+			Msg: fmt.Sprintf("有效 endpoint %s（来源 %s）不是本地引擎；仅支持本地引擎", ep.Endpoint, ep.Source)}
 	}
 	dk.EndpointOverride = ep.Endpoint
 	return ep, nil

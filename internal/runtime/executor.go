@@ -5,6 +5,7 @@ package runtime
 import (
 	"bytes"
 	"context"
+	"errors"
 	"os"
 	"os/exec"
 	"strings"
@@ -64,7 +65,7 @@ func (c CommandExecutor) Run(ctx context.Context, name string, args ...string) (
 	}
 	re := &RunError{Err: err, Stderr: stderr.Bytes(), ExitCode: -1}
 	var ee *exec.ExitError
-	if errors_As(err, &ee) {
+	if errors.As(err, &ee) {
 		re.ExitCode = ee.ExitCode()
 	}
 	return stdout.Bytes(), stderr.Bytes(), re
@@ -91,12 +92,4 @@ func ReplaceEnv(environ []string, key, value string) []string {
 		out = append(out, prefix+value)
 	}
 	return out
-}
-
-func errors_As(err error, target **exec.ExitError) bool {
-	ee, ok := err.(*exec.ExitError)
-	if ok {
-		*target = ee
-	}
-	return ok
 }

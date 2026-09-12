@@ -18,7 +18,6 @@ const (
 	CodeConfigInvalid     = "KM_CONFIG_INVALID"
 	CodeStateInvalid      = "KM_STATE_INVALID"
 	CodeContainerConflict = "KM_CONTAINER_CONFLICT"
-	CodeNotImplemented    = "KM_NOT_IMPLEMENTED"
 	CodeUsage             = "KM_USAGE"
 	CodeProjectNested     = "KM_PROJECT_NESTED"
 	CodeImageDrift        = "KM_IMAGE_DRIFT"

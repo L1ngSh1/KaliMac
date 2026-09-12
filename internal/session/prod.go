@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -196,7 +197,7 @@ func scriptsTar() ([]byte, error) {
 		return nil, err
 	}
 	for path, content := range scripts() {
-		h := &tar.Header{Name: "km-bin/" + baseName(path), Mode: 0o755, Typeflag: tar.TypeReg,
+		h := &tar.Header{Name: "km-bin/" + filepath.Base(path), Mode: 0o755, Typeflag: tar.TypeReg,
 			Uid: 0, Gid: 0, Size: int64(len(content)), ModTime: time.Unix(0, 0)}
 		if err := tw.WriteHeader(h); err != nil {
 			return nil, err
@@ -209,15 +210,6 @@ func scriptsTar() ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
-}
-
-func baseName(p string) string {
-	for i := len(p) - 1; i >= 0; i-- {
-		if p[i] == '/' {
-			return p[i+1:]
-		}
-	}
-	return p
 }
 
 // Sessions 只读列出容器内会话状态。有界调用。

@@ -7,38 +7,6 @@ import (
 	"testing"
 )
 
-func TestExecToolArgsArgvPassthrough(t *testing.T) {
-	toolArgs := []string{"", "a b", "中文参数", `he said "hi"`, "--help", "-x", "5 * ?"}
-	got := ExecToolArgs("km-p1a2b3c4d5", "/workspace/中文 目录", false, "nmap", toolArgs)
-
-	want := []string{"exec", "-w", "/workspace/中文 目录", "-i", "km-p1a2b3c4d5", "nmap",
-		"", "a b", "中文参数", `he said "hi"`, "--help", "-x", "5 * ?"}
-	if len(got) != len(want) {
-		t.Fatalf("argv 长度 = %d, 期望 %d\n got=%q\nwant=%q", len(got), len(want), got, want)
-	}
-	for i := range want {
-		if got[i] != want[i] {
-			t.Fatalf("argv[%d] = %q, 期望 %q\n got=%q\nwant=%q", i, got[i], want[i], got, want)
-		}
-	}
-}
-
-func TestExecToolArgsNoWorkdirNoTTY(t *testing.T) {
-	got := ExecToolArgs("km-p1", "", false, "curl", []string{"-s", "http://x"})
-	want := []string{"exec", "-i", "km-p1", "curl", "-s", "http://x"}
-	if strings.Join(got, " ") != strings.Join(want, " ") {
-		t.Fatalf("got=%q want=%q", got, want)
-	}
-}
-
-func TestExecToolArgsTTY(t *testing.T) {
-	got := ExecToolArgs("km-p1", "/workspace", true, "bash", nil)
-	want := []string{"exec", "-w", "/workspace", "-i", "-t", "km-p1", "bash"}
-	if strings.Join(got, " ") != strings.Join(want, " ") {
-		t.Fatalf("got=%q want=%q", got, want)
-	}
-}
-
 // The fake docker must see exactly the argv km built, element by element —
 // never a joined shell string.
 func TestVersionOverFakeExecutorArgv(t *testing.T) {

@@ -1,6 +1,5 @@
 // Package cli implements the km command-line contract: dispatch, help,
-// version and the read-only doctor. init/run/shell/stop are P2 work and
-// report a clear "not implemented" error in this build.
+// version, init/run/shell/stop and the read-only doctor.
 package cli
 
 import (
@@ -81,12 +80,6 @@ func runLongForm(ctx context.Context, rest []string, stdout, stderr io.Writer) i
 		return usageError(stderr, "km run -- 之后必须跟工具名，用法: km run -- TOOL [ARG...]")
 	}
 	return runToolCommand(ctx, tool[0], tool[1:], os.Stdin, stdout, stderr, newDocker())
-}
-
-func notImplemented(what string, stderr io.Writer) int {
-	fmt.Fprintf(stderr, "%s: %s 在本构建（P1 骨架）中尚未实现。\n", runtime.CodeNotImplemented, what)
-	fmt.Fprintf(stderr, "本构建仅提供: km --help / --version / doctor。init/run/shell/stop 将在 P2 交付。\n")
-	return ExitUsage
 }
 
 func usageError(stderr io.Writer, format string, a ...any) int {

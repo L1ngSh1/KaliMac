@@ -18,21 +18,6 @@ func envError(stderr io.Writer, err error) int {
 	return ExitEnv
 }
 
-// requireLocalEngine resolves the effective endpoint, refuses remote
-// engines, and pins the endpoint for all subsequent calls of this run.
-func requireLocalEngine(ctx context.Context, dk *runtime.Docker) error {
-	ep, err := dk.EffectiveEndpoint(ctx)
-	if err != nil {
-		return err
-	}
-	if !runtime.IsLocalEndpoint(ep.Endpoint) {
-		return &runtime.Error{Code: runtime.CodeEndpointRemote,
-			Msg: fmt.Sprintf("有效 endpoint %s（来源 %s）不是本地引擎；v0.2 只使用本地引擎", ep.Endpoint, ep.Source)}
-	}
-	dk.EndpointOverride = ep.Endpoint
-	return nil
-}
-
 // verifyProjectEngine compares the engine recorded in local state with the
 // (already pinned) effective endpoint.
 func verifyProjectEngine(st *project.State, epSource string) error {
@@ -121,7 +106,7 @@ func runInitCommand(ctx context.Context, rest []string, stdout, stderr io.Writer
 		}
 	} else {
 		cfg = &project.Config{SchemaVersion: project.SupportedSchemaVersion, Image: project.DefaultImage, Platform: project.DefaultPlatform}
-		if err := writeConfigAtomic(cfgPath, cfg); err != nil {
+		if err := project.WriteConfig(cfgPath, cfg); err != nil {
 			return envError(stderr, &runtime.Error{Code: runtime.CodeConfigInvalid, Msg: "写入默认配置失败", Err: err})
 		}
 	}
@@ -237,10 +222,6 @@ func createContainerFor(ctx context.Context, dk *runtime.Docker, stdout, stderr 
 	}
 	fmt.Fprintf(stdout, "km init: 环境就绪（project=%s container=%s image=%s）\n", st.ProjectID, shortID(fullID), shortID(imageID))
 	return ExitOK
-}
-
-func writeConfigAtomic(path string, cfg *project.Config) error {
-	return project.WriteConfig(path, cfg)
 }
 
 func nowUTC() string { return time.Now().UTC().Format(time.RFC3339) }

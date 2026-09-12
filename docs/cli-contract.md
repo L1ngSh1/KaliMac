@@ -30,7 +30,7 @@
 
 ## 错误标识
 
-`KM_PROJECT_NESTED`（嵌套 init；init 全程持项目锁，同项目并发/任务执行中返回 KM_PROJECT_BUSY）、`KM_PROJECT_BUSY`（同项目执行中）、`KM_IMAGE_DRIFT`（镜像标签内容与项目记录不一致）、`KM_SESSION_ACTIVE`（容器内仍有活跃会话，宿主疑似中断遗留；阻断新任务并给出显式 cancel 指引）、`KM_RUNTIME_MISSING`（无 docker CLI / 容器内命令缺失 / context 无 endpoint）、`KM_RUNTIME_OFFLINE`（引擎不可达）、`KM_ENDPOINT_REMOTE`（远程 endpoint，v0.1 拒绝且不发引擎查询）、`KM_PROJECT_MISSING`、`KM_CONFIG_INVALID`、`KM_STATE_INVALID`、`KM_CONTAINER_CONFLICT`（ID/名称/标签/挂载/镜像内容任一不符或同名重建，不接管）、`KM_RUNTIME_MISMATCH`（状态记录的引擎与当前有效 endpoint 漂移，跳过容器/镜像检查）、`KM_TIMEOUT`（管理查询超时）、`KM_CANCELED`（km 收到取消，子进程已终止）、`KM_NOT_IMPLEMENTED`、`KM_USAGE`。
+`KM_PROJECT_NESTED`（嵌套 init；init 全程持项目锁，同项目并发/任务执行中返回 KM_PROJECT_BUSY）、`KM_PROJECT_BUSY`（同项目执行中）、`KM_IMAGE_DRIFT`（镜像标签内容与项目记录不一致）、`KM_SESSION_ACTIVE`（容器内仍有活跃会话，宿主疑似中断遗留；阻断新任务并给出显式 cancel 指引）、`KM_RUNTIME_MISSING`（无 docker CLI / 容器内命令缺失 / context 无 endpoint）、`KM_RUNTIME_OFFLINE`（引擎不可达）、`KM_ENDPOINT_REMOTE`（远程 endpoint，拒绝且不发引擎查询）、`KM_PROJECT_MISSING`、`KM_CONFIG_INVALID`、`KM_STATE_INVALID`、`KM_CONTAINER_CONFLICT`（ID/名称/标签/挂载/镜像内容任一不符或同名重建，不接管）、`KM_RUNTIME_MISMATCH`（状态记录的引擎与当前有效 endpoint 漂移，跳过容器/镜像检查）、`KM_TIMEOUT`（管理查询超时）、`KM_CANCELED`（km 收到取消，子进程已终止）、`KM_USAGE`。
 
 ## 超时
 
