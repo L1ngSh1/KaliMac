@@ -1,0 +1,9 @@
+已删除 /tmp/km-install-test2.9AZKHT/prefix/opt/km-test/bin/km
+已删除 /tmp/km-install-test2.9AZKHT/prefix/opt/km-test/share/km/VERSION
+已删除 /tmp/km-install-test2.9AZKHT/prefix/opt/km-test/share/km/manifest.txt
+已移除空目录 /tmp/km-install-test2.9AZKHT/prefix/opt/km-test/share/km
+已移除空目录 /tmp/km-install-test2.9AZKHT/prefix/opt/km-test/share
+卸载完成
+== 卸载后残留文件（应为空）==
+OK: 零残留
+== 打包 ==

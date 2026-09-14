@@ -1,0 +1,757 @@
+diff --git a/.gitignore b/.gitignore
+index 6b106d9..8b21a4c 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -1,3 +1,4 @@
+ bin/
+ .km/
+ .DS_Store
++dist/
+diff --git a/Makefile b/Makefile
+index 7877e60..eddaad0 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,11 +1,11 @@
+ BINARY := ./bin/km
+ 
+-.PHONY: build test vet fmt clean
++.PHONY: build test vet fmt fmt-check integration clean
+ build:
+ 	go build -o $(BINARY) ./cmd/km
+ 
+ test:
+-	go test ./...
++	go test -count=1 ./...
+ 
+ vet:
+ 	go vet ./...
+@@ -13,7 +13,14 @@ vet:
+ fmt:
+ 	gofmt -w .
+ 
++fmt-check:
++	@test -z "$$(gofmt -l . )" || { echo "未格式化文件:"; gofmt -l .; exit 1; }
++
++# 真实集成套件：需要本机 Docker 引擎与最小镜像（缺失时 TestMain 预检显式 SKIP 或构建）
++integration:
++	go test -tags=integration -count=1 -timeout 15m ./tests/integration/
++
+ clean:
+ 	rm -rf bin
+ 
+-all: vet test build
++all: fmt-check vet test build
+diff --git a/README.md b/README.md
+index 4bf9cb8..df2806c 100644
+--- a/README.md
++++ b/README.md
+@@ -35,6 +35,22 @@ echo 'print("hi")' > t.py
+ 
+ 工具在项目容器内执行；项目文件经 bind mount 双向可见（容器内 /workspace），工具输出与退出状态回到原终端。镜像构建证据见 tests/evidence/。
+ 
++## 安装 / 打包（本地）
++
++```bash
++make build
++DESTDIR=/tmp/stage PREFIX=/opt/km-test scripts/install.sh   # 临时目录试装
++PREFIX=$HOME/.local scripts/install.sh                      # 用户级安装
++PREFIX=$HOME/.local scripts/uninstall.sh                    # 卸载（只删清单内文件）
++scripts/package.sh                                          # 双架构产物 + SHA256SUMS → dist/
++```
++
++安装为清单式（`$PREFIX/share/km/manifest.txt`），卸载只删除清单内文件，不改 PATH 与 shell 配置。
++平台边界：**darwin/arm64 为实测平台**（本机全量验证）；darwin/amd64 为交叉编译产物，未在真实硬件
++做过端到端测试；Linux 未测试（CI integration 作业首跑后另记）。镜像构建与来源见 `images/kali/`
++与 `tests/evidence/kali-mac-min-0.2/build-evidence.txt`。候选版本号、tag 与发布命令均为待审步骤，
++不会自动执行。
++
+ ## 文档
+ 
+ - [docs/user-guide.md](docs/user-guide.md) — 面向使用者：首次配置、命令速查、文件共享、退出与排错
+@@ -47,9 +63,16 @@ echo 'print("hi")' > t.py
+ ## 开发
+ 
+ ```bash
+-make test   # go test ./...
+-make vet    # go vet ./...
+-make all    # vet + test + build
++make test          # go test -count=1 ./...
++make vet           # go vet ./...
++make fmt-check     # gofmt 检查（make fmt 写入）
++make integration   # 真实集成套件（需本机 Docker 引擎与最小镜像）
++make all           # fmt-check + vet + test + build
+ ```
+ 
+-单测不需要 Docker（runtime 层 executor 可注入）。P0 实验集可重跑：`bash tests/p0/run-p0.sh`（自动创建唯一标签的实验容器、生成证据到 `tests/p0/evidence/`、结束后清理并核对）。
++单测不需要 Docker（runtime 层 executor 可注入）。真实集成套件按完整容器 ID 登记终检，
++区分「残留 / 无法核实」，引擎不可达时显式 `P2-INTEGRATION-SKIP`。P0 实验集可重跑：
++`bash tests/p0/run-p0.sh`（自动创建唯一标签的实验容器、生成证据到 `tests/p0/evidence/`、
++结束后清理并核对）。性能基线：`tests/perf/perf-baseline.sh`（单调时钟、逐样本退出码检查、
++配对 `docker exec` 对照）。CI 工作流见 `.github/workflows/ci.yml`（verify + 独立 integration
++作业；首次 push 前远端不会运行）。
+diff --git a/docs/architecture.md b/docs/architecture.md
+index df673a3..e00594f 100644
+--- a/docs/architecture.md
++++ b/docs/architecture.md
+@@ -1,14 +1,20 @@
+-# Kali-Mac 架构短记（P0 后）
++# Kali-Mac 架构短记
+ 
+ 目标不变：Mac 终端输入 `km 工具 参数`，在当前项目的 Kali 容器执行；文件留在 Mac，输出与退出状态回原终端。
+ 
++当前形态（P2-C 交互版）：`init → run → shell → stop → 恢复` 闭环 + 交互 bash（PTY）。
++
+ ```text
+ Mac 终端
+   └─ km（Go, 本仓库）
+-      ├─ internal/cli        分派/帮助/版本/doctor；工具 argv 原样透传
+-      ├─ internal/project    .km.json 校验；.km/ 本机状态与身份
+-      ├─ internal/runtime    docker CLI 封装（Executor 可注入，测试用 fake）
+-      └─ internal/terminal   （P2 引入：交互/信号/终端恢复，按 P0 结论实现）
++      ├─ internal/cli        分派/帮助/版本/doctor/init/run/shell/stop；工具 argv 原样透传
++      ├─ internal/project    .km.json 校验；.km/ 本机状态、项目锁与身份
++      ├─ internal/runtime    docker CLI 封装（Executor 可注入，测试用 fake；endpoint 解析与固定）
++      ├─ internal/session    会话内核：唯一会话身份、容器内侧进程组清理、km-ctl/km-run 协议、
++      │                      DockerController/ExecStarter（P2 执行与交互 shell 的事实标准，见 ADR-004/005）
++      ├─ internal/residue    测试终检的资源判定纯函数：「确认消失/确认残留/无法核实」三类区分，
++      │                      查询失败不等价为资源不存在（internal 集成套件终检复用）
++      └─ cmd/{km,shellproto} 入口；shellproto 为 C1 实验驱动器
+ ```
+ 
+ ## P0 改变/确认的设计决策
+@@ -20,6 +26,9 @@ Mac 终端
+ 5. **身份以不可变 ID 为准（ADR-003，review F2/F3）**：容器归属检查从记录的完整容器 ID 出发（名称只作展示与同名重建诊断）；镜像有引用（标签）、init 时记录的内容 ID、容器实际内容 ID 三层，doctor 比对后两层并报告漂移。
+ 6. **管理命令有界（review F4）**：docker 管理查询单项 10s 超时、doctor 整体 45s 预算；超时/取消均终止子进程并返回 `KM_TIMEOUT`/`KM_CANCELED`。不适用于 P2 长工具执行。
+ 7. **运行时层保持单实现**：只有 docker CLI 一个后端；Executor 接口仅为可测试性存在，不做成插件框架。
++8. **测试资源生命周期（goal 1789353851 收口）**：集成测试创建的每个容器按完整 ID 登记进套件终检
++   （TestMain）；终检区分「确认消失/确认残留/无法核实」，查询失败响亮失败而非静默通过；
++   Docker 引擎不可达时 TestMain 预检显式 `P2-INTEGRATION-SKIP` 跳过（不在 `-run '^$'` 下访问引擎或构建镜像）。
+ 
+ ## 错误模型
+ 
+diff --git a/docs/user-guide.md b/docs/user-guide.md
+index 104b752..71a9547 100644
+--- a/docs/user-guide.md
++++ b/docs/user-guide.md
+@@ -168,13 +168,16 @@ cd "$DEMO"                   # 或你实际的项目目录；新终端请填真
+ 
+ - 宿主进程被强杀（SIGKILL/关终端）时，容器内的 shell 可能继续运行；后续命令会被 `KM_SESSION_ACTIVE` 保护性阻断——它不是应该删除的“缓存”，按提示用 `docker exec <容器> /tmp/km-bin/km-ctl cancel <会话ID>` 显式清理即可恢复。
+ - 主动 `setsid … &` 脱离会话的进程不属于 km 的清理范围，会一直存活（可观测、可手动清理）。
+-- `km shell` 每次启动会向容器安装/刷新一次会话脚本，热调用比裸 `docker exec` 慢约 150ms（见 tests/perf/ 基线）。
++- `km shell` 每次启动会向容器安装/刷新一次会话脚本，热调用比裸 `docker exec` 慢约 160ms（2026-09 基线：km p50 203–207ms vs exec 45ms，见 tests/perf/evidence/ 与 CHANGELOG）。
++- `init` 后、首次 `run`/`shell` 之前运行 `doctor`，会话检查会显示一条预期中的警告「会话脚本未安装」（此时容器内还没有会话脚本可查）；首次 `run` 或 `shell` 之后该检查自动变为 OK。
+ 
+-## 9. 下一步开发顺序
++## 9. 现状与下一步
+ 
+-1. 修正 PTY 驱动器：消费提示符、传播失败，先让验收结果可信。
+-2. 修正终端快照与信号退出同步；增加真实 km 的 SIGTERM/SIGHUP 回归。
+-3. 补齐普通后台管道及 cancel 的清理验证，并更正 detach 实验结论。
+-4. 跑全量回归，把本指南从头实走一次，再考虑安装便捷化和下一批功能。
++上一版计划中的开发项（PTY 驱动器修正、终端快照与信号同步、管道/停止态作业清理、detach 结论更正、全量回归与指南实走）均已完成并有回归与验证记录，历史见 [验证记录](verification.md)。
++
++当前方向（按 2026-09 goal 计划）：
++
++1. 发布工程：安装/卸载方式、打包与校验和、双架构构建说明（进行中，见 README「开发」）。
++2. 可信性能基线：`tests/perf/perf-baseline.sh` 已按单调时钟、逐样本退出码检查、配对 docker exec 对照重写；结论以实测为准。
+ 
+ 更多细节：[CLI 合同](cli-contract.md)、[终端方案](adr-005-terminal-shell.md)、[会话内核](adr-004-session-execution.md)。
+diff --git a/docs/verification.md b/docs/verification.md
+index 9831fd6..e5e44c0 100644
+--- a/docs/verification.md
++++ b/docs/verification.md
+@@ -1,5 +1,40 @@
+ # 验证记录
+ 
++## 第七轮：goal 1789353851（2026-09-14，资源生命周期收口 + 端到端实走）
++
++计划见 docs/goal-plan.md，逐项状态与证据见 docs/goal-progress.md（run-id `goal-1789353851`）。
++
++### 测试资源生命周期（M1，关闭第六轮遗留「待查」）
++
++第六轮记录的集成套件泄漏（km-p7a0d0063de，TestC1DetachKeys）本轮定案：`TestC1DetachKeys`
++中 `km init` 创建的项目容器从未登记——既不在套件终检清单，也无 `t.Cleanup`；标签残留核对
++（km.project=p2a-*）与套件终检都覆盖不到 km 命名容器。负向证明：还原基线后用例 PASS 但
++`docker ps` 出现泄漏容器（km-pe37ee18ff5，Up 21s）；补 `registerProjectCleanup` 后连续三轮
++`-count=3` 通过且零残留。同类分支全库排查：另修 C2_PROBE 探针分支（shell_c2_test.go）。
++
++终检/残留核对不再把「查询失败」等价为「容器不存在」：新增 `internal/residue`（可注入
++fake 的三态判定：确认消失/确认残留/无法核实），TestMain 终检与 `p2bResidueCount` 改用之，
++无法核实 → `P2B-CLEANUP-UNVERIFIED` 且套件 rc=1（该路径在首轮修复回归中被真实触发过一次
++——stderr 匹配过严，终检响亮失败而非静默通过，修正后复绿）。TestMain 增加引擎预检：
++Docker 不可达时 `P2-INTEGRATION-SKIP` 显式跳过，`-run '^$'` 不再访问引擎或触发镜像构建。
++
++### doctor 会话检查分类（M2 实走发现）
++
++新项目 init 后立即 doctor：会话检查因 km-ctl 未安装失败（exit 127），但旧实现用 `r.line`
++输出、不计入摘要——「0 警告 0 失败」掩盖未完成的检查。修复：检查失败一律计入 `警告`，
++127 单列说明「会话脚本未安装（首次 run/shell 时安装）」。负向证明（旧码两测试 FAIL）+
++真实新旧项目 doctor 输出对照。回归：TestDoctorSessionCheckFailureCounted /
++TestDoctorSessionScriptNotInstalled127。
++
++### 全套验证
++
++`gofmt -l` 空；`go vet ./...`（含 integration tag）零告警；`go test -count=1 ./...` 全 ok
++（新增 internal/residue）；`go test -race -count=1 ./...` 全 ok；`go build ./...` OK；
++`go test -tags=integration -count=1 -timeout 15m ./tests/integration/` ok（133.7s），
++套件终检零残留、套件外无本轮容器。用户指南从零实走（init→run→双向共享→PTY shell
++（Ctrl-C 130/作业控制/窗口 40×100 跟随/exit 7 透传）→doctor→stop→恢复）全部通过，
++演示资源按完整 ID 清理核对。回滚脚本在独立 worktree 验证可逆。
++
+ ## 第六轮：审计修复（2026-09-12）
+ 
+ 用户发起冗余代码审计，实测冒烟中发现两个行为缺陷，连同审计死代码一并修复。
+diff --git a/internal/cli/doctor.go b/internal/cli/doctor.go
+index ee95b19..857fe3d 100644
+--- a/internal/cli/doctor.go
++++ b/internal/cli/doctor.go
+@@ -252,15 +252,19 @@ func checkContainerOwnership(r *reporter, ctx context.Context, dk *runtime.Docke
+ }
+ 
+ // reportContainerSessions 报告容器内会话状态（只读；R2 的可见性部分）。
++// 检查本身失败必须计入统计（警告），不得降级为不计数的输出行；
++// exit 127 = km-ctl 不在容器内（init 后首次 run/shell 之前属预期状态）。
+ func reportContainerSessions(r *reporter, ctx context.Context, dk *runtime.Docker, containerID string) {
+ 	var ctl *session.DockerController = newSessionController(dk.EndpointOverride)
+ 	out, errStr, exitCode, err := ctl.Sessions(ctx, containerID)
+ 	active, stale, parseOK := session.ParseSessions(out)
+ 	switch {
+ 	case err != nil:
+-		r.line("  会话: 检查失败（%v）", err)
++		r.item("警告", "会话检查失败: %v", err)
++	case exitCode == 127:
++		r.item("警告", "会话脚本未安装（init 后首次 run/shell 时安装；此前无法检查容器内会话）")
+ 	case exitCode != 0 || !parseOK:
+-		r.line("  会话: 检查失败（exit=%d，stderr: %s；输出不可解析）", exitCode, strings.TrimSpace(errStr))
++		r.item("警告", "会话检查失败（exit=%d，stderr: %s；输出不可解析）", exitCode, strings.TrimSpace(errStr))
+ 	case len(active) == 0 && len(stale) == 0:
+ 		r.item("OK", "容器内无活跃会话")
+ 	default:
+diff --git a/internal/cli/doctor_test.go b/internal/cli/doctor_test.go
+index 0d6a66d..e4d285c 100644
+--- a/internal/cli/doctor_test.go
++++ b/internal/cli/doctor_test.go
+@@ -570,3 +570,46 @@ func TestDoctorContainerNameMismatch(t *testing.T) {
+ 		t.Fatalf("应报告容器名称不一致:\n%s", out)
+ 	}
+ }
++
++// runDoctorWithSessions 以指定 km-ctl sessions 应答跑一遍 doctor（健康栈）。
++func runDoctorWithSessions(t *testing.T, root string, exitCode int, sessOut string) string {
++	t.Helper()
++	t.Setenv("DOCKER_HOST", "")
++	t.Setenv("DOCKER_CONTEXT", "")
++	old := newSessionController
++	newSessionController = func(endpoint string) *session.DockerController {
++		return &session.DockerController{RunFn: func(_ context.Context, _ []byte, _ []string) (string, string, int, error) {
++			return sessOut, "", exitCode, nil
++		}}
++	}
++	t.Cleanup(func() { newSessionController = old })
++	var out bytes.Buffer
++	RunDoctor(context.Background(), root, &out, &runtime.Docker{Exec: doctorFake(healthyContainerOut(root))})
++	return out.String()
++}
++
++// 会话检查自身失败必须计入统计（警告），不得降级为不计数的输出行
++// （goal M2 实走发现：旧实现 r.line 导致「检查失败」却摘要 0 失败 0 警告）。
++func TestDoctorSessionCheckFailureCounted(t *testing.T) {
++	root := setupProject(t, validConfig, stateJSON(fakeContainerID, fakeImageID, localEndpoint))
++	out := runDoctorWithSessions(t, root, 9, "")
++	if !strings.Contains(out, "会话检查失败（exit=9") {
++		t.Fatalf("会话检查失败应可见:\n%s", out)
++	}
++	if !strings.Contains(out, "1 警告") {
++		t.Fatalf("失败的检查应计入警告统计:\n%s", out)
++	}
++}
++
++// exit 127 = km-ctl 未安装（init 后首次 run/shell 前）：预期状态，报警告并说明，
++// 同样计入统计。
++func TestDoctorSessionScriptNotInstalled127(t *testing.T) {
++	root := setupProject(t, validConfig, stateJSON(fakeContainerID, fakeImageID, localEndpoint))
++	out := runDoctorWithSessions(t, root, 127, "")
++	if !strings.Contains(out, "会话脚本未安装") {
++		t.Fatalf("127 应报告脚本未安装:\n%s", out)
++	}
++	if !strings.Contains(out, "1 警告") {
++		t.Fatalf("未安装应计入警告统计:\n%s", out)
++	}
++}
+diff --git a/tests/integration/closedloop_test.go b/tests/integration/closedloop_test.go
+index 3b81095..dde60b8 100644
+--- a/tests/integration/closedloop_test.go
++++ b/tests/integration/closedloop_test.go
+@@ -15,6 +15,8 @@ import (
+ 	"sync"
+ 	"testing"
+ 	"time"
++
++	"kalimac/internal/residue"
+ )
+ 
+ const minImageRef = "kali-mac-min:0.2"
+@@ -30,6 +32,15 @@ func TestMain(m *testing.M) {
+ 		fmt.Fprintln(os.Stderr, "TestMain:", err)
+ 		os.Exit(2)
+ 	}
++
++	// 预检：Docker 引擎不可达时显式跳过整个套件——不在 -run '^$' 下访问
++	// Docker，也不触发镜像构建；缺前提与产品失败用标记区分。
++	if err := exec.Command("docker", "info", "--format", "{{.ServerVersion}}").Run(); err != nil {
++		fmt.Fprintln(os.Stderr, "P2-INTEGRATION-SKIP: docker 引擎不可达，集成套件未执行:", err)
++		os.RemoveAll(tmp)
++		os.Exit(0)
++	}
++
+ 	kmBin = filepath.Join(tmp, "km")
+ 	shellBin = filepath.Join(tmp, "shellproto")
+ 	repo, _ := filepath.Abs("../..")
+@@ -59,15 +70,19 @@ func TestMain(m *testing.M) {
+ 	}
+ 	code := m.Run()
+ 
+-	// 清理终检：本套件注册的每个容器（完整 ID）都必须已消失
++	// 清理终检：本套件注册的每个容器（完整 ID）都必须已消失；查询失败
++	// 记为「无法核实」单独报错，不等价为容器不存在。
+ 	bad := 0
+ 	regMu.Lock()
+-	defer regMu.Unlock()
+-	for _, id := range registered {
+-		if exitCodeOf("container", "inspect", id) == 0 {
+-			fmt.Fprintln(os.Stderr, "P2B-CLEANUP-FAIL: 残留容器", id)
+-			bad++
+-		}
++	v := residue.Classify(registered, residue.DockerInspect)
++	regMu.Unlock()
++	for _, id := range v.Residue {
++		fmt.Fprintln(os.Stderr, "P2B-CLEANUP-FAIL: 残留容器", id)
++		bad++
++	}
++	for _, u := range v.Unverifiable {
++		fmt.Fprintf(os.Stderr, "P2B-CLEANUP-UNVERIFIED: 无法核实容器 %s: %s\n", u.ID, u.Err)
++		bad++
+ 	}
+ 	if bad > 0 {
+ 		code = 1
+@@ -89,7 +104,10 @@ func registerProjectCleanup(t *testing.T, dir string) string {
+ 	registered = append(registered, id)
+ 	regMu.Unlock()
+ 	t.Cleanup(func() {
+-		_ = exec.Command("docker", "rm", "-f", id).Run()
++		if err := exec.Command("docker", "rm", "-f", id).Run(); err != nil {
++			// 清理失败必须可观察；终检（TestMain）会按完整 ID 复核
++			t.Logf("P2B-CLEANUP-WARN: 移除容器 %s 失败: %v", id, err)
++		}
+ 	})
+ 	return id
+ }
+@@ -216,16 +234,12 @@ func containerState(t *testing.T, id string) string {
+ 	return strings.TrimSpace(string(out))
+ }
+ 
+-// p2bResidueCount 统计套件登记之外、仍存活的登记容器数（应恒为 0）。
+-func p2bResidueCount(t *testing.T) int {
++// p2bResidueCount 核对套件登记容器的现状：返回（确认残留数, 无法核实数）。
++// 查询失败计入无法核实，不等价为容器不存在。
++func p2bResidueCount(t *testing.T) (residueN, unverifiableN int) {
+ 	t.Helper()
+ 	regMu.Lock()
+-	defer regMu.Unlock()
+-	n := 0
+-	for _, id := range registered {
+-		if exitCodeOf("container", "inspect", id) == 0 {
+-			n++
+-		}
+-	}
+-	return n
++	v := residue.Classify(registered, residue.DockerInspect)
++	regMu.Unlock()
++	return len(v.Residue), len(v.Unverifiable)
+ }
+diff --git a/tests/integration/harness_test.go b/tests/integration/harness_test.go
+index a593c94..4dfa574 100644
+--- a/tests/integration/harness_test.go
++++ b/tests/integration/harness_test.go
+@@ -107,11 +107,10 @@ func sessionContainerImage(t *testing.T, projectDir, image string) (id, name str
+ 	if !dockerUp(t) {
+ 		t.Skip("Docker 引擎不可达")
+ 	}
+-	if code := func() int {
+-		_, c := runCapture(t, nil, "image", "inspect", toolImage)
+-		return c
+-	}(); code != 0 {
+-		t.Skipf("工具镜像不在本地: %s", toolImage)
++	bin := dockerBin(t)
++	// 预检实际使用的镜像（而非固定工具镜像），缺失则显式跳过
++	if _, code := runCapture(t, nil, "image", "inspect", image); code != 0 {
++		t.Skipf("镜像不在本地: %s", image)
+ 	}
+ 	name = "km-" + runID + "-" + uniqName()
+ 	out, code := runCapture(t, nil, "run", "-d", "--init",
+@@ -122,7 +121,10 @@ func sessionContainerImage(t *testing.T, projectDir, image string) (id, name str
+ 	}
+ 	id = strings.TrimSpace(out)
+ 	t.Cleanup(func() {
+-		_ = exec.Command(dockerBin(t), "rm", "-f", id).Run()
++		if err := exec.Command(bin, "rm", "-f", id).Run(); err != nil {
++			// 清理失败必须可观察；残留核对（guardResidue）会按标签复核
++			t.Logf("P2A-CLEANUP-WARN: 移除容器 %s 失败: %v", id, err)
++		}
+ 	})
+ 	return id, name
+ }
+@@ -135,9 +137,14 @@ func uniqName() string {
+ }
+ 
+ // assertNoResidue 断言本 run-id 无容器残留（在每个测试结束时核对）。
++// docker ps 查询失败必须报「无法核实」，不得等价为零残留。
+ func assertNoResidue(t *testing.T) {
+ 	t.Helper()
+-	out, _ := runCapture(t, nil, "ps", "-a", "--filter", "label="+projectLbl, "-q")
++	out, code := runCapture(t, nil, "ps", "-a", "--filter", "label="+projectLbl, "-q")
++	if code != 0 {
++		t.Errorf("run-id %s 残留核对无法核实（docker ps 退出码 %d）: %s", runID, code, strings.TrimSpace(out))
++		return
++	}
+ 	if strings.TrimSpace(out) != "" {
+ 		t.Errorf("run-id %s 存在残留容器: %s", runID, strings.TrimSpace(out))
+ 	}
+diff --git a/tests/integration/matrix_test.go b/tests/integration/matrix_test.go
+index 9f4e1fa..94b38d6 100644
+--- a/tests/integration/matrix_test.go
++++ b/tests/integration/matrix_test.go
+@@ -22,8 +22,12 @@ var runIDP2B = fmt.Sprintf("p2b-%d", time.Now().Unix())
+ 
+ // guardP2BResidue：全包一次，最终核对 km-p2b-test 标签零残留。
+ func TestP2BResidueCheck(t *testing.T) {
+-	if n := p2bResidueCount(t); n != 0 {
+-		t.Errorf("存在 %d 个 p2b 残留容器（应为 0）", n)
++	residueN, unverifiableN := p2bResidueCount(t)
++	if unverifiableN != 0 {
++		t.Errorf("存在 %d 个无法核实的登记容器（查询失败不等于已清理）", unverifiableN)
++	}
++	if residueN != 0 {
++		t.Errorf("存在 %d 个 p2b 残留容器（应为 0）", residueN)
+ 	}
+ }
+ 
+@@ -344,8 +348,8 @@ func TestInitFailureRecovery(t *testing.T) {
+ 	if _, err := os.Stat(filepath.Join(dir, ".km", "state.json")); !os.IsNotExist(err) {
+ 		t.Fatal("失败的 init 不应写入状态")
+ 	}
+-	if n := p2bResidueCount(t); n != 0 {
+-		t.Fatalf("失败的 init 不应留下容器: %d", n)
++	if n, u := p2bResidueCount(t); n != 0 || u != 0 {
++		t.Fatalf("失败的 init 不应留下容器或不可核实项: residue=%d unverifiable=%d", n, u)
+ 	}
+ 	// 修复配置 → init 成功（失败恢复）
+ 	os.WriteFile(filepath.Join(dir, ".km.json"),
+diff --git a/tests/integration/shell_c1_test.go b/tests/integration/shell_c1_test.go
+index e57baae..1416cd6 100644
+--- a/tests/integration/shell_c1_test.go
++++ b/tests/integration/shell_c1_test.go
+@@ -391,6 +391,9 @@ func TestC1DetachKeys(t *testing.T) {
+ 	if _, errb, code := kmRun(t, dir, nil, "init"); code != 0 {
+ 		t.Fatalf("init: %s", errb)
+ 	}
++	// km init 创建的项目容器必须登记：纳入 t.Cleanup 与套件终检（完整 ID），
++	// 防止中途失败（断言/驱动器/取消路径）时泄漏。
++	registerProjectCleanup(t, dir)
+ 	id, _ := sessionContainerImage(t, dir, minImageRef)
+ 
+ 	res, _ := runShellScenario(t, id, expectSteps(
+diff --git a/tests/integration/shell_c2_test.go b/tests/integration/shell_c2_test.go
+index 8b910af..2be9c4e 100644
+--- a/tests/integration/shell_c2_test.go
++++ b/tests/integration/shell_c2_test.go
+@@ -67,6 +67,7 @@ func TestC2ShellInteractiveAndRegistered(t *testing.T) {
+ 		if _, errb, code := kmRun(t, dir, nil, "init"); code != 0 {
+ 			t.Fatalf("init: %s", errb)
+ 		}
++		registerProjectCleanup(t, dir)
+ 		res := runKmShellScenario(t, dir, append(kmShellSteps(),
+ 			step{"op": "send", "text": "ls /tmp/km-sessions; echo SID=$KM_SESSION_ID; ls /tmp/km-sessions/$KM_SESSION_ID\r"},
+ 			step{"op": "expect", "pattern": "SID=s", "timeout": 10},
+diff --git a/tests/perf/perf-baseline.sh b/tests/perf/perf-baseline.sh
+index 95503dc..41141e4 100755
+--- a/tests/perf/perf-baseline.sh
++++ b/tests/perf/perf-baseline.sh
+@@ -1,78 +1,211 @@
+ #!/bin/bash
+-# P3 性能基线：首次准备 / 冷启动 / 热调用，与直接 docker exec 对比。
+-# 输出 tests/perf/evidence/<run-id>/baseline.json + baseline.txt
+-set -u
++# P3 性能基线（v2）：首次准备(init，缺镜像时单独计时 pull) / 冷启动(stop→run) /
++# 热调用(km run 与裸 docker exec 交替配对对照)。
++#
++# 相对 v1 的修正（goal M4）：
++#   - 单调时钟（time.monotonic）；全部测量在单一 python 驱动进程内完成，
++#     计时工具自身启动成本不进入测量窗口（另测 harness 底噪供参照）；
++#   - 每个样本检查退出码：失败样本单独记录、不进入统计；任何失败 →
++#     基线 success=false 且脚本非零退出（不产出"成功"基线）；
++#   - 记录 OS/架构、Go/Docker 版本、代码版本、镜像内容 ID、样本数与每样本退出码；
++#   - 多轮：默认 3 轮 × 每轮 20 个有效配对样本；
++#   - 资源登记：本脚本创建的容器在退出时按完整 ID 清理（仅本项目）。
++#
++# 环境变量：
++#   PERF_IMAGE            项目镜像（默认 kali-mac-min:0.2）
++#   PERF_ROUNDS           热调用轮数（默认 3）
++#   PERF_SAMPLES          每轮配对样本数（默认 20）
++#   PERF_KM_BIN           被测二进制（默认 $REPO/bin/km；测试可注入）
++#   PERF_INJECT_WARM_FAIL 负向注入：热调用样本改跑 /bin/false（km 透传退出码 1），
++#                         用于验证失败样本不进统计、不生成成功基线、脚本非零退出
++set -euo pipefail
++
+ REPO="$(cd "$(dirname "$0")/../.." && pwd)"
+-KM="$REPO/bin/km"
+-[ -x "$KM" ] || { echo "先 make build" >&2; exit 2; }
+-RUN_ID="$(date +%Y%m%d-%H%M%S)"
++KM="${PERF_KM_BIN:-$REPO/bin/km}"
++[ -x "$KM" ] || { echo "FATAL: 被测二进制不存在或不可执行: $KM（先 make build 或设 PERF_KM_BIN）" >&2; exit 2; }
++
++CODE_REV="$(git -C "$REPO" rev-parse HEAD 2>/dev/null || echo unknown)"
++RUN_ID="$(date +%Y%m%d-%H%M%S)-$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo norev)"
+ EV="$REPO/tests/perf/evidence/$RUN_ID"
+ mkdir -p "$EV"
+ PROJ="$(mktemp -d "${TMPDIR:-/tmp}/km-perf-${RUN_ID}-XXXXXX")"
+ IMAGE="${PERF_IMAGE:-kali-mac-min:0.2}"
++ROUNDS="${PERF_ROUNDS:-3}"
++SAMPLES="${PERF_SAMPLES:-20}"
+ 
+-cleanup() { docker rm -f "$CONTAINER" >/dev/null 2>&1; rm -rf "$PROJ"; }
++CONTAINER=""
++cleanup() {
++  # 兜底：正常路径在驱动返回后读取；驱动中途崩溃时从 state 兜底读取，
++  # 保证本轮容器按完整 ID 清理（读取失败可观察）。
++  if [ -z "$CONTAINER" ] && [ -f "$PROJ/.km/state.json" ]; then
++    CONTAINER="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["container"]["id"])' "$PROJ/.km/state.json" 2>/dev/null || true)"
++  fi
++  if [ -n "$CONTAINER" ]; then
++    docker rm -f "$CONTAINER" >/dev/null 2>&1 || echo "WARN: 清理容器 $CONTAINER 失败（需人工核对）" >&2
++  fi
++  rm -rf "$PROJ"
++}
+ trap cleanup EXIT
+ 
+-docker info >/dev/null 2>&1 || { echo "FATAL: 引擎不可达" >&2; exit 2; }
++docker info >/dev/null 2>&1 || { echo "FATAL: docker 引擎不可达" >&2; exit 2; }
+ 
+-# 1) 首次准备（init 含镜像已存在/容器创建；镜像下载单独计时）
+-T0=$(python3 -c 'import time;print(time.time())')
+ cd "$PROJ"
+-echo "{\"schema_version\":1,\"image\":\"$IMAGE\"}" > .km.json
+-if ! "$KM" init > "$EV/init.log" 2>&1; then
+-  echo "FATAL: init 失败，日志：" >&2
+-  cat "$EV/init.log" >&2
+-  exit 2
++printf '{"schema_version":1,"image":"%s"}\n' "$IMAGE" > .km.json
++
++# 环境元数据（bash 采集一次，python 驱动合并进基线）
++GO_VER="$(go version 2>/dev/null || echo unknown)"
++DOCKER_VER="$(docker version --format '{{.Server.Version}}' 2>/dev/null || echo unknown)"
++OS_ARCH="$(uname -s 2>/dev/null)/$(uname -m 2>/dev/null)"
++IMAGE_ID="$(docker image inspect --format '{{.Id}}' "$IMAGE" 2>/dev/null || echo missing)"
++
++# 镜像缺失时单独计时 pull（与 init 分离，pull 不计入 init）
++PULL_MS="null"
++if [ "$IMAGE_ID" = "missing" ]; then
++  echo "镜像不在本地，单独计时 pull: $IMAGE" >&2
++  PULL_MS="$(python3 -c '
++import subprocess, sys, time
++t0 = time.monotonic()
++p = subprocess.run(["docker", "pull", sys.argv[1]], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
++print(int((time.monotonic()-t0)*1000) if p.returncode == 0 else "null")' "$IMAGE")"
++  [ "$PULL_MS" != "null" ] || { echo "FATAL: 镜像拉取失败: $IMAGE" >&2; exit 2; }
++  IMAGE_ID="$(docker image inspect --format '{{.Id}}' "$IMAGE" 2>/dev/null || echo missing)"
+ fi
+-T1=$(python3 -c 'import time;print(time.time())')
+-INIT_MS=$(python3 -c "print(int(($T1-$T0)*1000))")
+-CONTAINER=$(python3 -c "import json;print(json.load(open('.km/state.json'))['container']['id'])")
+-
+-# 2) 冷启动（stop 后第一次 run：含容器 start）
+-"$KM" stop >/dev/null 2>&1
+-T2=$(python3 -c 'import time;print(time.time())')
+-"$KM" run -- /bin/true >/dev/null 2>&1
+-T3=$(python3 -c "import time;print(time.time())")
+-COLD_MS=$(python3 -c "print(int(($T3-$T2)*1000))")
+-
+-# 3) 热调用：km run vs 直接 docker exec，交替 20 轮取中位数
+-KM_TIMES=(); DOCKER_TIMES=()
+-for i in $(seq 1 20); do
+-  T=$(python3 -c 'import time;print(time.time())')
+-  "$KM" run -- /bin/true >/dev/null 2>&1
+-  T2=$(python3 -c 'import time;print(time.time())')
+-  KM_TIMES+=($(python3 -c "print(int(($T2-$T)*1000))"))
+-  T=$(python3 -c 'import time;print(time.time())')
+-  docker exec "$CONTAINER" /bin/true >/dev/null 2>&1
+-  T2=$(python3 -c 'import time;print(time.time())')
+-  DOCKER_TIMES+=($(python3 -c "print(int(($T2-$T)*1000))"))
+-done
+-median() { printf '%s\n' "$@" | sort -n | awk '{a[NR]=$1} END{print (NR%2)?a[(NR+1)/2]:int((a[NR/2]+a[NR/2+1])/2)}'; }
+-KM_MED=$(median "${KM_TIMES[@]}"); DOCKER_MED=$(median "${DOCKER_TIMES[@]}")
+-KM_MIN=$(printf '%s\n' "${KM_TIMES[@]}" | sort -n | head -1)
+-DOCKER_MIN=$(printf '%s\n' "${DOCKER_TIMES[@]}" | sort -n | head -1)
+-
+-cat > "$EV/baseline.json" <<JSON
+-{
+-  "run_id": "$RUN_ID",
+-  "image": "$IMAGE",
+-  "container": "$CONTAINER",
+-  "init_first_prepare_ms": $INIT_MS,
+-  "cold_start_ms": $COLD_MS,
+-  "warm_km_median_ms": $KM_MED,
+-  "warm_km_min_ms": $KM_MIN,
+-  "warm_docker_exec_median_ms": $DOCKER_MED,
+-  "warm_docker_exec_min_ms": $DOCKER_MIN,
+-  "rounds": 20,
+-  "km_samples_ms": [$(printf '%s\n' "${KM_TIMES[@]}" | paste -sd, -)],
+-  "docker_samples_ms": [$(printf '%s\n' "${DOCKER_TIMES[@]}" | paste -sd, -)]
+-}
+-JSON
+-{
+-  echo "run-id=$RUN_ID image=$IMAGE"
+-  echo "首次准备(init,镜像已缓存): ${INIT_MS}ms"
+-  echo "冷启动(stop→run 含 start): ${COLD_MS}ms"
+-  echo "热调用中位数(20轮): km=${KM_MED}ms  docker exec=${DOCKER_MED}ms  开销=$((KM_MED-DOCKER_MED))ms"
+-  echo "热调用最小: km=${KM_MIN}ms  docker=${DOCKER_MIN}ms"
+-} | tee "$EV/baseline.txt"
++
++# 测量主循环：单一 python 驱动（单调时钟；退出码逐样本检查）
++KM="$KM" PROJ="$PROJ" ROUNDS="$ROUNDS" SAMPLES="$SAMPLES" \
++PULL_MS="$PULL_MS" IMAGE_ID="$IMAGE_ID" IMAGE="$IMAGE" \
++RUN_ID="$RUN_ID" CODE_REV="$CODE_REV" GO_VER="$GO_VER" DOCKER_VER="$DOCKER_VER" OS_ARCH="$OS_ARCH" \
++INJECT="${PERF_INJECT_WARM_FAIL:-0}" \
++python3 - <<'PY' > "$EV/measure.raw.json"
++import json, os, subprocess, sys, time
++
++km = os.environ["KM"]
++rounds, samples = int(os.environ["ROUNDS"]), int(os.environ["SAMPLES"])
++inject = os.environ["INJECT"] == "1"
++
++failures = []
++def timed(cmd):
++    t0 = time.monotonic()
++    p = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
++    dt = (time.monotonic() - t0) * 1000.0
++    return round(dt, 1), p.returncode
++
++def expect(phase, rc, ms):
++    if rc != 0:
++        failures.append({"phase": phase, "exit_code": rc, "ms": ms})
++    return rc == 0
++
++# 底噪：裸 subprocess 启动 true 的驱动开销（供参照，不计入结论）。
++# 用 /usr/bin/true：macOS 无 /bin/true；容器内的测量仍用容器路径 /bin/true。
++floor_ms, floor_rc = timed(["/usr/bin/true"])
++
++# 1) 首次准备
++init_ms, init_rc = timed([km, "init"])
++expect("init", init_rc, init_ms)
++with open(os.path.join(os.environ["PROJ"], ".km", "state.json")) as f:
++    container = json.load(f)["container"]["id"]
++
++# 2) 冷启动：stop（rc 必查）后第一次 run（含容器 start）
++stop_ms, stop_rc = timed([km, "stop"])
++expect("stop_before_cold", stop_rc, stop_ms)
++cold_ms, cold_rc = timed([km, "run", "--", "/bin/true"])
++expect("cold_run", cold_rc, cold_ms)
++
++# 3) 热调用：km 与 docker exec 交替配对；失败样本不进统计
++warm_tool = "/bin/false" if inject else "/bin/true"
++km_ms, dex_ms, km_rc, dex_rc = [], [], [], []
++for r in range(1, rounds + 1):
++    for i in range(1, samples + 1):
++        ms, rc = timed([km, "run", "--", warm_tool])
++        km_rc.append(rc)
++        if expect(f"warm_km_round{r}_{i}", rc, ms):
++            km_ms.append(ms)
++        ms, rc = timed(["docker", "exec", container, "/bin/true"])
++        dex_rc.append(rc)
++        if expect(f"warm_dex_round{r}_{i}", rc, ms):
++            dex_ms.append(ms)
++
++def pct(vals, q):
++    if not vals:
++        return None
++    vals = sorted(vals)
++    k = (len(vals) - 1) * q
++    f = int(k)
++    c = min(f + 1, len(vals) - 1)
++    return round(vals[f] + (vals[c] - vals[f]) * (k - f), 1)
++
++json.dump({
++    "success": len(failures) == 0,
++    "injected_warm_fail": inject,
++    "failures": failures,
++    "harness_floor_ms": floor_ms,
++    "env": {
++        "run_id": os.environ["RUN_ID"],
++        "code_rev": os.environ["CODE_REV"],
++        "os_arch": os.environ["OS_ARCH"],
++        "go": os.environ["GO_VER"],
++        "docker_server": os.environ["DOCKER_VER"],
++        "image": os.environ["IMAGE"],
++        "image_content_id": os.environ["IMAGE_ID"],
++        "image_pull_ms": None if os.environ["PULL_MS"] == "null" else int(os.environ["PULL_MS"]),
++        "rounds": rounds,
++        "samples_per_round": samples,
++    },
++    "init_ms": init_ms, "init_exit_code": init_rc,
++    "stop_ms": stop_ms, "stop_exit_code": stop_rc,
++    "cold_start_ms": cold_ms, "cold_exit_code": cold_rc,
++    "warm_km_valid_samples": len(km_ms),
++    "warm_dex_valid_samples": len(dex_ms),
++    "p50_warm_km_ms": pct(km_ms, 0.5), "p95_warm_km_ms": pct(km_ms, 0.95),
++    "p50_warm_dex_ms": pct(dex_ms, 0.5), "p95_warm_dex_ms": pct(dex_ms, 0.95),
++    "warm_km_samples_ms": km_ms,
++    "warm_dex_samples_ms": dex_ms,
++    "warm_km_exit_codes": km_rc,
++    "warm_dex_exit_codes": dex_rc,
++}, sys.stdout, ensure_ascii=False, indent=1)
++PY
++
++# 驱动成功返回后读取容器 ID（cleanup 另有 state 兜底读取）
++CONTAINER="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["container"]["id"])' "$PROJ/.km/state.json" 2>/dev/null || true)"
++
++# 汇总产物：baseline.json / baseline.csv / baseline.txt；失败 → 非零退出
++KM="$KM" EV="$EV" python3 - <<'PY'
++import csv, json, os, sys
++
++ev = os.environ["EV"]
++with open(os.path.join(ev, "measure.raw.json")) as f:
++    r = json.load(f)
++
++with open(os.path.join(ev, "baseline.json"), "w") as f:
++    json.dump(r, f, ensure_ascii=False, indent=1)
++
++with open(os.path.join(ev, "baseline.csv"), "w", newline="") as f:
++    w = csv.writer(f)
++    w.writerow(["metric", "round", "index", "exit_code", "duration_ms"])
++    w.writerow(["init", 0, 0, r["init_exit_code"], r["init_ms"]])
++    w.writerow(["stop", 0, 0, r["stop_exit_code"], r["stop_ms"]])
++    w.writerow(["cold_start", 0, 0, r["cold_exit_code"], r["cold_start_ms"]])
++    n = r["env"]["samples_per_round"]
++    for i, (ms, rc) in enumerate(zip(r["warm_km_samples_ms"], r["warm_km_exit_codes"])):
++        w.writerow(["warm_km", i // n + 1, i % n + 1, rc, ms])
++    for i, (ms, rc) in enumerate(zip(r["warm_dex_samples_ms"], r["warm_dex_exit_codes"])):
++        w.writerow(["warm_docker_exec", i // n + 1, i % n + 1, rc, ms])
++
++e = r["env"]
++lines = [
++    f"run-id={e['run_id']} code={e['code_rev'][:12]} success={r['success']}",
++    f"env: {e['os_arch']} go={e['go'].split()[2] if len(e['go'].split()) > 2 else e['go']} docker={e['docker_server']} image={e['image']} id={e['image_content_id'][:20]}",
++    f"样本: km 有效 {r['warm_km_valid_samples']}/{e['rounds']*e['samples_per_round']}  dex 有效 {r['warm_dex_valid_samples']}/{e['rounds']*e['samples_per_round']}  底噪 {r['harness_floor_ms']}ms",
++    f"首次准备 init: {r['init_ms']}ms (rc={r['init_exit_code']})" + (f"  镜像 pull: {e['image_pull_ms']}ms" if e["image_pull_ms"] else ""),
++    f"冷启动 stop→run: {r['cold_start_ms']}ms (rc={r['cold_exit_code']})",
++    f"热调用 p50: km={r['p50_warm_km_ms']}ms  docker exec={r['p50_warm_dex_ms']}ms  开销={None if None in (r['p50_warm_km_ms'], r['p50_warm_dex_ms']) else round(r['p50_warm_km_ms'] - r['p50_warm_dex_ms'], 1)}ms",
++    f"热调用 p95: km={r['p95_warm_km_ms']}ms  docker exec={r['p95_warm_dex_ms']}ms",
++]
++if r["failures"]:
++    lines.append(f"FAILURES({len(r['failures'])}): " + json.dumps(r["failures"][:5], ensure_ascii=False))
++with open(os.path.join(ev, "baseline.txt"), "w") as f:
++    f.write("\n".join(lines) + "\n")
++print("\n".join(lines))
++
++sys.exit(0 if r["success"] else 1)
++PY

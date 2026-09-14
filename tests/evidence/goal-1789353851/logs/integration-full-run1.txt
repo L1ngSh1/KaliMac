@@ -1,0 +1,2 @@
+ok  	kalimac/tests/integration	133.683s
+rc=0

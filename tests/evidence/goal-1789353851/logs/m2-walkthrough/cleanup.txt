@@ -1,0 +1,10 @@
+project=/Users/y4n9/Workspace/km-goal-demo.IHTwrw container=6573d3e6b1caf20e130464ff2030feaf6db236eec7983eca8394033e50534f1b
+6573d3e6b1caf20e130464ff2030feaf6db236eec7983eca8394033e50534f1b
+  removed 6573d3e6b1caf20e130464ff2030feaf6db236eec7983eca8394033e50534f1b
+  removed dir
+project=/Users/y4n9/Workspace/km-goal-fresh.A4yKVu container=71af8b4ba177b751934fac03da52a864148fbb57222a0be018f82567a04e4180
+71af8b4ba177b751934fac03da52a864148fbb57222a0be018f82567a04e4180
+  removed 71af8b4ba177b751934fac03da52a864148fbb57222a0be018f82567a04e4180
+  removed dir
+0
+zero km project containers remain

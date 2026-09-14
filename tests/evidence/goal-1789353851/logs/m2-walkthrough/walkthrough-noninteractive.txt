@@ -1,0 +1,56 @@
+== km --version ==
+km 0.3.0-p2
+rc=0
+== docker info ==
+29.6.1
+rc=0
+DEMO=/Users/y4n9/Workspace/km-goal-demo.IHTwrw
+== init ==
+km init: 环境就绪（project=p4559e00795 container=6573d3e6b1ca image=sha256:bd829）
+rc=0
+== doctor (首次) ==
+km doctor（只读检查，不做任何变更）
+
+平台:
+  [OK] 本机: darwin/arm64 (macOS 26.6.2)
+项目:
+  项目根: /Users/y4n9/Workspace/km-goal-demo.IHTwrw
+  [OK] 配置: schema=1 image=kali-mac-min:0.2 platform=linux/arm64
+  本机状态: project_id=p4559e00795 容器名=km-p4559e00795 context=desktop-linux 容器ID=6573d3e6b1ca…
+运行时 (Docker):
+  [OK] 有效 endpoint: unix:///Users/y4n9/.docker/run/docker.sock（来源 context，context=desktop-linux，本地）
+  [OK] client=29.6.1 server=29.6.1 (linux/arm64)
+  [OK] 运行时身份与项目记录一致
+容器与镜像:
+  [OK] 容器: km-p4559e00795（6573d3e6b1ca…，running，按记录 ID 查找）
+  [OK] 标签归属: km.project=p4559e00795 匹配
+  [OK] 挂载: /Users/y4n9/Workspace/km-goal-demo.IHTwrw => /workspace
+  [OK] 容器镜像内容与项目记录一致
+  会话: 检查失败（exit=127，stderr: ；输出不可解析）
+  [OK] 镜像: sha256:bd829afded6ed952168fbe01fe15418f083cf86678cf1c5b1a35b2924b71bb03
+
+结论: 10 通过, 0 警告, 0 失败
+rc=0
+== run: python3 --version ==
+Python 3.14.6
+rc=0
+== run: python3 -c print ==
+hello from Kali
+rc=0
+== run: pwd ==
+/workspace
+rc=0
+== 共享 Mac→容器 ==
+hello from a Mac file
+rc=0
+== 共享 容器→Mac ==
+made in Kali
+rc=0
+== 管道 ==
+2
+rc=0
+== 重定向在 Mac ==
+hello from a Mac file
+rc=0
+== 退出码 7 透传 ==
+rc=7 (期望7)

@@ -1,0 +1,195 @@
+diff --git a/tests/integration/closedloop_test.go b/tests/integration/closedloop_test.go
+index 3b81095..dde60b8 100644
+--- a/tests/integration/closedloop_test.go
++++ b/tests/integration/closedloop_test.go
+@@ -15,6 +15,8 @@ import (
+ 	"sync"
+ 	"testing"
+ 	"time"
++
++	"kalimac/internal/residue"
+ )
+ 
+ const minImageRef = "kali-mac-min:0.2"
+@@ -30,6 +32,15 @@ func TestMain(m *testing.M) {
+ 		fmt.Fprintln(os.Stderr, "TestMain:", err)
+ 		os.Exit(2)
+ 	}
++
++	// 预检：Docker 引擎不可达时显式跳过整个套件——不在 -run '^$' 下访问
++	// Docker，也不触发镜像构建；缺前提与产品失败用标记区分。
++	if err := exec.Command("docker", "info", "--format", "{{.ServerVersion}}").Run(); err != nil {
++		fmt.Fprintln(os.Stderr, "P2-INTEGRATION-SKIP: docker 引擎不可达，集成套件未执行:", err)
++		os.RemoveAll(tmp)
++		os.Exit(0)
++	}
++
+ 	kmBin = filepath.Join(tmp, "km")
+ 	shellBin = filepath.Join(tmp, "shellproto")
+ 	repo, _ := filepath.Abs("../..")
+@@ -59,15 +70,19 @@ func TestMain(m *testing.M) {
+ 	}
+ 	code := m.Run()
+ 
+-	// 清理终检：本套件注册的每个容器（完整 ID）都必须已消失
++	// 清理终检：本套件注册的每个容器（完整 ID）都必须已消失；查询失败
++	// 记为「无法核实」单独报错，不等价为容器不存在。
+ 	bad := 0
+ 	regMu.Lock()
+-	defer regMu.Unlock()
+-	for _, id := range registered {
+-		if exitCodeOf("container", "inspect", id) == 0 {
+-			fmt.Fprintln(os.Stderr, "P2B-CLEANUP-FAIL: 残留容器", id)
+-			bad++
+-		}
++	v := residue.Classify(registered, residue.DockerInspect)
++	regMu.Unlock()
++	for _, id := range v.Residue {
++		fmt.Fprintln(os.Stderr, "P2B-CLEANUP-FAIL: 残留容器", id)
++		bad++
++	}
++	for _, u := range v.Unverifiable {
++		fmt.Fprintf(os.Stderr, "P2B-CLEANUP-UNVERIFIED: 无法核实容器 %s: %s\n", u.ID, u.Err)
++		bad++
+ 	}
+ 	if bad > 0 {
+ 		code = 1
+@@ -89,7 +104,10 @@ func registerProjectCleanup(t *testing.T, dir string) string {
+ 	registered = append(registered, id)
+ 	regMu.Unlock()
+ 	t.Cleanup(func() {
+-		_ = exec.Command("docker", "rm", "-f", id).Run()
++		if err := exec.Command("docker", "rm", "-f", id).Run(); err != nil {
++			// 清理失败必须可观察；终检（TestMain）会按完整 ID 复核
++			t.Logf("P2B-CLEANUP-WARN: 移除容器 %s 失败: %v", id, err)
++		}
+ 	})
+ 	return id
+ }
+@@ -216,16 +234,12 @@ func containerState(t *testing.T, id string) string {
+ 	return strings.TrimSpace(string(out))
+ }
+ 
+-// p2bResidueCount 统计套件登记之外、仍存活的登记容器数（应恒为 0）。
+-func p2bResidueCount(t *testing.T) int {
++// p2bResidueCount 核对套件登记容器的现状：返回（确认残留数, 无法核实数）。
++// 查询失败计入无法核实，不等价为容器不存在。
++func p2bResidueCount(t *testing.T) (residueN, unverifiableN int) {
+ 	t.Helper()
+ 	regMu.Lock()
+-	defer regMu.Unlock()
+-	n := 0
+-	for _, id := range registered {
+-		if exitCodeOf("container", "inspect", id) == 0 {
+-			n++
+-		}
+-	}
+-	return n
++	v := residue.Classify(registered, residue.DockerInspect)
++	regMu.Unlock()
++	return len(v.Residue), len(v.Unverifiable)
+ }
+diff --git a/tests/integration/harness_test.go b/tests/integration/harness_test.go
+index a593c94..4dfa574 100644
+--- a/tests/integration/harness_test.go
++++ b/tests/integration/harness_test.go
+@@ -107,11 +107,10 @@ func sessionContainerImage(t *testing.T, projectDir, image string) (id, name str
+ 	if !dockerUp(t) {
+ 		t.Skip("Docker 引擎不可达")
+ 	}
+-	if code := func() int {
+-		_, c := runCapture(t, nil, "image", "inspect", toolImage)
+-		return c
+-	}(); code != 0 {
+-		t.Skipf("工具镜像不在本地: %s", toolImage)
++	bin := dockerBin(t)
++	// 预检实际使用的镜像（而非固定工具镜像），缺失则显式跳过
++	if _, code := runCapture(t, nil, "image", "inspect", image); code != 0 {
++		t.Skipf("镜像不在本地: %s", image)
+ 	}
+ 	name = "km-" + runID + "-" + uniqName()
+ 	out, code := runCapture(t, nil, "run", "-d", "--init",
+@@ -122,7 +121,10 @@ func sessionContainerImage(t *testing.T, projectDir, image string) (id, name str
+ 	}
+ 	id = strings.TrimSpace(out)
+ 	t.Cleanup(func() {
+-		_ = exec.Command(dockerBin(t), "rm", "-f", id).Run()
++		if err := exec.Command(bin, "rm", "-f", id).Run(); err != nil {
++			// 清理失败必须可观察；残留核对（guardResidue）会按标签复核
++			t.Logf("P2A-CLEANUP-WARN: 移除容器 %s 失败: %v", id, err)
++		}
+ 	})
+ 	return id, name
+ }
+@@ -135,9 +137,14 @@ func uniqName() string {
+ }
+ 
+ // assertNoResidue 断言本 run-id 无容器残留（在每个测试结束时核对）。
++// docker ps 查询失败必须报「无法核实」，不得等价为零残留。
+ func assertNoResidue(t *testing.T) {
+ 	t.Helper()
+-	out, _ := runCapture(t, nil, "ps", "-a", "--filter", "label="+projectLbl, "-q")
++	out, code := runCapture(t, nil, "ps", "-a", "--filter", "label="+projectLbl, "-q")
++	if code != 0 {
++		t.Errorf("run-id %s 残留核对无法核实（docker ps 退出码 %d）: %s", runID, code, strings.TrimSpace(out))
++		return
++	}
+ 	if strings.TrimSpace(out) != "" {
+ 		t.Errorf("run-id %s 存在残留容器: %s", runID, strings.TrimSpace(out))
+ 	}
+diff --git a/tests/integration/matrix_test.go b/tests/integration/matrix_test.go
+index 9f4e1fa..94b38d6 100644
+--- a/tests/integration/matrix_test.go
++++ b/tests/integration/matrix_test.go
+@@ -22,8 +22,12 @@ var runIDP2B = fmt.Sprintf("p2b-%d", time.Now().Unix())
+ 
+ // guardP2BResidue：全包一次，最终核对 km-p2b-test 标签零残留。
+ func TestP2BResidueCheck(t *testing.T) {
+-	if n := p2bResidueCount(t); n != 0 {
+-		t.Errorf("存在 %d 个 p2b 残留容器（应为 0）", n)
++	residueN, unverifiableN := p2bResidueCount(t)
++	if unverifiableN != 0 {
++		t.Errorf("存在 %d 个无法核实的登记容器（查询失败不等于已清理）", unverifiableN)
++	}
++	if residueN != 0 {
++		t.Errorf("存在 %d 个 p2b 残留容器（应为 0）", residueN)
+ 	}
+ }
+ 
+@@ -344,8 +348,8 @@ func TestInitFailureRecovery(t *testing.T) {
+ 	if _, err := os.Stat(filepath.Join(dir, ".km", "state.json")); !os.IsNotExist(err) {
+ 		t.Fatal("失败的 init 不应写入状态")
+ 	}
+-	if n := p2bResidueCount(t); n != 0 {
+-		t.Fatalf("失败的 init 不应留下容器: %d", n)
++	if n, u := p2bResidueCount(t); n != 0 || u != 0 {
++		t.Fatalf("失败的 init 不应留下容器或不可核实项: residue=%d unverifiable=%d", n, u)
+ 	}
+ 	// 修复配置 → init 成功（失败恢复）
+ 	os.WriteFile(filepath.Join(dir, ".km.json"),
+diff --git a/tests/integration/shell_c1_test.go b/tests/integration/shell_c1_test.go
+index e57baae..1416cd6 100644
+--- a/tests/integration/shell_c1_test.go
++++ b/tests/integration/shell_c1_test.go
+@@ -391,6 +391,9 @@ func TestC1DetachKeys(t *testing.T) {
+ 	if _, errb, code := kmRun(t, dir, nil, "init"); code != 0 {
+ 		t.Fatalf("init: %s", errb)
+ 	}
++	// km init 创建的项目容器必须登记：纳入 t.Cleanup 与套件终检（完整 ID），
++	// 防止中途失败（断言/驱动器/取消路径）时泄漏。
++	registerProjectCleanup(t, dir)
+ 	id, _ := sessionContainerImage(t, dir, minImageRef)
+ 
+ 	res, _ := runShellScenario(t, id, expectSteps(
+diff --git a/tests/integration/shell_c2_test.go b/tests/integration/shell_c2_test.go
+index 8b910af..2be9c4e 100644
+--- a/tests/integration/shell_c2_test.go
++++ b/tests/integration/shell_c2_test.go
+@@ -67,6 +67,7 @@ func TestC2ShellInteractiveAndRegistered(t *testing.T) {
+ 		if _, errb, code := kmRun(t, dir, nil, "init"); code != 0 {
+ 			t.Fatalf("init: %s", errb)
+ 		}
++		registerProjectCleanup(t, dir)
+ 		res := runKmShellScenario(t, dir, append(kmShellSteps(),
+ 			step{"op": "send", "text": "ls /tmp/km-sessions; echo SID=$KM_SESSION_ID; ls /tmp/km-sessions/$KM_SESSION_ID\r"},
+ 			step{"op": "expect", "pattern": "SID=s", "timeout": 10},

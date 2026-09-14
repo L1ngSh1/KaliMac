@@ -1,0 +1,4 @@
+FAILURES(3): [{"phase": "warm_km_round1_1", "exit_code": 1, "ms": 213.0}, {"phase": "warm_km_round1_2", "exit_code": 1, "ms": 212.2}, {"phase": "warm_km_round1_3", "exit_code": 1, "ms": 206.3}]
+OK: 失败样本不进统计、success=false
+PERF-NEGATIVE-PASS
+OK: 无 km-perf-* 残留容器

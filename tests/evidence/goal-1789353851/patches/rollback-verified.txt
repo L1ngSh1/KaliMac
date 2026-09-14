@@ -1,0 +1,1 @@
+worktree 回滚验证：forward apply 5 files OK → rollback.sh → tracked tree clean（仅新增 untracked internal/residue 需手动 rm，脚本头已注明）

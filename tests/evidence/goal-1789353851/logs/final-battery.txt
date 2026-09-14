@@ -1,0 +1,28 @@
+== gofmt -l ==
+rc=0
+== vet（含 integration tag）==
+vet rc=0
+== unit ==
+?   	kalimac/cmd/km	[no test files]
+?   	kalimac/cmd/shellproto	[no test files]
+ok  	kalimac/internal/cli	0.495s
+ok  	kalimac/internal/project	0.827s
+ok  	kalimac/internal/residue	1.532s
+ok  	kalimac/internal/runtime	2.225s
+ok  	kalimac/internal/session	1.323s
+unit rc=0
+== race ==
+?   	kalimac/cmd/km	[no test files]
+?   	kalimac/cmd/shellproto	[no test files]
+ok  	kalimac/internal/cli	1.500s
+ok  	kalimac/internal/project	2.190s
+ok  	kalimac/internal/residue	2.524s
+ok  	kalimac/internal/runtime	2.097s
+ok  	kalimac/internal/session	3.062s
+race rc=0
+== build ==
+build rc=0
+== integration ==
+ok  	kalimac/tests/integration	130.294s
+integration rc=0
+final-battery done rc=0

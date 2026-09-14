@@ -1,0 +1,34 @@
+ M .gitignore
+ M Makefile
+ M README.md
+ M docs/architecture.md
+ M docs/user-guide.md
+ M docs/verification.md
+ M internal/cli/doctor.go
+ M internal/cli/doctor_test.go
+ M tests/integration/closedloop_test.go
+ M tests/integration/harness_test.go
+ M tests/integration/matrix_test.go
+ M tests/integration/shell_c1_test.go
+ M tests/integration/shell_c2_test.go
+ M tests/perf/perf-baseline.sh
+?? .github/
+?? CHANGELOG.md
+?? docs/goal-plan.md
+?? docs/goal-progress.md
+?? internal/residue/
+?? scripts/
+?? tests/evidence/goal-1789353851/
+?? tests/evidence/p2c-shellproto-1789354275/
+?? tests/evidence/p2c-shellproto-1789354312/
+?? tests/evidence/p2c-shellproto-1789354402/
+?? tests/evidence/p2c-shellproto-1789354537/
+?? tests/evidence/p2c-shellproto-1789356368/
+?? tests/perf/evidence/20260914-111645-d3cbd27/
+?? tests/perf/evidence/20260914-111706-d3cbd27/
+?? tests/perf/evidence/20260914-111722-d3cbd27/
+?? tests/perf/evidence/20260914-111725-d3cbd27/
+?? tests/perf/evidence/20260914-111737-d3cbd27/
+?? tests/perf/evidence/20260914-112044-d3cbd27/
+?? tests/perf/evidence/20260914-112102-d3cbd27/
+?? tests/perf/perf-negative-test.sh

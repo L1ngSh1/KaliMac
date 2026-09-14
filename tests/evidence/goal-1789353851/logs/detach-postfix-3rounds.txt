@@ -1,0 +1,1 @@
+ok  	kalimac/tests/integration	53.201s

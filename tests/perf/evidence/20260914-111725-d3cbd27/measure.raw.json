@@ -1,0 +1,62 @@
+{
+ "success": false,
+ "injected_warm_fail": true,
+ "failures": [
+  {
+   "phase": "warm_km_round1_1",
+   "exit_code": 1,
+   "ms": 212.7
+  },
+  {
+   "phase": "warm_km_round1_2",
+   "exit_code": 1,
+   "ms": 207.0
+  },
+  {
+   "phase": "warm_km_round1_3",
+   "exit_code": 1,
+   "ms": 177.2
+  }
+ ],
+ "harness_floor_ms": 1.6,
+ "env": {
+  "run_id": "20260914-111725-d3cbd27",
+  "code_rev": "d3cbd272bb257635e5181426f41b9d192c8185cd",
+  "os_arch": "Darwin/arm64",
+  "go": "go version go1.26.6 darwin/arm64",
+  "docker_server": "29.6.1",
+  "image": "kali-mac-min:0.2",
+  "image_content_id": "sha256:bd829afded6ed952168fbe01fe15418f083cf86678cf1c5b1a35b2924b71bb03",
+  "image_pull_ms": null,
+  "rounds": 1,
+  "samples_per_round": 3
+ },
+ "init_ms": 166.0,
+ "init_exit_code": 0,
+ "stop_ms": 127.5,
+ "stop_exit_code": 0,
+ "cold_start_ms": 277.6,
+ "cold_exit_code": 0,
+ "warm_km_valid_samples": 0,
+ "warm_dex_valid_samples": 3,
+ "p50_warm_km_ms": null,
+ "p95_warm_km_ms": null,
+ "p50_warm_dex_ms": 43.3,
+ "p95_warm_dex_ms": 45.5,
+ "warm_km_samples_ms": [],
+ "warm_dex_samples_ms": [
+  45.8,
+  43.3,
+  25.5
+ ],
+ "warm_km_exit_codes": [
+  1,
+  1,
+  1
+ ],
+ "warm_dex_exit_codes": [
+  0,
+  0,
+  0
+ ]
+}

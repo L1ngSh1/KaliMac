@@ -1,0 +1,8 @@
+== go test -race -count=1 ./... ==
+?   	kalimac/cmd/km	[no test files]
+?   	kalimac/cmd/shellproto	[no test files]
+ok  	kalimac/internal/cli	1.224s
+ok  	kalimac/internal/project	1.507s
+ok  	kalimac/internal/runtime	1.686s
+ok  	kalimac/internal/session	1.420s
+rc=0

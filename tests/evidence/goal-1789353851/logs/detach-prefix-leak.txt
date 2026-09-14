@@ -1,0 +1,2 @@
+1669a9137c73 km-pe37ee18ff5 kali-mac-min:0.2 Up 21 seconds
+leaked container removed (demo resource)

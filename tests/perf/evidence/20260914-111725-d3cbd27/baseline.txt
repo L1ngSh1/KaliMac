@@ -1,0 +1,8 @@
+run-id=20260914-111725-d3cbd27 code=d3cbd272bb25 success=False
+env: Darwin/arm64 go=go1.26.6 docker=29.6.1 image=kali-mac-min:0.2 id=sha256:bd829afded6ed
+样本: km 有效 0/3  dex 有效 3/3  底噪 1.6ms
+首次准备 init: 166.0ms (rc=0)
+冷启动 stop→run: 277.6ms (rc=0)
+热调用 p50: km=Nonems  docker exec=43.3ms  开销=Nonems
+热调用 p95: km=Nonems  docker exec=45.5ms
+FAILURES(3): [{"phase": "warm_km_round1_1", "exit_code": 1, "ms": 212.7}, {"phase": "warm_km_round1_2", "exit_code": 1, "ms": 207.0}, {"phase": "warm_km_round1_3", "exit_code": 1, "ms": 177.2}]

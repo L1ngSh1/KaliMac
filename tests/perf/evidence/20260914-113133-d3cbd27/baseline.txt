@@ -1,0 +1,7 @@
+run-id=20260914-113133-d3cbd27 code=d3cbd272bb25 success=True
+env: Darwin/arm64 go=go1.26.6 docker=29.6.1 image=kali-mac-min:0.2 id=sha256:bd829afded6ed
+样本: km 有效 2/2  dex 有效 2/2  底噪 1.9ms
+首次准备 init: 141.6ms (rc=0)
+冷启动 stop→run: 227.4ms (rc=0)
+热调用 p50: km=225.2ms  docker exec=48.5ms  开销=176.7ms
+热调用 p95: km=231.8ms  docker exec=49.9ms

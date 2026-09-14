@@ -1,0 +1,3 @@
+P2-INTEGRATION-SKIP: docker 引擎不可达，集成套件未执行: exit status 1
+ok  	kalimac/tests/integration	0.740s
+rc=0

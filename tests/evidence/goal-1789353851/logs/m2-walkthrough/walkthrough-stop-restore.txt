@@ -1,0 +1,20 @@
+== doctor（有 run 历史后）==
+  [OK] 容器内无活跃会话
+  [OK] 镜像: sha256:bd829afded6ed952168fbe01fe15418f083cf86678cf1c5b1a35b2924b71bb03
+
+结论: 11 通过, 0 警告, 0 失败
+== stop ==
+km stop: 容器 km-p4559e00795 已停止；容器与项目文件均保留，下次执行自动恢复
+rc=0
+== 再次 run（自动恢复同一容器）==
+km: 容器已停止，正在恢复…
+hello from a Mac file
+rc=0
+== doctor（终态）==
+  [OK] 镜像: sha256:bd829afded6ed952168fbe01fe15418f083cf86678cf1c5b1a35b2924b71bb03
+
+结论: 11 通过, 0 警告, 0 失败
+== 新项目 init→立即 doctor（验证 127 分类）==
+  [警告] 会话脚本未安装（init 后首次 run/shell 时安装；此前无法检查容器内会话）
+结论: 10 通过, 1 警告, 0 失败
+zsh:12: no such file or directory: /Users/y4n9/Workspace/km-goal-demo.IHTwrw/tests/evidence/goal-1789353851/logs/m2-walkthrough/fresh-path.txt

@@ -1,0 +1,12 @@
+== go test ./... ==
+?   	kalimac/cmd/km	[no test files]
+?   	kalimac/cmd/shellproto	[no test files]
+ok  	kalimac/internal/cli	3.544s
+ok  	kalimac/internal/project	3.272s
+ok  	kalimac/internal/runtime	3.645s
+ok  	kalimac/internal/session	3.689s
+rc=0
+== go vet ./... ==
+rc=0
+== go build ./... ==
+rc=0

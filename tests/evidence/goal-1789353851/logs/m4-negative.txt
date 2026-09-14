@@ -1,0 +1,10 @@
+== 负向 1：init 失败 ==
+  File "<stdin>", line 26, in <module>
+FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T//km-perf-20260914-111722-d3cbd27-id224O/.km/state.json'
+OK: init 失败无非零退出码且无成功基线 (rc=1)
+== 负向 2：热调用注入失败 ==
+热调用 p50: km=Nonems  docker exec=43.3ms  开销=Nonems
+热调用 p95: km=Nonems  docker exec=45.5ms
+FAILURES(3): [{"phase": "warm_km_round1_1", "exit_code": 1, "ms": 212.7}, {"phase": "warm_km_round1_2", "exit_code": 1, "ms": 207.0}, {"phase": "warm_km_round1_3", "exit_code": 1, "ms": 177.2}]
+OK: 失败样本不进统计、success=false
+PERF-NEGATIVE-PASS

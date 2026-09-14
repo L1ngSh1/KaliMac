@@ -1,0 +1,1 @@
+final.patch 回滚复验：forward apply 14 文件 → rollback.sh → tracked tree clean

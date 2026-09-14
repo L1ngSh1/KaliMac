@@ -1,0 +1,22 @@
+[?2004hKM_SHELL> pwd
+[?2004l/workspace
+[?2004hKM_SHELL> python3 hello.py
+[?2004lhello from a Mac file
+sleep 5
+[?2004hKM_SHELL> sleep 5
+[?2004l^Cecho C=$?
+
+[?2004hKM_SHELL> echo C=$?
+[?2004lC=130
+[?2004hKM_SHELL> sleep 20
+[?2004l^Z
+[1]+  Stopped                    sleep 20
+[?2004hKM_SHELL> bg
+[?2004l[1]+ sleep 20 &
+[?2004hKM_SHELL> jobs
+[?2004l[1]+  Running                    sleep 20 &
+[?2004hKM_SHELL> [KKM_SHELL> stty size
+[?2004l40 100
+
+[SHELL_EXIT_CODE=7]
+[SHELL_WALKTHROUGH_PASS]

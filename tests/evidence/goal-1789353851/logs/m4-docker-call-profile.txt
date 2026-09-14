@@ -1,0 +1,9 @@
+548824896.5 context show
+548824925.6 context inspect --format {{.Endpoints.docker.Host}} desktop-linux
+548824952.4 container inspect --format {{.Id}}|{{.Name}}|{{.State.Status}}|{{index .Config.Labels "km.project"}}|{{.Image}}|{{range .Mounts}}{{if eq .Destination "/workspace"}}{{.Source}}{{end}}{{end}} 713ada9cb46739d8f13de3545634c4c17c1b2376a64d6eb740465d4d3a6fce99
+548824978.7 image inspect --format {{.Id}} kali-mac-min:0.2
+548825013.6 container inspect --format {{.Id}}|{{.Name}}|{{.State.Status}}|{{index .Config.Labels "km.project"}}|{{.Image}}|{{range .Mounts}}{{if eq .Destination "/workspace"}}{{.Source}}{{end}}{{end}} 713ada9cb46739d8f13de3545634c4c17c1b2376a64d6eb740465d4d3a6fce99
+548825040.3 cp - 713ada9cb46739d8f13de3545634c4c17c1b2376a64d6eb740465d4d3a6fce99:/tmp
+548825070.9 exec 713ada9cb46739d8f13de3545634c4c17c1b2376a64d6eb740465d4d3a6fce99 /tmp/km-bin/km-ctl sessions
+548825133.7 exec 713ada9cb46739d8f13de3545634c4c17c1b2376a64d6eb740465d4d3a6fce99 /tmp/km-bin/km-ctl sweep
+548825199.5 exec -w /workspace -i 713ada9cb46739d8f13de3545634c4c17c1b2376a64d6eb740465d4d3a6fce99 /tmp/km-bin/km-run s8f43ac18476f3227 /bin/true

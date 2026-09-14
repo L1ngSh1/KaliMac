@@ -1,0 +1,8 @@
+metric,round,index,exit_code,duration_ms
+init,0,0,0,254.8
+stop,0,0,0,139.6
+cold_start,0,0,0,291.0
+warm_km,1,1,0,207.1
+warm_km,1,2,0,216.6
+warm_docker_exec,1,1,0,53.2
+warm_docker_exec,1,2,0,43.3

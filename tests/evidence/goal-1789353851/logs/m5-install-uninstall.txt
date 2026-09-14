@@ -1,0 +1,28 @@
+== 安装（DESTDIR=/tmp/km-install-test.W17l1W/prefix PREFIX=/opt/km-test）==
+已安装 km 0.3.0-p2 → /tmp/km-install-test.W17l1W/prefix/opt/km-test
+  清单: /tmp/km-install-test.W17l1W/prefix/opt/km-test/share/km/manifest.txt（卸载只删除清单内文件）
+  （DESTDIR 暂存模式：未写入系统路径）
+提示：/opt/km-test/bin 不在 PATH；或直接用绝对路径调用
+== 安装产物结构 ==
+/tmp/km-install-test.W17l1W/prefix/opt/km-test/bin/km
+/tmp/km-install-test.W17l1W/prefix/opt/km-test/share/km/VERSION
+/tmp/km-install-test.W17l1W/prefix/opt/km-test/share/km/manifest.txt
+== 安装后 help/version ==
+km 0.3.0-p2
+km — 在当前项目的 Kali 容器中执行工具（macOS CLI）
+
+用法:
+== 金丝雀文件（卸载必须保留）==
+== 卸载 ==
+已删除 /tmp/km-install-test.W17l1W/prefix/opt/km-test/bin/km
+已删除 /tmp/km-install-test.W17l1W/prefix/opt/km-test/share/km/VERSION
+卸载完成
+== 卸载后核验 ==
+OK: km 已删除
+OK: VERSION 已删除
+OK: 清单外金丝雀 bin/canary.txt 保留
+OK: 清单外金丝雀 share/km/canary.txt 保留
+== 全部产物 ==
+/tmp/km-install-test.W17l1W/prefix/opt/km-test/bin/canary.txt
+/tmp/km-install-test.W17l1W/prefix/opt/km-test/share/km/canary.txt
+/tmp/km-install-test.W17l1W/prefix/opt/km-test/share/km/manifest.txt
