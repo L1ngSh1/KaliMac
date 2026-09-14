@@ -168,13 +168,16 @@ cd "$DEMO"                   # 或你实际的项目目录；新终端请填真�
 
 - 宿主进程被强杀（SIGKILL/关终端）时，容器内的 shell 可能继续运行；后续命令会被 `KM_SESSION_ACTIVE` 保护性阻断——它不是应该删除的“缓存”，按提示用 `docker exec <容器> /tmp/km-bin/km-ctl cancel <会话ID>` 显式清理即可恢复。
 - 主动 `setsid … &` 脱离会话的进程不属于 km 的清理范围，会一直存活（可观测、可手动清理）。
-- `km shell` 每次启动会向容器安装/刷新一次会话脚本，热调用比裸 `docker exec` 慢约 150ms（见 tests/perf/ 基线）。
+- `km shell` 每次启动会向容器安装/刷新一次会话脚本，热调用比裸 `docker exec` 慢约 160ms（2026-09 基线：km p50 203–207ms vs exec 45ms，见 tests/perf/evidence/ 与 CHANGELOG）。
+- `init` 后、首次 `run`/`shell` 之前运行 `doctor`，会话检查会显示一条预期中的警告「会话脚本未安装」（此时容器内还没有会话脚本可查）；首次 `run` 或 `shell` 之后该检查自动变为 OK。
 
-## 9. 下一步开发顺序
+## 9. 现状与下一步
 
-1. 修正 PTY 驱动器：消费提示符、传播失败，先让验收结果可信。
-2. 修正终端快照与信号退出同步；增加真实 km 的 SIGTERM/SIGHUP 回归。
-3. 补齐普通后台管道及 cancel 的清理验证，并更正 detach 实验结论。
-4. 跑全量回归，把本指南从头实走一次，再考虑安装便捷化和下一批功能。
+上一版计划中的开发项（PTY 驱动器修正、终端快照与信号同步、管道/停止态作业清理、detach 结论更正、全量回归与指南实走）均已完成并有回归与验证记录，历史见 [验证记录](verification.md)。
+
+当前方向（按 2026-09 goal 计划）：
+
+1. 发布工程：安装/卸载方式、打包与校验和、双架构构建说明（进行中，见 README「开发」）。
+2. 可信性能基线：`tests/perf/perf-baseline.sh` 已按单调时钟、逐样本退出码检查、配对 docker exec 对照重写；结论以实测为准。
 
 更多细节：[CLI 合同](cli-contract.md)、[终端方案](adr-005-terminal-shell.md)、[会话内核](adr-004-session-execution.md)。

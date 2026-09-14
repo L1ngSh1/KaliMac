@@ -35,6 +35,22 @@ echo 'print("hi")' > t.py
 
 工具在项目容器内执行；项目文件经 bind mount 双向可见（容器内 /workspace），工具输出与退出状态回到原终端。镜像构建证据见 tests/evidence/。
 
+## 安装 / 打包（本地）
+
+```bash
+make build
+DESTDIR=/tmp/stage PREFIX=/opt/km-test scripts/install.sh   # 临时目录试装
+PREFIX=$HOME/.local scripts/install.sh                      # 用户级安装
+PREFIX=$HOME/.local scripts/uninstall.sh                    # 卸载（只删清单内文件）
+scripts/package.sh                                          # 双架构产物 + SHA256SUMS → dist/
+```
+
+安装为清单式（`$PREFIX/share/km/manifest.txt`），卸载只删除清单内文件，不改 PATH 与 shell 配置。
+平台边界：**darwin/arm64 为实测平台**（本机全量验证）；darwin/amd64 为交叉编译产物，未在真实硬件
+做过端到端测试；Linux 未测试（CI integration 作业首跑后另记）。镜像构建与来源见 `images/kali/`
+与 `tests/evidence/kali-mac-min-0.2/build-evidence.txt`。候选版本号、tag 与发布命令均为待审步骤，
+不会自动执行。
+
 ## 文档
 
 - [docs/user-guide.md](docs/user-guide.md) — 面向使用者：首次配置、命令速查、文件共享、退出与排错
@@ -47,9 +63,16 @@ echo 'print("hi")' > t.py
 ## 开发
 
 ```bash
-make test   # go test ./...
-make vet    # go vet ./...
-make all    # vet + test + build
+make test          # go test -count=1 ./...
+make vet           # go vet ./...
+make fmt-check     # gofmt 检查（make fmt 写入）
+make integration   # 真实集成套件（需本机 Docker 引擎与最小镜像）
+make all           # fmt-check + vet + test + build
 ```
 
-单测不需要 Docker（runtime 层 executor 可注入）。P0 实验集可重跑：`bash tests/p0/run-p0.sh`（自动创建唯一标签的实验容器、生成证据到 `tests/p0/evidence/`、结束后清理并核对）。
+单测不需要 Docker（runtime 层 executor 可注入）。真实集成套件按完整容器 ID 登记终检，
+区分「残留 / 无法核实」，引擎不可达时显式 `P2-INTEGRATION-SKIP`。P0 实验集可重跑：
+`bash tests/p0/run-p0.sh`（自动创建唯一标签的实验容器、生成证据到 `tests/p0/evidence/`、
+结束后清理并核对）。性能基线：`tests/perf/perf-baseline.sh`（单调时钟、逐样本退出码检查、
+配对 `docker exec` 对照）。CI 工作流见 `.github/workflows/ci.yml`（verify + 独立 integration
+作业；首次 push 前远端不会运行）。

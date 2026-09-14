@@ -1,14 +1,20 @@
-# Kali-Mac 架构短记（P0 后）
+# Kali-Mac 架构短记
 
 目标不变：Mac 终端输入 `km 工具 参数`，在当前项目的 Kali 容器执行；文件留在 Mac，输出与退出状态回原终端。
+
+当前形态（P2-C 交互版）：`init → run → shell → stop → 恢复` 闭环 + 交互 bash（PTY）。
 
 ```text
 Mac 终端
   └─ km（Go, 本仓库）
-      ├─ internal/cli        分派/帮助/版本/doctor；工具 argv 原样透传
-      ├─ internal/project    .km.json 校验；.km/ 本机状态与身份
-      ├─ internal/runtime    docker CLI 封装（Executor 可注入，测试用 fake）
-      └─ internal/terminal   （P2 引入：交互/信号/终端恢复，按 P0 结论实现）
+      ├─ internal/cli        分派/帮助/版本/doctor/init/run/shell/stop；工具 argv 原样透传
+      ├─ internal/project    .km.json 校验；.km/ 本机状态、项目锁与身份
+      ├─ internal/runtime    docker CLI 封装（Executor 可注入，测试用 fake；endpoint 解析与固定）
+      ├─ internal/session    会话内核：唯一会话身份、容器内侧进程组清理、km-ctl/km-run 协议、
+      │                      DockerController/ExecStarter（P2 执行与交互 shell 的事实标准，见 ADR-004/005）
+      ├─ internal/residue    测试终检的资源判定纯函数：「确认消失/确认残留/无法核实」三类区分，
+      │                      查询失败不等价为资源不存在（internal 集成套件终检复用）
+      └─ cmd/{km,shellproto} 入口；shellproto 为 C1 实验驱动器
 ```
 
 ## P0 改变/确认的设计决策
@@ -20,6 +26,9 @@ Mac 终端
 5. **身份以不可变 ID 为准（ADR-003，review F2/F3）**：容器归属检查从记录的完整容器 ID 出发（名称只作展示与同名重建诊断）；镜像有引用（标签）、init 时记录的内容 ID、容器实际内容 ID 三层，doctor 比对后两层并报告漂移。
 6. **管理命令有界（review F4）**：docker 管理查询单项 10s 超时、doctor 整体 45s 预算；超时/取消均终止子进程并返回 `KM_TIMEOUT`/`KM_CANCELED`。不适用于 P2 长工具执行。
 7. **运行时层保持单实现**：只有 docker CLI 一个后端；Executor 接口仅为可测试性存在，不做成插件框架。
+8. **测试资源生命周期（goal 1789353851 收口）**：集成测试创建的每个容器按完整 ID 登记进套件终检
+   （TestMain）；终检区分「确认消失/确认残留/无法核实」，查询失败响亮失败而非静默通过；
+   Docker 引擎不可达时 TestMain 预检显式 `P2-INTEGRATION-SKIP` 跳过（不在 `-run '^$'` 下访问引擎或构建镜像）。
 
 ## 错误模型
 

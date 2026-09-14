@@ -1,5 +1,40 @@
 # 验证记录
 
+## 第七轮：goal 1789353851（2026-09-14，资源生命周期收口 + 端到端实走）
+
+计划见 docs/goal-plan.md，逐项状态与证据见 docs/goal-progress.md（run-id `goal-1789353851`）。
+
+### 测试资源生命周期（M1，关闭第六轮遗留「待查」）
+
+第六轮记录的集成套件泄漏（km-p7a0d0063de，TestC1DetachKeys）本轮定案：`TestC1DetachKeys`
+中 `km init` 创建的项目容器从未登记——既不在套件终检清单，也无 `t.Cleanup`；标签残留核对
+（km.project=p2a-*）与套件终检都覆盖不到 km 命名容器。负向证明：还原基线后用例 PASS 但
+`docker ps` 出现泄漏容器（km-pe37ee18ff5，Up 21s）；补 `registerProjectCleanup` 后连续三轮
+`-count=3` 通过且零残留。同类分支全库排查：另修 C2_PROBE 探针分支（shell_c2_test.go）。
+
+终检/残留核对不再把「查询失败」等价为「容器不存在」：新增 `internal/residue`（可注入
+fake 的三态判定：确认消失/确认残留/无法核实），TestMain 终检与 `p2bResidueCount` 改用之，
+无法核实 → `P2B-CLEANUP-UNVERIFIED` 且套件 rc=1（该路径在首轮修复回归中被真实触发过一次
+——stderr 匹配过严，终检响亮失败而非静默通过，修正后复绿）。TestMain 增加引擎预检：
+Docker 不可达时 `P2-INTEGRATION-SKIP` 显式跳过，`-run '^$'` 不再访问引擎或触发镜像构建。
+
+### doctor 会话检查分类（M2 实走发现）
+
+新项目 init 后立即 doctor：会话检查因 km-ctl 未安装失败（exit 127），但旧实现用 `r.line`
+输出、不计入摘要——「0 警告 0 失败」掩盖未完成的检查。修复：检查失败一律计入 `警告`，
+127 单列说明「会话脚本未安装（首次 run/shell 时安装）」。负向证明（旧码两测试 FAIL）+
+真实新旧项目 doctor 输出对照。回归：TestDoctorSessionCheckFailureCounted /
+TestDoctorSessionScriptNotInstalled127。
+
+### 全套验证
+
+`gofmt -l` 空；`go vet ./...`（含 integration tag）零告警；`go test -count=1 ./...` 全 ok
+（新增 internal/residue）；`go test -race -count=1 ./...` 全 ok；`go build ./...` OK；
+`go test -tags=integration -count=1 -timeout 15m ./tests/integration/` ok（133.7s），
+套件终检零残留、套件外无本轮容器。用户指南从零实走（init→run→双向共享→PTY shell
+（Ctrl-C 130/作业控制/窗口 40×100 跟随/exit 7 透传）→doctor→stop→恢复）全部通过，
+演示资源按完整 ID 清理核对。回滚脚本在独立 worktree 验证可逆。
+
 ## 第六轮：审计修复（2026-09-12）
 
 用户发起冗余代码审计，实测冒烟中发现两个行为缺陷，连同审计死代码一并修复。
