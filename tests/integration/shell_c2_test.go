@@ -67,6 +67,7 @@ func TestC2ShellInteractiveAndRegistered(t *testing.T) {
 		if _, errb, code := kmRun(t, dir, nil, "init"); code != 0 {
 			t.Fatalf("init: %s", errb)
 		}
+		registerProjectCleanup(t, dir)
 		res := runKmShellScenario(t, dir, append(kmShellSteps(),
 			step{"op": "send", "text": "ls /tmp/km-sessions; echo SID=$KM_SESSION_ID; ls /tmp/km-sessions/$KM_SESSION_ID\r"},
 			step{"op": "expect", "pattern": "SID=s", "timeout": 10},

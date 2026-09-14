@@ -22,8 +22,12 @@ var runIDP2B = fmt.Sprintf("p2b-%d", time.Now().Unix())
 
 // guardP2BResidue：全包一次，最终核对 km-p2b-test 标签零残留。
 func TestP2BResidueCheck(t *testing.T) {
-	if n := p2bResidueCount(t); n != 0 {
-		t.Errorf("存在 %d 个 p2b 残留容器（应为 0）", n)
+	residueN, unverifiableN := p2bResidueCount(t)
+	if unverifiableN != 0 {
+		t.Errorf("存在 %d 个无法核实的登记容器（查询失败不等于已清理）", unverifiableN)
+	}
+	if residueN != 0 {
+		t.Errorf("存在 %d 个 p2b 残留容器（应为 0）", residueN)
 	}
 }
 
@@ -344,8 +348,8 @@ func TestInitFailureRecovery(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(dir, ".km", "state.json")); !os.IsNotExist(err) {
 		t.Fatal("失败的 init 不应写入状态")
 	}
-	if n := p2bResidueCount(t); n != 0 {
-		t.Fatalf("失败的 init 不应留下容器: %d", n)
+	if n, u := p2bResidueCount(t); n != 0 || u != 0 {
+		t.Fatalf("失败的 init 不应留下容器或不可核实项: residue=%d unverifiable=%d", n, u)
 	}
 	// 修复配置 → init 成功（失败恢复）
 	os.WriteFile(filepath.Join(dir, ".km.json"),

@@ -107,11 +107,10 @@ func sessionContainerImage(t *testing.T, projectDir, image string) (id, name str
 	if !dockerUp(t) {
 		t.Skip("Docker 引擎不可达")
 	}
-	if code := func() int {
-		_, c := runCapture(t, nil, "image", "inspect", toolImage)
-		return c
-	}(); code != 0 {
-		t.Skipf("工具镜像不在本地: %s", toolImage)
+	bin := dockerBin(t)
+	// 预检实际使用的镜像（而非固定工具镜像），缺失则显式跳过
+	if _, code := runCapture(t, nil, "image", "inspect", image); code != 0 {
+		t.Skipf("镜像不在本地: %s", image)
 	}
 	name = "km-" + runID + "-" + uniqName()
 	out, code := runCapture(t, nil, "run", "-d", "--init",
@@ -122,7 +121,10 @@ func sessionContainerImage(t *testing.T, projectDir, image string) (id, name str
 	}
 	id = strings.TrimSpace(out)
 	t.Cleanup(func() {
-		_ = exec.Command(dockerBin(t), "rm", "-f", id).Run()
+		if err := exec.Command(bin, "rm", "-f", id).Run(); err != nil {
+			// 清理失败必须可观察；残留核对（guardResidue）会按标签复核
+			t.Logf("P2A-CLEANUP-WARN: 移除容器 %s 失败: %v", id, err)
+		}
 	})
 	return id, name
 }
@@ -135,9 +137,14 @@ func uniqName() string {
 }
 
 // assertNoResidue 断言本 run-id 无容器残留（在每个测试结束时核对）。
+// docker ps 查询失败必须报「无法核实」，不得等价为零残留。
 func assertNoResidue(t *testing.T) {
 	t.Helper()
-	out, _ := runCapture(t, nil, "ps", "-a", "--filter", "label="+projectLbl, "-q")
+	out, code := runCapture(t, nil, "ps", "-a", "--filter", "label="+projectLbl, "-q")
+	if code != 0 {
+		t.Errorf("run-id %s 残留核对无法核实（docker ps 退出码 %d）: %s", runID, code, strings.TrimSpace(out))
+		return
+	}
 	if strings.TrimSpace(out) != "" {
 		t.Errorf("run-id %s 存在残留容器: %s", runID, strings.TrimSpace(out))
 	}

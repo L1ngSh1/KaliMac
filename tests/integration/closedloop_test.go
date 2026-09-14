@@ -15,6 +15,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"kalimac/internal/residue"
 )
 
 const minImageRef = "kali-mac-min:0.2"
@@ -30,6 +32,15 @@ func TestMain(m *testing.M) {
 		fmt.Fprintln(os.Stderr, "TestMain:", err)
 		os.Exit(2)
 	}
+
+	// 预检：Docker 引擎不可达时显式跳过整个套件——不在 -run '^$' 下访问
+	// Docker，也不触发镜像构建；缺前提与产品失败用标记区分。
+	if err := exec.Command("docker", "info", "--format", "{{.ServerVersion}}").Run(); err != nil {
+		fmt.Fprintln(os.Stderr, "P2-INTEGRATION-SKIP: docker 引擎不可达，集成套件未执行:", err)
+		os.RemoveAll(tmp)
+		os.Exit(0)
+	}
+
 	kmBin = filepath.Join(tmp, "km")
 	shellBin = filepath.Join(tmp, "shellproto")
 	repo, _ := filepath.Abs("../..")
@@ -59,15 +70,19 @@ func TestMain(m *testing.M) {
 	}
 	code := m.Run()
 
-	// 清理终检：本套件注册的每个容器（完整 ID）都必须已消失
+	// 清理终检：本套件注册的每个容器（完整 ID）都必须已消失；查询失败
+	// 记为「无法核实」单独报错，不等价为容器不存在。
 	bad := 0
 	regMu.Lock()
-	defer regMu.Unlock()
-	for _, id := range registered {
-		if exitCodeOf("container", "inspect", id) == 0 {
-			fmt.Fprintln(os.Stderr, "P2B-CLEANUP-FAIL: 残留容器", id)
-			bad++
-		}
+	v := residue.Classify(registered, residue.DockerInspect)
+	regMu.Unlock()
+	for _, id := range v.Residue {
+		fmt.Fprintln(os.Stderr, "P2B-CLEANUP-FAIL: 残留容器", id)
+		bad++
+	}
+	for _, u := range v.Unverifiable {
+		fmt.Fprintf(os.Stderr, "P2B-CLEANUP-UNVERIFIED: 无法核实容器 %s: %s\n", u.ID, u.Err)
+		bad++
 	}
 	if bad > 0 {
 		code = 1
@@ -89,7 +104,10 @@ func registerProjectCleanup(t *testing.T, dir string) string {
 	registered = append(registered, id)
 	regMu.Unlock()
 	t.Cleanup(func() {
-		_ = exec.Command("docker", "rm", "-f", id).Run()
+		if err := exec.Command("docker", "rm", "-f", id).Run(); err != nil {
+			// 清理失败必须可观察；终检（TestMain）会按完整 ID 复核
+			t.Logf("P2B-CLEANUP-WARN: 移除容器 %s 失败: %v", id, err)
+		}
 	})
 	return id
 }
@@ -216,16 +234,12 @@ func containerState(t *testing.T, id string) string {
 	return strings.TrimSpace(string(out))
 }
 
-// p2bResidueCount 统计套件登记之外、仍存活的登记容器数（应恒为 0）。
-func p2bResidueCount(t *testing.T) int {
+// p2bResidueCount 核对套件登记容器的现状：返回（确认残留数, 无法核实数）。
+// 查询失败计入无法核实，不等价为容器不存在。
+func p2bResidueCount(t *testing.T) (residueN, unverifiableN int) {
 	t.Helper()
 	regMu.Lock()
-	defer regMu.Unlock()
-	n := 0
-	for _, id := range registered {
-		if exitCodeOf("container", "inspect", id) == 0 {
-			n++
-		}
-	}
-	return n
+	v := residue.Classify(registered, residue.DockerInspect)
+	regMu.Unlock()
+	return len(v.Residue), len(v.Unverifiable)
 }

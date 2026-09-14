@@ -391,6 +391,9 @@ func TestC1DetachKeys(t *testing.T) {
 	if _, errb, code := kmRun(t, dir, nil, "init"); code != 0 {
 		t.Fatalf("init: %s", errb)
 	}
+	// km init 创建的项目容器必须登记：纳入 t.Cleanup 与套件终检（完整 ID），
+	// 防止中途失败（断言/驱动器/取消路径）时泄漏。
+	registerProjectCleanup(t, dir)
 	id, _ := sessionContainerImage(t, dir, minImageRef)
 
 	res, _ := runShellScenario(t, id, expectSteps(
