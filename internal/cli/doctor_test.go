@@ -570,3 +570,46 @@ func TestDoctorContainerNameMismatch(t *testing.T) {
 		t.Fatalf("应报告容器名称不一致:\n%s", out)
 	}
 }
+
+// runDoctorWithSessions 以指定 km-ctl sessions 应答跑一遍 doctor（健康栈）。
+func runDoctorWithSessions(t *testing.T, root string, exitCode int, sessOut string) string {
+	t.Helper()
+	t.Setenv("DOCKER_HOST", "")
+	t.Setenv("DOCKER_CONTEXT", "")
+	old := newSessionController
+	newSessionController = func(endpoint string) *session.DockerController {
+		return &session.DockerController{RunFn: func(_ context.Context, _ []byte, _ []string) (string, string, int, error) {
+			return sessOut, "", exitCode, nil
+		}}
+	}
+	t.Cleanup(func() { newSessionController = old })
+	var out bytes.Buffer
+	RunDoctor(context.Background(), root, &out, &runtime.Docker{Exec: doctorFake(healthyContainerOut(root))})
+	return out.String()
+}
+
+// 会话检查自身失败必须计入统计（警告），不得降级为不计数的输出行
+// （goal M2 实走发现：旧实现 r.line 导致「检查失败」却摘要 0 失败 0 警告）。
+func TestDoctorSessionCheckFailureCounted(t *testing.T) {
+	root := setupProject(t, validConfig, stateJSON(fakeContainerID, fakeImageID, localEndpoint))
+	out := runDoctorWithSessions(t, root, 9, "")
+	if !strings.Contains(out, "会话检查失败（exit=9") {
+		t.Fatalf("会话检查失败应可见:\n%s", out)
+	}
+	if !strings.Contains(out, "1 警告") {
+		t.Fatalf("失败的检查应计入警告统计:\n%s", out)
+	}
+}
+
+// exit 127 = km-ctl 未安装（init 后首次 run/shell 前）：预期状态，报警告并说明，
+// 同样计入统计。
+func TestDoctorSessionScriptNotInstalled127(t *testing.T) {
+	root := setupProject(t, validConfig, stateJSON(fakeContainerID, fakeImageID, localEndpoint))
+	out := runDoctorWithSessions(t, root, 127, "")
+	if !strings.Contains(out, "会话脚本未安装") {
+		t.Fatalf("127 应报告脚本未安装:\n%s", out)
+	}
+	if !strings.Contains(out, "1 警告") {
+		t.Fatalf("未安装应计入警告统计:\n%s", out)
+	}
+}

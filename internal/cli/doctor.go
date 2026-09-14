@@ -252,15 +252,19 @@ func checkContainerOwnership(r *reporter, ctx context.Context, dk *runtime.Docke
 }
 
 // reportContainerSessions 报告容器内会话状态（只读；R2 的可见性部分）。
+// 检查本身失败必须计入统计（警告），不得降级为不计数的输出行；
+// exit 127 = km-ctl 不在容器内（init 后首次 run/shell 之前属预期状态）。
 func reportContainerSessions(r *reporter, ctx context.Context, dk *runtime.Docker, containerID string) {
 	var ctl *session.DockerController = newSessionController(dk.EndpointOverride)
 	out, errStr, exitCode, err := ctl.Sessions(ctx, containerID)
 	active, stale, parseOK := session.ParseSessions(out)
 	switch {
 	case err != nil:
-		r.line("  会话: 检查失败（%v）", err)
+		r.item("警告", "会话检查失败: %v", err)
+	case exitCode == 127:
+		r.item("警告", "会话脚本未安装（init 后首次 run/shell 时安装；此前无法检查容器内会话）")
 	case exitCode != 0 || !parseOK:
-		r.line("  会话: 检查失败（exit=%d，stderr: %s；输出不可解析）", exitCode, strings.TrimSpace(errStr))
+		r.item("警告", "会话检查失败（exit=%d，stderr: %s；输出不可解析）", exitCode, strings.TrimSpace(errStr))
 	case len(active) == 0 && len(stale) == 0:
 		r.item("OK", "容器内无活跃会话")
 	default:
