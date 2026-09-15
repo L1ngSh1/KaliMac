@@ -31,16 +31,26 @@
 - [x] gofmt 空、vet（含 integration tag）零告警、单测全绿、workflow YAML 解析通过
 - [x] Docker 引擎启动（本轮 `open -a Docker`）
 - [x] 官方镜像本地拉取：busybox:stable 直连成功；kali-rolling 直连首次 EOF、重试成功
-      （`official-pull.txt`）——与「CI runner 直连官方源」的预期一致但更乐观
-- [ ] CI 同款参数构建 ci-sim 镜像 + 真实 smoke（进行中）
-- [ ] CI 同款环境变量跑全套件
+      （`official-pull.txt`）
+- [x] CI 同款参数构建模拟：https CDN 在**本机代理**下 apt update 即失败（3 次）；
+      http 变体走到 51 包中的 50 个后遇瞬时 502——**ARG 管道已验证**（构建确实使用
+      指定源），官方 CDN 端到端受本地代理限制未完成，留待 CI 首跑验证
+      （`ci-sim-build.txt`）
+- [x] Dockerfile 修改后默认参数构建端到端成功（`kali-mac-min:default-sim`，验证后已删；
+      **未触碰 `kali-mac-min:0.2`**，避免用户真实项目镜像身份漂移）
+- [x] **CI 同款环境变量本地彩排**：`KM_TEST_TOOL_IMAGE=kalilinux/kali-rolling:latest
+      KM_TEST_DRIFT_IMAGE=busybox:stable` 全套件 PASS 133.2s、零 SKIP、零残留
+      （`suite-cienv-local.txt`）
+- [x] 批次已提交：`b4ada0a`（Dockerfile/harness/matrix/ci.yml/进度文档/证据）
 
 ### 待办（阶段一剩余）
 
-- [ ] 推送（**独立确认步骤，待用户确认**）
+- [ ] 推送 8 个提交（**独立确认步骤：已询问用户，未获回答，未推送**）
 - [ ] 首次 CI 观察：verify + integration 两作业结果、SKIP 行扫描、
       P2B-CLEANUP 标记、失败可定位性
 - [ ] 完成标准核对：必需检查全过、无意外跳过、日志可定位、真实集成后零残留
+- [ ] CI 运行证据目录回填并提交（本轮套件运行产生的
+      `tests/evidence/p2c-shellproto-1789491527/` 一并入库）
 
 ## 阶段二：安装包与新用户路径验收 — 未开始
 
