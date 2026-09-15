@@ -143,6 +143,13 @@ def main():
                     try:
                         chunk = os.read(fd, 65536)
                     except OSError:
+                        # Linux：子进程退出后 master 读 EIO；诊断文本常与 EIO
+                        # 同批到达缓冲区，先对已累积输出做最后一次匹配再报
+                        # EOF（macOS 上 EOF 是空读，不走此分支）。
+                        m = re.search(pat, nonlocal_buf[0][cursor:])
+                        if m:
+                            cursor += m.end()
+                            return True, None
                         return False, "pty-eof"
                     if chunk:
                         nonlocal_buf[0] += chunk
