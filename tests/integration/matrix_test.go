@@ -315,6 +315,10 @@ func TestRunSameNameConflictRejected(t *testing.T) {
 	}
 }
 
+// driftImage 用于镜像身份漂移注入（内容与 kali-mac-min 不同的任意小镜像），
+// 可经 KM_TEST_DRIFT_IMAGE 覆盖：CI 用官方 busybox:stable。
+var driftImage = envOrDefault("KM_TEST_DRIFT_IMAGE", "docker.1ms.run/library/busybox:stable")
+
 func TestRunImageIdentityConflictRejected(t *testing.T) {
 	dir := newP2BProject(t)
 	cfg := filepath.Join(dir, ".km.json")
@@ -326,8 +330,8 @@ func TestRunImageIdentityConflictRejected(t *testing.T) {
 		t.Fatalf("init: %s", errb)
 	}
 	registerProjectCleanup(t, dir)
-	// 把标签指向不同内容（busybox）→ 内容身份漂移
-	if code := exitCodeOf("tag", "docker.1ms.run/library/busybox:stable", "kali-mac-min:drift-tag"); code != 0 {
+	// 把标签指向不同内容（driftImage）→ 内容身份漂移
+	if code := exitCodeOf("tag", driftImage, "kali-mac-min:drift-tag"); code != 0 {
 		t.Fatal("retag 失败")
 	}
 	_, errb, code := kmRun(t, dir, nil, "run", "--", "/bin/true")

@@ -16,10 +16,18 @@ import (
 	"time"
 )
 
-const (
-	toolImage  = "docker.1ms.run/kalilinux/kali-rolling:latest"
-	ownerLabel = "km.owner=km-p2a-test"
-)
+const ownerLabel = "km.owner=km-p2a-test"
+
+// toolImage 可经 KM_TEST_TOOL_IMAGE 覆盖：CI（美区 runner）用官方引用
+// kalilinux/kali-rolling:latest，本地默认国内镜像站，行为不变。
+var toolImage = envOrDefault("KM_TEST_TOOL_IMAGE", "docker.1ms.run/kalilinux/kali-rolling:latest")
+
+func envOrDefault(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
+}
 
 var (
 	runID      = fmt.Sprintf("p2a-%d-%s", time.Now().Unix(), uniqCounter0())

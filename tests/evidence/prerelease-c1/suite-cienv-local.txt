@@ -1,0 +1,110 @@
+=== RUN   TestP2BResidueCheck
+--- PASS: TestP2BResidueCheck (0.00s)
+=== RUN   TestInitRunStopRestoreLoop
+--- PASS: TestInitRunStopRestoreLoop (2.90s)
+=== RUN   TestRunComplexArgvAndExitCodes
+--- PASS: TestRunComplexArgvAndExitCodes (1.73s)
+=== RUN   TestRunBinaryPipeAndStderr
+--- PASS: TestRunBinaryPipeAndStderr (0.52s)
+=== RUN   TestRunChineseSpacePathsAndSubdirCwd
+--- PASS: TestRunChineseSpacePathsAndSubdirCwd (0.76s)
+=== RUN   TestRunCancelCleansSession
+--- PASS: TestRunCancelCleansSession (2.19s)
+=== RUN   TestRunMultiProjectIsolationAndBusy
+--- PASS: TestRunMultiProjectIsolationAndBusy (2.89s)
+=== RUN   TestRunEngineDriftRejected
+--- PASS: TestRunEngineDriftRejected (0.38s)
+=== RUN   TestRunSameNameConflictRejected
+--- PASS: TestRunSameNameConflictRejected (0.62s)
+=== RUN   TestRunImageIdentityConflictRejected
+--- PASS: TestRunImageIdentityConflictRejected (0.67s)
+=== RUN   TestInitFailureRecovery
+--- PASS: TestInitFailureRecovery (4.64s)
+=== RUN   TestCuratedToolSmoke
+=== RUN   TestCuratedToolSmoke/python3-fixture
+=== RUN   TestCuratedToolSmoke/curl-local-service
+=== RUN   TestCuratedToolSmoke/jq-fixed-json
+=== RUN   TestCuratedToolSmoke/nmap-local-loopback
+=== RUN   TestCuratedToolSmoke/file-text
+--- PASS: TestCuratedToolSmoke (2.59s)
+    --- PASS: TestCuratedToolSmoke/python3-fixture (0.23s)
+    --- PASS: TestCuratedToolSmoke/curl-local-service (0.21s)
+    --- PASS: TestCuratedToolSmoke/jq-fixed-json (0.21s)
+    --- PASS: TestCuratedToolSmoke/nmap-local-loopback (0.28s)
+    --- PASS: TestCuratedToolSmoke/file-text (0.25s)
+=== RUN   TestRunCancelChildIgnoresTERM
+--- PASS: TestRunCancelChildIgnoresTERM (3.01s)
+=== RUN   TestRunNormalExitDrainsLingeringChild
+--- PASS: TestRunNormalExitDrainsLingeringChild (0.70s)
+=== RUN   TestStaleHostLockActiveSessionBlocked
+--- PASS: TestStaleHostLockActiveSessionBlocked (4.23s)
+=== RUN   TestConcurrentInitSingleEnvironment
+--- PASS: TestConcurrentInitSingleEnvironment (0.55s)
+=== RUN   TestRealSessionArgvPassthrough
+--- PASS: TestRealSessionArgvPassthrough (0.87s)
+=== RUN   TestRealSessionBinaryRoundtripAndStderr
+--- PASS: TestRealSessionBinaryRoundtripAndStderr (0.39s)
+=== RUN   TestRealSessionExitCodes
+--- PASS: TestRealSessionExitCodes (0.55s)
+=== RUN   TestRealSessionLongTaskNotKilledByMgmtTimeout
+--- PASS: TestRealSessionLongTaskNotKilledByMgmtTimeout (5.52s)
+=== RUN   TestRealSessionCancelNocleanFixture
+--- PASS: TestRealSessionCancelNocleanFixture (0.99s)
+=== RUN   TestRealSessionCancelSelfcleanFixture
+--- PASS: TestRealSessionCancelSelfcleanFixture (0.94s)
+=== RUN   TestRealSessionCancelGrandchild
+--- PASS: TestRealSessionCancelGrandchild (0.97s)
+=== RUN   TestRealSessionRepeatCancelIdempotent
+--- PASS: TestRealSessionRepeatCancelIdempotent (6.01s)
+=== RUN   TestRealSessionStartupCancel
+--- PASS: TestRealSessionStartupCancel (0.37s)
+=== RUN   TestRealSessionMultiProjectIsolation
+--- PASS: TestRealSessionMultiProjectIsolation (3.47s)
+=== RUN   TestRealSessionClientSigkillObservedSeparately
+--- PASS: TestRealSessionClientSigkillObservedSeparately (1.47s)
+=== RUN   TestC1PromptControlTerminal
+--- PASS: TestC1PromptControlTerminal (2.55s)
+=== RUN   TestC1CtrlCDuringSleepAndAtPrompt
+--- PASS: TestC1CtrlCDuringSleepAndAtPrompt (2.47s)
+=== RUN   TestC1ExitPaths
+--- PASS: TestC1ExitPaths (1.61s)
+=== RUN   TestC1JobControl
+--- PASS: TestC1JobControl (3.05s)
+=== RUN   TestC1WindowSizeFollows
+--- PASS: TestC1WindowSizeFollows (2.78s)
+=== RUN   TestC1BackgroundCleanupAtSessionEnd
+--- PASS: TestC1BackgroundCleanupAtSessionEnd (7.84s)
+=== RUN   TestC1TermiosRestored
+--- PASS: TestC1TermiosRestored (12.45s)
+=== RUN   TestC1ProjectIsolation
+--- PASS: TestC1ProjectIsolation (1.81s)
+=== RUN   TestC1SigkillObservedSeparately
+--- PASS: TestC1SigkillObservedSeparately (1.50s)
+=== RUN   TestC1DetachKeys
+    shell_c1_test.go:434: 结果 A：bash 已退出，会话已清扫，run 直接成功
+--- PASS: TestC1DetachKeys (16.61s)
+=== RUN   TestC1NonTTYFailsEarly
+--- PASS: TestC1NonTTYFailsEarly (0.05s)
+=== RUN   TestC2PipelineJobCleanup
+--- PASS: TestC2PipelineJobCleanup (1.38s)
+=== RUN   TestC2StoppedJobCleanup
+--- PASS: TestC2StoppedJobCleanup (2.41s)
+=== RUN   TestC2ShellExternalSignals
+--- PASS: TestC2ShellExternalSignals (11.79s)
+=== RUN   TestC2ShellStartupFailure
+--- PASS: TestC2ShellStartupFailure (0.68s)
+=== RUN   TestC2ShellInteractiveAndRegistered
+--- PASS: TestC2ShellInteractiveAndRegistered (1.79s)
+=== RUN   TestC2ShellCtrlC
+--- PASS: TestC2ShellCtrlC (2.45s)
+=== RUN   TestC2ShellExitCodePassthrough
+--- PASS: TestC2ShellExitCodePassthrough (0.79s)
+=== RUN   TestC2ShellSessionBlocksAfterHostKill
+--- PASS: TestC2ShellSessionBlocksAfterHostKill (6.65s)
+=== RUN   TestC2ShellRequiresTTY
+--- PASS: TestC2ShellRequiresTTY (0.01s)
+=== RUN   TestC2ShellSigkillBashSurvives
+--- PASS: TestC2ShellSigkillBashSurvives (1.25s)
+PASS
+ok  	kalimac/tests/integration	133.176s
+rc=0

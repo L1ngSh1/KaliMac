@@ -43,7 +43,18 @@ jobs:
           go-version: '1.25.x'
       - name: Docker 引擎预检（不可达必须失败）
         run: docker info
-      - name: 构建最小镜像（集成前提）
-        run: docker build -t kali-mac-min:0.2 images/kali
+      - name: 预拉取官方基础/工具镜像（CI 不经国内镜像站）
+        run: |
+          docker pull kalilinux/kali-rolling:latest
+          docker pull busybox:stable
+      - name: 构建最小镜像（官方基础镜像 + 官方 apt CDN）
+        run: |
+          docker build \
+            --build-arg KALI_BASE=kalilinux/kali-rolling:latest \
+            --build-arg KALI_APT_MIRROR=https://kali.download/kali/ \
+            -t kali-mac-min:0.2 images/kali
       - name: 集成套件
+        env:
+          KM_TEST_TOOL_IMAGE: kalilinux/kali-rolling:latest
+          KM_TEST_DRIFT_IMAGE: busybox:stable
         run: go test -tags=integration -count=1 -timeout 15m -v ./tests/integration/

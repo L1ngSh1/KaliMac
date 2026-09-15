@@ -1,0 +1,15 @@
+== 本地拉取官方镜像（模拟 CI 预拉取步骤）==
+Error response from daemon: failed to copy: httpReadSeeker: failed open: failed to do request: Get "https://registry-1.docker.io/v2/kalilinux/kali-rolling/manifests/sha256:49d174981a2a211e76acdde22a2e4978ea19bc0433487292cd9ad865da24ee42": EOF
+PULL-OK kali-rolling
+Status: Downloaded newer image for busybox:stable
+docker.io/library/busybox:stable
+PULL-OK busybox
+--- 尝试 1 ---
+Error response from daemon: failed to copy: httpReadSeeker: failed open: failed to authorize: failed to fetch oauth token: Post "https://auth.docker.io/token": EOF
+try1 rc=
+--- 尝试 2 ---
+docker.io/kalilinux/kali-rolling:latest
+try2 rc=
+--- 尝试 3 ---
+docker.io/kalilinux/kali-rolling:latest
+try3 rc=

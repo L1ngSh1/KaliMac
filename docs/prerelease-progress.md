@@ -1,0 +1,51 @@
+# 预发布验收进度（prerelease）
+
+- 计划来源：用户《KaliMac 下一阶段计划》（2026-09-16 会话）
+- 基线：`d7f74c9`（goal-1789353851 的 7 个提交，全部本地未推送）
+- 证据目录：`tests/evidence/prerelease-c1/`（阶段一）
+- 执行约定：push / 正式安装 / 打 tag / 发布均为独立确认步骤；
+  验收记录标注「通过 / 失败 / 未执行」，不沿用历史结果。
+
+## 阶段一：远端 CI 首跑验收 — 进行中
+
+### 预检（通过）
+
+| 项 | 结果 |
+| --- | --- |
+| 远端 | `origin = https://github.com/L1ngSh1/KaliMac.git` 已配置 |
+| go.mod vs workflow | go.mod 要求 `go 1.25`，workflow `1.25.x`，匹配，无需调整 |
+| 国内镜像站引用（CI 触达范围） | 4 处属实：Dockerfile `FROM`、Dockerfile apt 源（USTC）、`harness_test.go` toolImage、`matrix_test.go` 漂移注入 busybox（fresh runner 上会 `t.Fatal`） |
+| 不受 CI 影响 | `tests/p0/*` 两处（已参数化、CI 不跑 P0）；docs 历史记录 |
+
+### 批次 1：镜像引用可覆盖化（默认值不变，本地行为零变化）
+
+- `images/kali/Dockerfile`：`ARG KALI_BASE`（默认 1ms）、`ARG KALI_APT_MIRROR`（默认 USTC），
+  RUN 用 ARG 拼源；CI 用官方 `kalilinux/kali-rolling:latest` + `http://kali.download/kali/`。
+- `harness_test.go`：`toolImage` 改 var，读 `KM_TEST_TOOL_IMAGE`（默认现值）。
+- `matrix_test.go`：漂移镜像改读 `KM_TEST_DRIFT_IMAGE`（默认现值）。
+- `ci.yml` integration 作业：预拉官方 kali-rolling + busybox；build 带 CI 参数；
+  test step 设两个环境变量指官方引用。
+
+本地验证：
+
+- [x] gofmt 空、vet（含 integration tag）零告警、单测全绿、workflow YAML 解析通过
+- [x] Docker 引擎启动（本轮 `open -a Docker`）
+- [x] 官方镜像本地拉取：busybox:stable 直连成功；kali-rolling 直连首次 EOF、重试成功
+      （`official-pull.txt`）——与「CI runner 直连官方源」的预期一致但更乐观
+- [ ] CI 同款参数构建 ci-sim 镜像 + 真实 smoke（进行中）
+- [ ] CI 同款环境变量跑全套件
+
+### 待办（阶段一剩余）
+
+- [ ] 推送（**独立确认步骤，待用户确认**）
+- [ ] 首次 CI 观察：verify + integration 两作业结果、SKIP 行扫描、
+      P2B-CLEANUP 标记、失败可定位性
+- [ ] 完成标准核对：必需检查全过、无意外跳过、日志可定位、真实集成后零残留
+
+## 阶段二：安装包与新用户路径验收 — 未开始
+
+前置改动计划：`scripts/install.sh` 支持从 dist 产物安装（KM_BIN 覆盖，模式同 PERF_KM_BIN）。
+
+## 阶段三：真实项目试用 — 未开始
+
+## 阶段四：确定下一轮主题 — 未开始
