@@ -48,10 +48,13 @@ jobs:
           docker pull kalilinux/kali-rolling:latest
           docker pull busybox:stable
       - name: 构建最小镜像（官方基础镜像 + 官方 apt CDN）
+        # apt 用 http 而非 https：kali-rolling 基础镜像的 CA 信任库在 runner
+        # 容器内对 CDN 的 TLS 校验失败（首次 CI 实测 certificate verify failed）；
+        # apt 完整性由 Release 签名（Signed-By 密钥）保证，不依赖传输加密。
         run: |
           docker build \
             --build-arg KALI_BASE=kalilinux/kali-rolling:latest \
-            --build-arg KALI_APT_MIRROR=https://kali.download/kali/ \
+            --build-arg KALI_APT_MIRROR=http://kali.download/kali/ \
             -t kali-mac-min:0.2 images/kali
       - name: 集成套件
         env:

@@ -178,3 +178,7 @@ Error response from daemon: No such image: kali-mac-min:ci-sim
 == 默认参数构建（验证 Dockerfile 修改后默认路径）==
 default-sim BUILD OK
 id: sha256:5ee678c05cf4eca9da1f4df5dc724eff70868486fe16863afb9fa571d6fb20e0
+== 本地 http CDN ci-sim 重验（尽力而为，本机代理可能仍 502）==
+local-http FAIL（本地代理环境，如实记录；CI 为准）:
+168.0 E: Failed to fetch http://kali.download/kali/pool/main/libi/libidn2/libidn2-0_2.3.8-5_arm64.deb  502  Bad Gateway [IP: 104.17.253.239 80]
+168.0 E: Failed to fetch http://kali.download/kali/pool/main/d/dbus/libdbus-1-3_1.16.2-5%2bb1_arm64.deb  502  Bad Gateway [IP: 104.17.253.239 80]
