@@ -1,0 +1,83 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.94kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/kalilinux/kali-rolling:latest
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/2] FROM docker.io/kalilinux/kali-rolling:latest@sha256:49d174981a2a211e76acdde22a2e4978ea19bc0433487292cd9ad865da24ee42
+#4 resolve docker.io/kalilinux/kali-rolling:latest@sha256:49d174981a2a211e76acdde22a2e4978ea19bc0433487292cd9ad865da24ee42 done
+#4 CACHED
+
+#5 [2/2] RUN printf 'Types: deb\nURIs: '"https://kali.download/kali/"'\nSuites: kali-rolling\nComponents: main contrib non-free non-free-firmware\nSigned-By: /usr/share/keyrings/kali-archive-keyring.gpg\n'       > /etc/apt/sources.list.d/kali.sources  && apt-get -o Acquire::Retries=5 update  && apt-get -o Acquire::Retries=5 install -y --no-install-recommends       procps       util-linux       coreutils       python3       curl       jq       file       openssl       nmap  && rm -rf /var/lib/apt/lists/*
+#5 4.068 Ign:1 https://kali.download/kali kali-rolling InRelease
+#5 10.19 Ign:1 https://kali.download/kali kali-rolling InRelease
+#5 12.74 Ign:1 https://kali.download/kali kali-rolling InRelease
+#5 17.28 Ign:1 https://kali.download/kali kali-rolling InRelease
+#5 25.86 Ign:1 https://kali.download/kali kali-rolling InRelease
+#5 42.41 Err:1 https://kali.download/kali kali-rolling InRelease
+#5 42.41   SSL connection failed: error:0A000086:SSL routines::certificate verify failed / Success [IP: 104.17.254.239 443]
+#5 42.41   SSL connection failed: error:0A000126:SSL routines::unexpected eof while reading / Success [IP: 104.17.254.239 443]
+#5 42.43 Reading package lists...
+#5 42.44 W: Failed to fetch https://kali.download/kali/dists/kali-rolling/InRelease  SSL connection failed: error:0A000086:SSL routines::certificate verify failed / Success [IP: 104.17.254.239 443]
+#5 42.44 W: Some index files failed to download. They have been ignored, or old ones used instead.
+#5 42.45 Reading package lists...
+#5 42.46 Building dependency tree...
+#5 42.46 Reading state information...
+#5 42.46 Package curl is not available, but is referred to by another package.
+#5 42.46 This may mean that the package is missing, has been obsoleted, or
+#5 42.46 is only available from another source
+#5 42.46 
+#5 42.46 Package procps is not available, but is referred to by another package.
+#5 42.46 This may mean that the package is missing, has been obsoleted, or
+#5 42.46 is only available from another source
+#5 42.46 
+#5 42.46 E: Package 'procps' has no installation candidate
+#5 42.46 E: Unable to locate package python3
+#5 42.46 E: Package 'curl' has no installation candidate
+#5 42.46 E: Unable to locate package jq
+#5 42.46 E: Unable to locate package file
+#5 42.46 E: Unable to locate package openssl
+#5 42.46 E: Unable to locate package nmap
+#5 ERROR: process "/bin/sh -c printf 'Types: deb\\nURIs: '\"$KALI_APT_MIRROR\"'\\nSuites: kali-rolling\\nComponents: main contrib non-free non-free-firmware\\nSigned-By: /usr/share/keyrings/kali-archive-keyring.gpg\\n'       > /etc/apt/sources.list.d/kali.sources  && apt-get -o Acquire::Retries=5 update  && apt-get -o Acquire::Retries=5 install -y --no-install-recommends       procps       util-linux       coreutils       python3       curl       jq       file       openssl       nmap  && rm -rf /var/lib/apt/lists/*" did not complete successfully: exit code: 100
+------
+ > [2/2] RUN printf 'Types: deb\nURIs: '"https://kali.download/kali/"'\nSuites: kali-rolling\nComponents: main contrib non-free non-free-firmware\nSigned-By: /usr/share/keyrings/kali-archive-keyring.gpg\n'       > /etc/apt/sources.list.d/kali.sources  && apt-get -o Acquire::Retries=5 update  && apt-get -o Acquire::Retries=5 install -y --no-install-recommends       procps       util-linux       coreutils       python3       curl       jq       file       openssl       nmap  && rm -rf /var/lib/apt/lists/*:
+42.46 This may mean that the package is missing, has been obsoleted, or
+42.46 is only available from another source
+42.46 
+42.46 E: Package 'procps' has no installation candidate
+42.46 E: Unable to locate package python3
+42.46 E: Package 'curl' has no installation candidate
+42.46 E: Unable to locate package jq
+42.46 E: Unable to locate package file
+42.46 E: Unable to locate package openssl
+42.46 E: Unable to locate package nmap
+------
+Dockerfile:20
+--------------------
+  19 |     # 该文件。Acquire::Retries 缓解瞬时网关错误。
+  20 | >>> RUN printf 'Types: deb\nURIs: '"$KALI_APT_MIRROR"'\nSuites: kali-rolling\nComponents: main contrib non-free non-free-firmware\nSigned-By: /usr/share/keyrings/kali-archive-keyring.gpg\n' \
+  21 | >>>       > /etc/apt/sources.list.d/kali.sources \
+  22 | >>>  && apt-get -o Acquire::Retries=5 update \
+  23 | >>>  && apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
+  24 | >>>       procps \
+  25 | >>>       util-linux \
+  26 | >>>       coreutils \
+  27 | >>>       python3 \
+  28 | >>>       curl \
+  29 | >>>       jq \
+  30 | >>>       file \
+  31 | >>>       openssl \
+  32 | >>>       nmap \
+  33 | >>>  && rm -rf /var/lib/apt/lists/*
+  34 |     
+--------------------
+ERROR: failed to build: failed to solve: process "/bin/sh -c printf 'Types: deb\\nURIs: '\"$KALI_APT_MIRROR\"'\\nSuites: kali-rolling\\nComponents: main contrib non-free non-free-firmware\\nSigned-By: /usr/share/keyrings/kali-archive-keyring.gpg\\n'       > /etc/apt/sources.list.d/kali.sources  && apt-get -o Acquire::Retries=5 update  && apt-get -o Acquire::Retries=5 install -y --no-install-recommends       procps       util-linux       coreutils       python3       curl       jq       file       openssl       nmap  && rm -rf /var/lib/apt/lists/*" did not complete successfully: exit code: 100
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/bcshic3x871zp2pujs5jv749g

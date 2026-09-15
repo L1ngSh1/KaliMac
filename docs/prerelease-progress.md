@@ -6,7 +6,19 @@
 - 执行约定：push / 正式安装 / 打 tag / 发布均为独立确认步骤；
   验收记录标注「通过 / 失败 / 未执行」，不沿用历史结果。
 
-## 阶段一：远端 CI 首跑验收 — 进行中
+## 阶段一：远端 CI 首跑验收 — **passed**
+
+### 完成标准核对（run #3 = 35001766731，提交 919bafd）
+
+| 完成标准 | 结果 | 证据 |
+| --- | --- | --- |
+| 必需检查全部通过 | **✓** verify 17s + integration 2m37s 双绿（linux/amd64） | `ci-run3-watch.txt` |
+| 没有意外跳过 | **✓** 53 PASS / 0 FAIL / **0 SKIP**（与本地彩排一致，官方工具镜像方案有效） | `ci-run3-integration-log.txt` |
+| 日志能定位失败原因 | **✓** #1/#2 两次失败均从日志精确定位（TLS 证书问题 → 驱动器 EIO 竞态） | `ci-run*-watch.txt`、本文件运行记录 |
+| 真实集成后零残留 | **✓** 套件终检零标记（P2B-CLEANUP-FAIL/UNVERIFIED、P2A-CLEANUP-WARN、P2-INTEGRATION-SKIP 均未出现） | 同上 grep 计数 0 |
+
+关键回归确认：`TestC1DetachKeys` 在 CI 上 PASS（16.7s）；`TestP2BResidueCheck` PASS；
+套件结论 `ok kalimac/tests/integration 129.287s`。
 
 ### 预检（通过）
 
@@ -43,17 +55,36 @@
       （`suite-cienv-local.txt`）
 - [x] 批次已提交：`b4ada0a`（Dockerfile/harness/matrix/ci.yml/进度文档/证据）
 
+
+
+
+### 首次 CI 运行记录
+
+| 运行 | 提交 | verify | integration | 定性 |
+| --- | --- | --- | --- | --- |
+| #1 35000140432 | 8175724 | ✓ 52s | ✗ 构建最小镜像（48s） | 环境问题：kali-rolling 基础镜像的 CA 信任库在 runner 容器内对 `https://kali.download` TLS 校验失败；runner 拉镜像正常，仅容器内 apt 受影响 |
+| #2 35000833042 | 8246ea5 | ✓ 21s | ✗ 集成套件（2m25s） | http 修复生效（镜像构建 ✓）；套件 2 例失败，见下 |
+| #3 35001766731 | 919bafd | ✓ 17s | ✓ 2m37s（53 PASS/0 FAIL/0 SKIP） | 驱动器 EIO 修复验证通过，阶段一完成标准全部满足 |
+
+**#2 套件失败定性（测试基础设施缺陷，非产品缺陷）**：`TestC1TermiosRestored`（启动失败
+分支）与 `TestC2ShellStartupFailure` 同型失败 `pty-eof matched:false op:expect step:0`，
+且日志 buffer_tail 证明诊断文本（KM_PROTO_FAIL 等）已到达缓冲区。根因：PTY 驱动器
+`expect` 的读取窗口内，Linux 在子进程退出后 master `os.read` 抛 `OSError(EIO)`，原实现
+直接返回 EOF 不做最终匹配；macOS 空读路径不触发，故本地全绿、CI 必失败。修复（919bafd）：
+EOF 前对累积输出做最后一次模式匹配，断言强度不变。附带确认：Docker CLI 版本间 stderr
+文本不同（29.x「No such container」vs runner「destination must be a directory」），测试
+断言均锚定 km 包装层文本，天然兼容，无需改断言。
+
+**#2 其余观察**：linux/amd64 上 C1/C2 交互与信号类用例全部 PASS（PTY/作业控制/窗口跟随/
+SIGTERM/SIGHUP/SIGKILL 语义跨平台成立）；Node 20 deprecation 是 actions v4/v5 上游提示，
+非失败原因。
+
 ### 待办（阶段一剩余）
 
-- [ ] 推送（**独立确认步骤：已询问用户，未获回答，未推送**）。
-      **推送范围如实披露**：本地领先 `origin/master`（`3de51b6`，P2-C 验收证据轮）
-      共 **18 个提交**——review 加固轮 5 个、审计轮 4 个、goal-1789353851 共 7 个、
-      阶段一批次 2 个。首次 CI 将基于这批完整历史运行。
-- [ ] 首次 CI 观察：verify + integration 两作业结果、SKIP 行扫描、
-      P2B-CLEANUP 标记、失败可定位性
-- [ ] 完成标准核对：必需检查全过、无意外跳过、日志可定位、真实集成后零残留
-- [ ] CI 运行证据目录回填并提交（本轮套件运行产生的
-      `tests/evidence/p2c-shellproto-1789491527/` 一并入库）
+- [x] 推送已执行：`3de51b6..8175724`（19 提交，决策依据见文末「推送决策记录」）
+- [x] 完成标准核对：全部满足（见文首「完成标准核对」表）
+- [x] CI 运行证据回填并提交（`tests/evidence/prerelease-c1/`、
+      `tests/evidence/p2c-shellproto-1789491527/`）
 
 ## 阶段二：安装包与新用户路径验收 — 未开始
 

@@ -1,0 +1,22 @@
+{
+ "ok": true,
+ "steps": [
+  {
+   "step": 0,
+   "op": "expect",
+   "ok": true,
+   "matched": true,
+   "buffer_tail": "\u001b[?2004hKM_SHELL> "
+  },
+  {
+   "step": 1,
+   "op": "sendb",
+   "ok": true
+  }
+ ],
+ "exit_code": 0,
+ "exit_sig": null,
+ "termios_equal": true,
+ "signals_sent": [],
+ "error": null
+}
