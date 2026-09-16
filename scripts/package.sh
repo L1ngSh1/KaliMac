@@ -7,9 +7,11 @@
 set -euo pipefail
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 DIST="$REPO/dist"
+cd "$REPO"   # go build/go run/git 均按仓库根解析；任意 cwd 调用行为一致
 
-VERSION="$("$REPO/bin/km" --version 2>/dev/null | awk '{print $2}')"
-[ -n "$VERSION" ] || { echo "FATAL: 无法获取版本（先 make build）" >&2; exit 2; }
+# 版本来源=当前源码（go run 即时构建），与可能过期的 bin/km 无关（包 C 合同）
+VERSION="$(go run ./cmd/km --version 2>/dev/null | awk '{print $2}')"
+[ -n "$VERSION" ] || { echo "FATAL: 无法获取版本（检查源码/go 环境）" >&2; exit 2; }
 
 rm -rf "$DIST"
 mkdir -p "$DIST"
@@ -18,11 +20,15 @@ CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -o "$DIST/km-$VERSION-
 CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -trimpath -o "$DIST/km-$VERSION-darwin-amd64" ./cmd/km
 
 CODE_REV="$(git -C "$REPO" rev-parse HEAD 2>/dev/null || echo unknown)"
+# 脏工作区记录：HEAD SHA 不暗示产物来自干净提交
+DIRTY_N="$(git -C "$REPO" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
+if [ "$DIRTY_N" = "0" ]; then WORKTREE_STATE="clean"; else WORKTREE_STATE="dirty($DIRTY_N paths)"; fi
 IMAGE_ID="$(docker image inspect --format '{{.Id}}' kali-mac-min:0.2 2>/dev/null || echo "未构建（见 images/kali 与 tests/evidence/kali-mac-min-0.2/build-evidence.txt）")"
 
 cat > "$DIST/version-metadata.txt" <<EOF
 version: $VERSION
 code_rev: $CODE_REV
+worktree: $WORKTREE_STATE
 built_at: $(date '+%Y-%m-%dT%H:%M:%S%z')
 builder_go: $(go version)
 host: $(uname -s)/$(uname -m)

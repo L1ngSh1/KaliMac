@@ -283,19 +283,26 @@ type ContainerCreateOpts struct {
 	ProjectID  string // stamped into the km.project label
 	Image      string
 	ProjectDir string // host path bound to /workspace
+	// Platform 兑现配置声明（如 linux/arm64）；空 = 不传 --platform（native，
+	// 旧配置未声明平台时的历史行为）。
+	Platform string
 }
 
 // CreateContainer creates the project container with --init (reaping PID1)
 // and the ownership labels. The main process is `sleep infinity`, which the
 // init wrapper turns into a fast, clean stop target.
 func (d *Docker) CreateContainer(ctx context.Context, o ContainerCreateOpts) (string, error) {
-	out, err := d.run(ctx, "run", "-d", "--init",
+	args := []string{"run", "-d", "--init",
 		"--name", o.Name,
-		"--label", ProjectLabel+"="+o.ProjectID,
+		"--label", ProjectLabel + "=" + o.ProjectID,
 		"--label", "km.owner=km",
 		"--label", "km.schema=1",
-		"-v", o.ProjectDir+":/workspace",
-		o.Image, "sleep", "infinity")
+		"-v", o.ProjectDir + ":/workspace"}
+	if o.Platform != "" {
+		args = append(args, "--platform", o.Platform)
+	}
+	args = append(args, o.Image, "sleep", "infinity")
+	out, err := d.run(ctx, args...)
 	if err != nil {
 		return "", err
 	}
@@ -321,9 +328,16 @@ func (d *Docker) StopContainer(ctx context.Context, ref string) error {
 // PullTimeout bounds an image pull. Pulls are explicit (init) and rare.
 const PullTimeout = 10 * time.Minute
 
-// PullImage pulls the image reference with a generous but bounded timeout.
-func (d *Docker) PullImage(ctx context.Context, ref string) error {
-	_, err := d.runWithTimeout(ctx, PullTimeout, "pull", ref)
+// PullImage pulls the image reference with a generous but bounded timeout;
+// 非空 platform 时兑现配置声明（docker pull --platform），
+// 空 = 原样拉取（native）。
+func (d *Docker) PullImage(ctx context.Context, ref, platform string) error {
+	args := []string{"pull"}
+	if platform != "" {
+		args = append(args, "--platform", platform)
+	}
+	args = append(args, ref)
+	_, err := d.runWithTimeout(ctx, PullTimeout, args...)
 	return err
 }
 

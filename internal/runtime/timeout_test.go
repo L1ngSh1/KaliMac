@@ -30,7 +30,7 @@ func (f *deadlineRecorder) Run(ctx context.Context, name string, args ...string)
 func TestPullImageDeadlineNotTruncated(t *testing.T) {
 	rec := &deadlineRecorder{}
 	d := &Docker{Exec: rec, DockerPath: "/bin/true"}
-	if err := d.PullImage(context.Background(), "img:1"); err != nil {
+	if err := d.PullImage(context.Background(), "img:1", ""); err != nil {
 		t.Fatal(err)
 	}
 	if !rec.hasDL || rec.got < 9*time.Minute {
@@ -66,7 +66,7 @@ func TestShorterOuterContextWins(t *testing.T) {
 	d := &Docker{Exec: rec, DockerPath: "/bin/true"}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	if err := d.PullImage(ctx, "img:1"); err != nil {
+	if err := d.PullImage(ctx, "img:1", ""); err != nil {
 		t.Fatal(err)
 	}
 	if rec.got > 3*time.Second {

@@ -1,0 +1,18 @@
+== 夜间迭代收口回归 ==
+gofmt-dirty: 0
+vet: PASS
+?   	kalimac/cmd/shellproto	[no test files]
+ok  	kalimac/internal/cli	0.166s
+ok  	kalimac/internal/project	0.313s
+ok  	kalimac/internal/residue	0.284s
+ok  	kalimac/internal/runtime	0.599s
+ok  	kalimac/internal/session	0.447s
+?   	kalimac/cmd/shellproto	[no test files]
+ok  	kalimac/internal/cli	1.425s
+ok  	kalimac/internal/project	1.399s
+ok  	kalimac/internal/residue	1.305s
+ok  	kalimac/internal/runtime	1.627s
+ok  	kalimac/internal/session	1.477s
+build: PASS
+== 全量集成 ==
+ok  	kalimac/tests/integration	147.623s

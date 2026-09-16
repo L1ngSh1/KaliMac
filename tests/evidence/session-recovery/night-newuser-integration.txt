@@ -1,0 +1,6 @@
+=== RUN   TestNewUserInitFlagsAndStatus
+--- PASS: TestNewUserInitFlagsAndStatus (1.02s)
+=== RUN   TestNewUserLegacyConfigCompatReal
+--- PASS: TestNewUserLegacyConfigCompatReal (0.56s)
+PASS
+ok  	kalimac/tests/integration	2.819s

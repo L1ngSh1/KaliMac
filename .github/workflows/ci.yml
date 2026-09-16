@@ -32,6 +32,16 @@ jobs:
         run: go test -race -count=1 ./...
       - name: build
         run: go build ./...
+      - name: 打包一致性冒烟（版本源=当前源码；过期 bin/km 与任意 cwd 无影响）
+        run: |
+          want="$(go run ./cmd/km --version | awk '{print $2}')"
+          printf '#!/bin/sh\necho "km 9.9.9-stale"\n' > bin/km && chmod +x bin/km
+          cd /tmp
+          bash "$GITHUB_WORKSPACE/scripts/package.sh" > pkg.out
+          grep -q "^version: $want$" pkg.out
+          grep -q "^worktree: " pkg.out
+          test -f "$GITHUB_WORKSPACE/dist/km-$want-darwin-amd64"
+          test -f "$GITHUB_WORKSPACE/dist/km-$want-darwin-arm64"
 
   integration:
     runs-on: ubuntu-latest

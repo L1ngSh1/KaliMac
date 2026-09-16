@@ -261,7 +261,7 @@ func reportContainerSessions(r *reporter, ctx context.Context, dk *runtime.Docke
 	switch {
 	case err != nil:
 		r.item("警告", "会话检查失败: %v", err)
-	case exitCode == 127:
+	case exitCode == 126 || exitCode == 127:
 		r.item("警告", "会话脚本未安装（init 后首次 run/shell 时安装；此前无法检查容器内会话）")
 	case exitCode != 0 || !parseOK:
 		r.item("警告", "会话检查失败（exit=%d，stderr: %s；输出不可解析）", exitCode, strings.TrimSpace(errStr))

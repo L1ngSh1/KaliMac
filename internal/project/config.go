@@ -23,6 +23,11 @@ type Config struct {
 	Name          string `json:"name,omitempty"`
 	Image         string `json:"image"`
 	Platform      string `json:"platform,omitempty"`
+
+	// PlatformDeclared reports whether the platform field was explicitly
+	// present in the file (旧配置缺失该字段时 Platform 仍填默认值供展示，
+	// 但创建/拉取不兑现隐式值——保持这些项目历史上的 native 行为)。
+	PlatformDeclared bool `json:"-"`
 }
 
 // SupportedSchemaVersion is the only schema this build understands.
@@ -66,6 +71,8 @@ func LoadConfig(path string) (*Config, error) {
 	}
 
 	var c Config
+	_, platformDeclared := cfg["platform"]
+	c.PlatformDeclared = platformDeclared
 	if err := json.Unmarshal(raw, &c); err != nil {
 		// map JSON type errors back to a field name when possible
 		field := "(整体)"
@@ -85,6 +92,9 @@ func LoadConfig(path string) (*Config, error) {
 	}
 	if strings.ContainsAny(c.Image, " \t\n") {
 		return nil, &ConfigError{Field: "image", Msg: "不能包含空白字符"}
+	}
+	if platformDeclared && strings.TrimSpace(c.Platform) == "" {
+		return nil, &ConfigError{Field: "platform", Msg: "声明了 platform 但值为空/null（删除该字段或填 os/arch，如 linux/arm64）"}
 	}
 	if c.Platform == "" {
 		c.Platform = DefaultPlatform

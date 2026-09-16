@@ -1,0 +1,12 @@
+[?2004hKM_SHELL> ps -o pid,pgid,sid,tpgid,comm
+[?2004l  PID  PGID   SID TPGID COMMAND
+   25    25    25    32 bash
+   32    32    25    32 ps
+[?2004hKM_SHELL> echo SHELL_WORKS=$HOME
+[?2004lSHELL_WORKS=/root
+[?2004hKM_SHELL> exit
+[?2004lexit
+
+[1mWhat's next:[0m
+    Try Docker Debug for seamless, persistent debugging tools in any container or image → [36mdocker debug 41e941d481b53df02e0d61ec8cfd274e0b2ba48768c4f9c4718da56d6c10eeb3[0m
+    Learn more at https://docs.docker.com/go/debug-cli/

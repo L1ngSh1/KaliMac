@@ -1,0 +1,12 @@
+== 安装版实走（0.4.0-p3 候选，含夜间迭代）==
+已安装 km 0.4.0-p3 → /tmp/km-night.NabWoU/prefix/opt/km-night
+km 0.4.0-p3
+km init: 环境就绪（project=paadaf9a926 container=f0d86c8fedfe image=kali-mac-min:0.2 镜像身份=sha256:bd829 平台=linux/arm64 精选工具镜像）
+状态:   unknown
+blocked-rc=1
+json-state: running_session_active
+已取消并确认收尾: se366306d833b00df
+cancel-rc=0
+NIGHT_RECOVERED
+recover-rc=0
+卸载完成

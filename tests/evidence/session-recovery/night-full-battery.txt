@@ -1,0 +1,18 @@
+== 夜间迭代全量回归 ==
+gofmt-dirty: 0
+vet: PASS
+?   	kalimac/cmd/shellproto	[no test files]
+ok  	kalimac/internal/cli	0.164s
+ok  	kalimac/internal/project	0.312s
+ok  	kalimac/internal/residue	0.282s
+ok  	kalimac/internal/runtime	0.601s
+ok  	kalimac/internal/session	0.446s
+?   	kalimac/cmd/shellproto	[no test files]
+ok  	kalimac/internal/cli	1.424s
+ok  	kalimac/internal/project	1.340s
+ok  	kalimac/internal/residue	1.304s
+ok  	kalimac/internal/runtime	1.624s
+ok  	kalimac/internal/session	1.481s
+build: PASS
+== 全量集成 ==
+ok  	kalimac/tests/integration	149.711s

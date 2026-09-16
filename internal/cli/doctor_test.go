@@ -601,15 +601,13 @@ func TestDoctorSessionCheckFailureCounted(t *testing.T) {
 	}
 }
 
-// exit 127 = km-ctl 未安装（init 后首次 run/shell 前）：预期状态，报警告并说明，
-// 同样计入统计。
-func TestDoctorSessionScriptNotInstalled127(t *testing.T) {
+// 脚本未安装：实测 exit 126（OCI 无法启动）与 127 两种形态，均预期状态、计入警告。
+func TestDoctorSessionScriptNotInstalled(t *testing.T) {
 	root := setupProject(t, validConfig, stateJSON(fakeContainerID, fakeImageID, localEndpoint))
-	out := runDoctorWithSessions(t, root, 127, "")
-	if !strings.Contains(out, "会话脚本未安装") {
-		t.Fatalf("127 应报告脚本未安装:\n%s", out)
-	}
-	if !strings.Contains(out, "1 警告") {
-		t.Fatalf("未安装应计入警告统计:\n%s", out)
+	for _, code := range []int{126, 127} {
+		out := runDoctorWithSessions(t, root, code, "")
+		if !strings.Contains(out, "会话脚本未安装") || !strings.Contains(out, "1 警告") {
+			t.Fatalf("exit=%d 应报告脚本未安装并计入警告:\n%s", code, out)
+		}
 	}
 }

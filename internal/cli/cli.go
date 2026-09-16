@@ -27,7 +27,7 @@ const (
 var managementCommands = map[string]bool{
 	"help": true, "version": true, "init": true, "shell": true,
 	"doctor": true, "stop": true, "run": true,
-	"sessions": true, "cancel": true,
+	"sessions": true, "cancel": true, "status": true,
 }
 
 // newDocker is the injection point for tests: swapping it lets tests assert
@@ -66,6 +66,8 @@ func Run(ctx context.Context, argv []string, stdout, stderr io.Writer) int {
 		return runSessionsCommand(ctx, argv[1:], stdout, stderr, newDocker())
 	case "cancel":
 		return runCancelCommand(ctx, argv[1:], stdout, stderr, newDocker())
+	case "status":
+		return runStatusCommand(ctx, argv[1:], stdout, stderr, newDocker())
 	}
 	if strings.HasPrefix(argv[0], "-") {
 		return usageError(stderr, "未知选项 %q；管理命令见 km --help", argv[0])
@@ -110,6 +112,7 @@ func PrintHelp(w io.Writer) {
   km stop                     停止当前项目容器，数据保留（幂等）
   km sessions                 查看当前项目的会话（只读）
   km cancel <id>              显式取消当前项目的指定会话（完整 ID 见 km sessions）
+  km status [--json]          当前项目状态总览（只读；--json 结构化输出）
 
 说明:
   项目文件留在 Mac；工具输出与退出状态回到原终端。

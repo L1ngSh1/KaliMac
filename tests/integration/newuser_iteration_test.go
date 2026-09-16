@@ -1,0 +1,135 @@
+//go:build integration
+
+// 新用户闭环迭代（init 参数/平台兑现、km status）真实集成验收。
+package integration
+
+import (
+	"encoding/json"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// init --image 精选镜像 → 配置落盘、容器创建、status 为 running_idle（人类/JSON 一致）、
+// status 只读性（.km 前后逐字节一致）、短命令可用。
+func TestNewUserInitFlagsAndStatus(t *testing.T) {
+	dir := newP2BProject(t)
+	// 该用例验证「新项目 + 显式参数」：删掉夹具预写的旧格式配置
+	if err := os.Remove(filepath.Join(dir, ".km.json")); err != nil {
+		t.Fatal(err)
+	}
+	if _, errb, code := kmRun(t, dir, nil, "init", "--image", "kali-mac-min:0.2"); code != 0 {
+		t.Fatalf("init --image: %s", errb)
+	}
+	// 登记必须在 init 成功后立即执行（M1 教训）：后续任何断言失败都不能泄漏容器
+	registerProjectCleanup(t, dir)
+	cfgRaw, err := os.ReadFile(filepath.Join(dir, ".km.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cfg struct {
+		Image    string `json:"image"`
+		Platform string `json:"platform"`
+	}
+	if err := json.Unmarshal(cfgRaw, &cfg); err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Image != "kali-mac-min:0.2" || !strings.HasPrefix(cfg.Platform, "linux/") {
+		t.Fatalf("配置应记录参数镜像与平台: %s", cfgRaw)
+	}
+
+	if _, _, c := kmRun(t, dir, nil, "run", "--", "/bin/true"); c != 0 {
+		t.Fatal("run 失败")
+	}
+
+	// 人类输出
+	out, _, code := kmRun(t, dir, nil, "status")
+	if code != 0 || !strings.Contains(out, "running_idle") || !strings.Contains(out, "kali-mac-min:0.2") {
+		t.Fatalf("status: code=%d out=%q", code, out)
+	}
+	// JSON 输出同一状态
+	jOut, _, jCode := kmRun(t, dir, nil, "status", "--json")
+	if jCode != 0 {
+		t.Fatalf("status --json: %d", jCode)
+	}
+	var ps struct {
+		SchemaVersion int    `json:"schema_version"`
+		State         string `json:"state"`
+		Project       *struct {
+			Image            string `json:"image"`
+			PlatformDeclared bool   `json:"platform_declared"`
+		} `json:"project"`
+		Sessions *struct {
+			Active []string `json:"active"`
+		} `json:"sessions"`
+	}
+	if err := json.Unmarshal([]byte(jOut), &ps); err != nil {
+		t.Fatalf("JSON: %v\n%s", err, jOut)
+	}
+	if ps.SchemaVersion != 1 || ps.State != "running_idle" || ps.Project == nil ||
+		ps.Project.Image != "kali-mac-min:0.2" || !ps.Project.PlatformDeclared || ps.Sessions == nil {
+		t.Fatalf("JSON 状态不符: %s", jOut)
+	}
+	// 平台兑现端到端：声明平台的架构 == 实际镜像架构
+	archRaw, aerr := exec.Command("docker", "image", "inspect", "--format",
+		"{{.Architecture}}", cfg.Image).Output()
+	if aerr != nil {
+		t.Fatalf("镜像架构查询失败: %v", aerr)
+	}
+	arch := strings.TrimSpace(string(archRaw))
+	if !strings.HasSuffix(cfg.Platform, arch) {
+		t.Fatalf("声明平台 %s 与镜像架构 %s 不一致", cfg.Platform, arch)
+	}
+
+	// 只读性：status 前后 .km 逐字节一致
+	snap := func() map[string]string {
+		m := map[string]string{}
+		err := filepath.Walk(dir, func(p string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if !info.IsDir() {
+				b, _ := os.ReadFile(p)
+				m[p] = string(b)
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatalf("快照失败: %v", err)
+		}
+		return m
+	}
+	before := snap()
+	if _, _, c := kmRun(t, dir, nil, "status"); c != 0 {
+		t.Fatal("status 失败")
+	}
+	after := snap()
+	if len(before) != len(after) {
+		t.Fatalf(".km 文件数变化: %d->%d", len(before), len(after))
+	}
+	for p, c := range before {
+		if after[p] != c {
+			t.Fatalf("只读性破坏: %s", p)
+		}
+	}
+}
+
+// 旧配置兼容（真实容器）：platform 字段缺失 → 复用/重建保持 native，
+// --platform 参数被拒绝且不影响已有容器。
+func TestNewUserLegacyConfigCompatReal(t *testing.T) {
+	dir := newP2BProject(t)
+	// newP2BProject 的配置没有 platform 字段（旧格式）
+	if _, errb, code := kmRun(t, dir, nil, "init"); code != 0 {
+		t.Fatalf("init: %s", errb)
+	}
+	registerProjectCleanup(t, dir)
+	if _, errb, code := kmRun(t, dir, nil, "init", "--platform", "linux/arm64"); code != 1 {
+		t.Fatalf("旧配置 + --platform 应拒绝: code=%d err=%s", code, errb)
+	}
+	// 拒绝后环境仍可用
+	if out, _, code := kmRun(t, dir, nil, "run", "--", "/bin/echo", "STILL_OK"); code != 0 || !strings.Contains(out, "STILL_OK") {
+		t.Fatalf("拒绝后环境应保留: %s", out)
+	}
+}

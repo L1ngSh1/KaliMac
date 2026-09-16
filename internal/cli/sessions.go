@@ -148,7 +148,7 @@ func collectSessions(ctx context.Context, stdout, stderr io.Writer, dk *runtime.
 	case serr != nil:
 		return listing, "", nil, "", envError(stderr, &runtime.Error{Code: runtime.CodeSessionUnknown,
 			Msg: "容器内会话状态查询失败，无法确认会话状态", Err: serr})
-	case sExit == 127:
+	case sExit == 126 || sExit == 127:
 		return listing, st.Container.ID, ctl,
 			"会话脚本未安装（init 后首次 run/shell 时安装）：当前项目不存在通过 km 登记的会话",
 			ExitOK

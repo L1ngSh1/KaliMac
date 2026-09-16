@@ -89,13 +89,16 @@ func TestSessionsListsActiveAndStale(t *testing.T) {
 }
 
 // 脚本未安装（init 后首次 run/shell 前）：明确定义的非失败情形，退出 0。
-func TestSessionsScriptMissing127(t *testing.T) {
+// 实测两种退出码：126（OCI 无法启动进程）与 127（shell 找不到命令）。
+func TestSessionsScriptMissing(t *testing.T) {
 	root := setupProject(t, validConfig, stateJSON(fakeContainerID, fakeImageID, localEndpoint))
 	t.Chdir(root)
-	dk := sessFake(t, root, "", 127, nil, nil)
-	code, out, _ := runSessions(t, root, dk)
-	if code != ExitOK || !strings.Contains(out, "会话脚本未安装") {
-		t.Fatalf("code=%d out=%q", code, out)
+	for _, code127 := range []int{126, 127} {
+		dk := sessFake(t, root, "", code127, nil, nil)
+		c, out, _ := runSessions(t, root, dk)
+		if c != ExitOK || !strings.Contains(out, "会话脚本未安装") {
+			t.Fatalf("exit=%d: code=%d out=%q", code127, c, out)
+		}
 	}
 }
 

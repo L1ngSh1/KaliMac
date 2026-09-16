@@ -1,0 +1,10 @@
+[?2004hKM_SHELL> ps -o pid,ppid,pgid,sid,tpgid,comm
+[?2004l  PID  PPID  PGID   SID TPGID COMMAND
+    8     0     8     8    15 bash
+   15     8    15     8    15 ps
+[?2004hKM_SHELL> exit
+[?2004lexit
+
+[1mWhat's next:[0m
+    Try Docker Debug for seamless, persistent debugging tools in any container or image → [36mdocker debug 96dd0294d9c75f1aaf3e4799fc9107fe915294da65dfa037b6991295ceef696b[0m
+    Learn more at https://docs.docker.com/go/debug-cli/

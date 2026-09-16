@@ -6,6 +6,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	goruntime "runtime"
+	"strings"
 	"time"
 
 	"kalimac/internal/project"
@@ -50,10 +52,135 @@ func verifyContainerIdentity(st *project.State, res runtime.InspectResult, root 
 	return nil
 }
 
+// initFlags 是 `km init` 的显式参数（合同见 docs/newuser-iteration-plan.md 包 A）。
+type initFlags struct {
+	image    string // --image：新项目写入配置；已有项目仅允许确认一致
+	platform string // --platform：同上；声明缺失的旧配置一律拒绝
+}
+
+// parseInitFlags 解析 --image/--platform（两种写法均可），未知参数报用法错误。
+func parseInitFlags(rest []string) (*initFlags, int, error) {
+	f := &initFlags{}
+	take := func(i int, name string) (string, int, error) {
+		if i+1 >= len(rest) {
+			return "", 0, fmt.Errorf("%s 需要一个值", name)
+		}
+		return rest[i+1], 2, nil
+	}
+	for i := 0; i < len(rest); {
+		cur := rest[i]
+		switch {
+		case cur == "--image" || strings.HasPrefix(cur, "--image="):
+			if strings.HasPrefix(cur, "--image=") {
+				f.image = strings.TrimPrefix(cur, "--image=")
+				if f.image == "" {
+					return nil, 0, fmt.Errorf("--image 需要一个值")
+				}
+				i++
+				continue
+			}
+			v, n, err := take(i, "--image")
+			if err != nil {
+				return nil, 0, err
+			}
+			f.image = v
+			i += n
+		case cur == "--platform" || strings.HasPrefix(cur, "--platform="):
+			if strings.HasPrefix(cur, "--platform=") {
+				f.platform = strings.TrimPrefix(cur, "--platform=")
+				if f.platform == "" {
+					return nil, 0, fmt.Errorf("--platform 需要一个值")
+				}
+				i++
+				continue
+			}
+			v, n, err := take(i, "--platform")
+			if err != nil {
+				return nil, 0, err
+			}
+			f.platform = v
+			i += n
+		default:
+			return nil, 0, fmt.Errorf("未知参数 %q（仅支持 --image / --platform）", cur)
+		}
+	}
+	if f.image != "" && strings.ContainsAny(f.image, " \t\n") {
+		return nil, 0, fmt.Errorf("--image 不能包含空白字符")
+	}
+	if f.platform != "" && strings.ContainsAny(f.platform, " \t\n") {
+		return nil, 0, fmt.Errorf("--platform 不能包含空白字符")
+	}
+	return f, 0, nil
+}
+
+// hostNativePlatform 返回本机原生平台声明（km 为本机构建，GOARCH 即宿主架构）。
+func hostNativePlatform() string {
+	return "linux/" + goruntime.GOARCH
+}
+
+// curatedImageHint：精选工具镜像约定为 kali-mac-min: 前缀（README/指南文档化）。
+func curatedImageHint(ref string) string {
+	if strings.HasPrefix(ref, "kali-mac-min:") {
+		return "精选工具镜像"
+	}
+	return "非精选镜像（可能不含精选工具集，见 README）"
+}
+
+// applyInitFlagsToNewConfig 处理新项目的参数落盘：--image/--platform 覆盖默认值。
+// 返回待写入的配置与平台声明。
+func applyInitFlagsToNewConfig(f *initFlags) *project.Config {
+	cfg := &project.Config{SchemaVersion: project.SupportedSchemaVersion, Image: project.DefaultImage, Platform: hostNativePlatform()}
+	if f != nil {
+		if f.image != "" {
+			cfg.Image = f.image
+		}
+		if f.platform != "" {
+			cfg.Platform = f.platform
+		}
+	}
+	cfg.PlatformDeclared = true
+	return cfg
+}
+
+// checkFlagsAgainstConfig 校验已有项目上的显式参数：只允许「确认一致」；
+// 任何不一致都是冲突——不覆盖配置、不重建容器（合同：已有配置 > 命令行参数）。
+func checkFlagsAgainstConfig(f *initFlags, cfg *project.Config) error {
+	if f == nil {
+		return nil
+	}
+	if f.image != "" && f.image != cfg.Image {
+		return &runtime.Error{Code: runtime.CodeConfigInvalid,
+			Msg: fmt.Sprintf("--image %s 与已有配置 %s 不一致；不覆盖配置、不重建容器。如需更换镜像请编辑 .km.json 后重试", f.image, cfg.Image)}
+	}
+	if f.platform != "" {
+		if !cfg.PlatformDeclared {
+			return &runtime.Error{Code: runtime.CodeConfigInvalid,
+				Msg: fmt.Sprintf(".km.json 未声明 platform（该容器按本机架构创建）；不接受 --platform %s。如需声明请编辑 .km.json 加 platform 字段后重试", f.platform)}
+		}
+		if f.platform != cfg.Platform {
+			return &runtime.Error{Code: runtime.CodeConfigInvalid,
+				Msg: fmt.Sprintf("--platform %s 与已有配置 %s 不一致；不覆盖配置、不重建容器。如需变更请编辑 .km.json 后重试", f.platform, cfg.Platform)}
+		}
+	}
+	return nil
+}
+
+// createPlatform：参与创建/拉取的平台——仅兑现显式声明；未声明 = native（旧配置
+// 的历史行为，绝不伪造声明）。
+func createPlatform(cfg *project.Config) string {
+	if cfg != nil && cfg.PlatformDeclared {
+		return cfg.Platform
+	}
+	return ""
+}
+
 // runInitCommand implements `km init`: idempotent project bootstrap.
+// 显式参数：--image <ref> / --platform <p>（新项目写入配置并兑现；已有项目仅允许
+// 确认一致，不一致即冲突报错，不覆盖、不重建）。
 func runInitCommand(ctx context.Context, rest []string, stdout, stderr io.Writer, dk *runtime.Docker) int {
-	if len(rest) > 0 {
-		return usageError(stderr, "km init 不接受参数")
+	flags, _, perr := parseInitFlags(rest)
+	if perr != nil {
+		return usageError(stderr, "km init: %v", perr)
 	}
 	wd, err := os.Getwd()
 	if err != nil {
@@ -95,7 +222,7 @@ func runInitCommand(ctx context.Context, rest []string, stdout, stderr io.Writer
 		}
 	}()
 
-	// 配置：存在则校验（保留原文件），缺失则原子写入默认值
+	// 配置：存在则校验（保留原文件），缺失则按参数/默认原子写入
 	cfgPath := filepath.Join(wd, project.ConfigFileName)
 	var cfg *project.Config
 	if _, statErr := os.Stat(cfgPath); statErr == nil {
@@ -104,10 +231,14 @@ func runInitCommand(ctx context.Context, rest []string, stdout, stderr io.Writer
 			return envError(stderr, &runtime.Error{Code: runtime.CodeConfigInvalid,
 				Msg: "保留原文件；修复后重试", Err: err})
 		}
+		// 已有项目：显式参数只允许确认一致（不覆盖、不重建）
+		if err := checkFlagsAgainstConfig(flags, cfg); err != nil {
+			return envError(stderr, err)
+		}
 	} else {
-		cfg = &project.Config{SchemaVersion: project.SupportedSchemaVersion, Image: project.DefaultImage, Platform: project.DefaultPlatform}
+		cfg = applyInitFlagsToNewConfig(flags)
 		if err := project.WriteConfig(cfgPath, cfg); err != nil {
-			return envError(stderr, &runtime.Error{Code: runtime.CodeConfigInvalid, Msg: "写入默认配置失败", Err: err})
+			return envError(stderr, &runtime.Error{Code: runtime.CodeConfigInvalid, Msg: "写入配置失败", Err: err})
 		}
 	}
 
@@ -118,7 +249,7 @@ func runInitCommand(ctx context.Context, rest []string, stdout, stderr io.Writer
 	}
 	if !ok {
 		fmt.Fprintf(stderr, "km: 镜像 %s 不在本地，开始拉取（有界 %s）…\n", cfg.Image, runtime.PullTimeout)
-		if err := dk.PullImage(ctx, cfg.Image); err != nil {
+		if err := dk.PullImage(ctx, cfg.Image, createPlatform(cfg)); err != nil {
 			return envError(stderr, &runtime.Error{Code: runtime.CodeRuntimeOffline,
 				Msg: "镜像拉取失败；旧环境保留，可重试 init", Err: err})
 		}
@@ -147,7 +278,9 @@ func runInitCommand(ctx context.Context, rest []string, stdout, stderr io.Writer
 						return envError(stderr, err)
 					}
 				}
-				fmt.Fprintf(stdout, "km init: 复用现有环境（project=%s container=%s image=%s）\n", st.ProjectID, shortID(st.Container.ID), shortID(st.Container.ImageID))
+				fmt.Fprintf(stdout, "km init: 复用现有环境（project=%s container=%s image=%s 镜像身份=%s 平台=%s %s）\n",
+					st.ProjectID, shortID(st.Container.ID), cfg.Image, shortID(st.Container.ImageID),
+					platformDisplay(cfg), curatedImageHint(cfg.Image))
 				return ExitOK
 			}
 			// 记录的容器不存在（被外部删除）→ init 恢复路径：按既有 project_id 重建
@@ -197,7 +330,9 @@ func createContainerFor(ctx context.Context, dk *runtime.Docker, stdout, stderr 
 					return envError(stderr, err)
 				}
 			}
-			fmt.Fprintf(stdout, "km init: 接管匹配的同名容器（project=%s container=%s）\n", st.ProjectID, shortID(res.ID))
+			fmt.Fprintf(stdout, "km init: 接管匹配的同名容器（project=%s container=%s image=%s 平台=%s %s）\n",
+				st.ProjectID, shortID(res.ID), cfg.Image,
+				platformDisplay(cfg), curatedImageHint(cfg.Image))
 			return ExitOK
 		}
 		return envError(stderr, &runtime.Error{Code: runtime.CodeContainerConflict,
@@ -207,6 +342,7 @@ func createContainerFor(ctx context.Context, dk *runtime.Docker, stdout, stderr 
 	// 创建新容器；失败只清理本次创建的资源
 	fullID, err := dk.CreateContainer(ctx, runtime.ContainerCreateOpts{
 		Name: name, ProjectID: st.ProjectID, Image: cfg.Image, ProjectDir: root,
+		Platform: createPlatform(cfg),
 	})
 	if err != nil {
 		return envError(stderr, err)
@@ -220,8 +356,18 @@ func createContainerFor(ctx context.Context, dk *runtime.Docker, stdout, stderr 
 		_ = dk.RemoveContainer(context.Background(), fullID)
 		return envError(stderr, &runtime.Error{Code: runtime.CodeStateInvalid, Msg: "状态写入失败，已回滚本次创建的容器", Err: err})
 	}
-	fmt.Fprintf(stdout, "km init: 环境就绪（project=%s container=%s image=%s）\n", st.ProjectID, shortID(fullID), shortID(imageID))
+	fmt.Fprintf(stdout, "km init: 环境就绪（project=%s container=%s image=%s 镜像身份=%s 平台=%s %s）\n",
+		st.ProjectID, shortID(fullID), cfg.Image, shortID(imageID),
+		platformDisplay(cfg), curatedImageHint(cfg.Image))
 	return ExitOK
+}
+
+// platformDisplay：声明平台原样展示；未声明显式标注（旧配置不伪造声明）。
+func platformDisplay(cfg *project.Config) string {
+	if cfg != nil && cfg.PlatformDeclared && cfg.Platform != "" {
+		return cfg.Platform
+	}
+	return "未声明(本机架构)"
 }
 
 func nowUTC() string { return time.Now().UTC().Format(time.RFC3339) }

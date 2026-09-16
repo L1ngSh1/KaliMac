@@ -1,0 +1,49 @@
+{
+ "ok": true,
+ "steps": [
+  {
+   "step": 0,
+   "op": "expect",
+   "ok": true,
+   "matched": true,
+   "buffer_tail": "\u001b[?2004hKM_SHELL> "
+  },
+  {
+   "step": 1,
+   "op": "send",
+   "ok": true,
+   "sent": "ps -o pid,pgid,sid,tpgid,comm\r"
+  },
+  {
+   "step": 2,
+   "op": "expect",
+   "ok": true,
+   "matched": true,
+   "buffer_tail": "\u001b[?2004hKM_SHELL> ps -o pid,pgid,sid,tpgid,comm\r\n\u001b[?2004l\r  PID  PGID   SID TPGID COMMAND\r\n   25    25    25    32 bash\r\n   32    32    25    32 ps\r\n\u001b[?2004hKM_SHELL> "
+  },
+  {
+   "step": 3,
+   "op": "send",
+   "ok": true,
+   "sent": "echo SHELL_WORKS=$HOME\r"
+  },
+  {
+   "step": 4,
+   "op": "expect",
+   "ok": true,
+   "matched": true,
+   "buffer_tail": "\u001b[?2004hKM_SHELL> ps -o pid,pgid,sid,tpgid,comm\r\n\u001b[?2004l\r  PID  PGID   SID TPGID COMMAND\r\n   25    25    25    32 bash\r\n   32    32    25    32 ps\r\n\u001b[?2004hKM_SHELL> echo SHELL_WORKS=$HOME\r\n\u001b[?2004l\rSHELL_WORKS=/root\r\n\u001b[?2004hKM_SHELL> "
+  },
+  {
+   "step": 5,
+   "op": "send",
+   "ok": true,
+   "sent": "exit\r"
+  }
+ ],
+ "exit_code": 0,
+ "exit_sig": null,
+ "termios_equal": true,
+ "signals_sent": [],
+ "error": null
+}

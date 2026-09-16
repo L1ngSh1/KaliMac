@@ -18,7 +18,15 @@ Mac 终端输入 km python3 …  →  容器执行 python3 → 输出回到 Mac 
 
 ## 2. 第一次准备（在 Mac 终端）
 
-先启动 Docker Desktop。以下从 KaliMac 仓库根目录执行：
+先启动 Docker Desktop。
+
+**路径 A（拿到安装包/仓库的新用户）**：用附带的 `scripts/install.sh` 从产物安装（或直接把 `km` 二进制放到任意目录），跳到第 3 节，全程不需要开发仓库：
+
+```bash
+DESTDIR=/tmp/stage PREFIX=/opt/km scripts/install.sh   # 或 PREFIX=$HOME/.local
+```
+
+**路径 B（在开发仓库内）**：从仓库根目录执行：
 
 ```bash
 make build

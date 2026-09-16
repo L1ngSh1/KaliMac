@@ -1,0 +1,13 @@
+[?2004hKM_SHELL> sleep 5
+[?2004l^C
+[?2004hKM_SHELL> echo B=$?
+[?2004lB=130
+[?2004hKM_SHELL> ^C[?2004l[?2004h[?2004l
+[?2004hKM_SHELL> echo C_STILL_ALIVE
+[?2004lC_STILL_ALIVE
+[?2004hKM_SHELL> exit
+[?2004lexit
+
+[1mWhat's next:[0m
+    Try Docker Debug for seamless, persistent debugging tools in any container or image → [36mdocker debug 892a2d15ca8e205dc7deb5c8c09152286900a5612e567ac2a1e28dd2deafe3c8[0m
+    Learn more at https://docs.docker.com/go/debug-cli/
