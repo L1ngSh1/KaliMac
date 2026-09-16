@@ -1,0 +1,979 @@
+integration	Set up job	﻿2026-09-16T17:15:05.9734010Z Current runner version: '2.337.0'
+integration	Set up job	2026-09-16T17:15:05.9812075Z ##[group]Runner Image Provisioner
+integration	Set up job	2026-09-16T17:15:05.9813427Z Hosted Compute Agent
+integration	Set up job	2026-09-16T17:15:05.9814505Z Version: 20260828.587
+integration	Set up job	2026-09-16T17:15:05.9815492Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
+integration	Set up job	2026-09-16T17:15:05.9816685Z Build Date: 2026-08-28T16:44:25Z
+integration	Set up job	2026-09-16T17:15:05.9817825Z Worker ID: {7e9aa822-3437-425c-94dd-92e510c20b34}
+integration	Set up job	2026-09-16T17:15:05.9819012Z Azure Region: northcentralus
+integration	Set up job	2026-09-16T17:15:05.9820778Z ##[endgroup]
+integration	Set up job	2026-09-16T17:15:05.9822894Z ##[group]Operating System
+integration	Set up job	2026-09-16T17:15:05.9823839Z Ubuntu
+integration	Set up job	2026-09-16T17:15:05.9824772Z 24.04.5
+integration	Set up job	2026-09-16T17:15:05.9825602Z LTS
+integration	Set up job	2026-09-16T17:15:05.9826549Z ##[endgroup]
+integration	Set up job	2026-09-16T17:15:05.9827408Z ##[group]Runner Image
+integration	Set up job	2026-09-16T17:15:05.9828330Z Image: ubuntu-24.04
+integration	Set up job	2026-09-16T17:15:05.9849775Z Version: 20260907.300.1
+integration	Set up job	2026-09-16T17:15:05.9851667Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260907.300/images/ubuntu/Ubuntu2404-Readme.md
+integration	Set up job	2026-09-16T17:15:05.9854700Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260907.300
+integration	Set up job	2026-09-16T17:15:05.9856432Z ##[endgroup]
+integration	Set up job	2026-09-16T17:15:05.9858272Z ##[group]GITHUB_TOKEN Permissions
+integration	Set up job	2026-09-16T17:15:05.9861936Z Contents: read
+integration	Set up job	2026-09-16T17:15:05.9862890Z Metadata: read
+integration	Set up job	2026-09-16T17:15:05.9863794Z Packages: read
+integration	Set up job	2026-09-16T17:15:05.9864812Z ##[endgroup]
+integration	Set up job	2026-09-16T17:15:05.9868472Z Secret source: Actions
+integration	Set up job	2026-09-16T17:15:05.9890579Z Cache mode: write
+integration	Set up job	2026-09-16T17:15:05.9891848Z Prepare workflow directory
+integration	Set up job	2026-09-16T17:15:06.0817458Z Prepare all required actions
+integration	Set up job	2026-09-16T17:15:06.0968687Z Getting action download info
+integration	Set up job	2026-09-16T17:15:06.3543119Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+integration	Set up job	2026-09-16T17:15:06.4552625Z Download action repository 'actions/setup-go@v5' (SHA:40f1582b2485089dde7abd97c1529aa768e1baff)
+integration	Set up job	2026-09-16T17:15:06.9551967Z Complete job name: integration
+integration	Run actions/checkout@v4	﻿2026-09-16T17:15:07.0289960Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.0298385Z ##[group]Run actions/checkout@v4
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.0299274Z with:
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.0299734Z   repository: L1ngSh1/KaliMac
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.0303460Z   token: ***
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.0303908Z   ssh-strict: true
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.0304351Z   ssh-user: git
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.0304808Z   persist-credentials: true
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.0305302Z   clean: true
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.0305745Z   sparse-checkout-cone-mode: true
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.0306268Z   fetch-depth: 1
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.0306707Z   fetch-tags: false
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.0307158Z   show-progress: true
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.0307609Z   lfs: false
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.0308033Z   submodules: false
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.0308531Z   set-safe-directory: true
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.0309031Z   allow-unsafe-pr-checkout: false
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.0309883Z ##[endgroup]
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1463224Z Syncing repository: L1ngSh1/KaliMac
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1465862Z ##[group]Getting Git version info
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1467209Z Working directory is '/home/runner/work/KaliMac/KaliMac'
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1469528Z [command]/usr/bin/git version
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1570150Z git version 2.55.0
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1633476Z ##[endgroup]
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1646876Z Temporarily overriding HOME='/home/runner/work/_temp/4ae15496-b321-4170-8364-16363b32b93b' before making global git config changes
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1649669Z Adding repository directory to the temporary git global config as a safe directory
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1651615Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/KaliMac/KaliMac
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1698295Z Deleting the contents of '/home/runner/work/KaliMac/KaliMac'
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1744115Z ##[group]Initializing the repository
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1750185Z [command]/usr/bin/git init /home/runner/work/KaliMac/KaliMac
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1830447Z hint: Using 'master' as the name for the initial branch. This default branch name
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1844594Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1846314Z hint: to use in all of your new repositories, which will suppress this warning,
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1847975Z hint: call:
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1848751Z hint:
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1849973Z hint: 	git config --global init.defaultBranch <name>
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1851056Z hint:
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1852040Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1853668Z hint: 'development'. The just-created branch can be renamed via this command:
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1854959Z hint:
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1855719Z hint: 	git branch -m <name>
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1856583Z hint:
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1857688Z hint: Disable this message with "git config set advice.defaultBranchName false"
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1859952Z Initialized empty Git repository in /home/runner/work/KaliMac/KaliMac/.git/
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1862902Z [command]/usr/bin/git remote add origin https://github.com/L1ngSh1/KaliMac
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1906548Z ##[endgroup]
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1907937Z ##[group]Disabling automatic garbage collection
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.1911404Z [command]/usr/bin/git config --local gc.auto 0
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.2000426Z ##[endgroup]
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.2010424Z ##[group]Setting up auth
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.2020527Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.2033860Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.2550658Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.2611688Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.2935800Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.2977462Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.3247055Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.3284603Z ##[endgroup]
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.3286366Z ##[group]Fetching the repository
+integration	Run actions/checkout@v4	2026-09-16T17:15:07.3296739Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +f6ed3207e313aa54af3b038de154604563c7e6a8:refs/remotes/origin/master
+integration	Run actions/checkout@v4	2026-09-16T17:15:08.8373887Z From https://github.com/L1ngSh1/KaliMac
+integration	Run actions/checkout@v4	2026-09-16T17:15:08.8496601Z  * [new ref]         f6ed3207e313aa54af3b038de154604563c7e6a8 -> origin/master
+integration	Run actions/checkout@v4	2026-09-16T17:15:08.8503618Z ##[endgroup]
+integration	Run actions/checkout@v4	2026-09-16T17:15:08.8506497Z ##[group]Determining the checkout info
+integration	Run actions/checkout@v4	2026-09-16T17:15:08.8509372Z ##[endgroup]
+integration	Run actions/checkout@v4	2026-09-16T17:15:08.8511523Z [command]/usr/bin/git sparse-checkout disable
+integration	Run actions/checkout@v4	2026-09-16T17:15:08.8516765Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+integration	Run actions/checkout@v4	2026-09-16T17:15:08.8523155Z ##[group]Checking out the ref
+integration	Run actions/checkout@v4	2026-09-16T17:15:08.8525548Z [command]/usr/bin/git checkout --progress --force -B master refs/remotes/origin/master
+integration	Run actions/checkout@v4	2026-09-16T17:15:08.9104707Z Reset branch 'master'
+integration	Run actions/checkout@v4	2026-09-16T17:15:08.9107464Z branch 'master' set up to track 'origin/master'.
+integration	Run actions/checkout@v4	2026-09-16T17:15:08.9113975Z ##[endgroup]
+integration	Run actions/checkout@v4	2026-09-16T17:15:08.9119040Z [command]/usr/bin/git log -1 --format=%H
+integration	Run actions/checkout@v4	2026-09-16T17:15:08.9121689Z f6ed3207e313aa54af3b038de154604563c7e6a8
+integration	Run actions/setup-go@v5	﻿2026-09-16T17:15:08.9532444Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+integration	Run actions/setup-go@v5	2026-09-16T17:15:08.9542117Z ##[group]Run actions/setup-go@v5
+integration	Run actions/setup-go@v5	2026-09-16T17:15:08.9543758Z with:
+integration	Run actions/setup-go@v5	2026-09-16T17:15:08.9544970Z   go-version: 1.25.x
+integration	Run actions/setup-go@v5	2026-09-16T17:15:08.9546296Z   check-latest: false
+integration	Run actions/setup-go@v5	2026-09-16T17:15:08.9560607Z   token: ***
+integration	Run actions/setup-go@v5	2026-09-16T17:15:08.9561959Z   cache: true
+integration	Run actions/setup-go@v5	2026-09-16T17:15:08.9563243Z ##[endgroup]
+integration	Run actions/setup-go@v5	2026-09-16T17:15:09.1202387Z Setup go version spec 1.25.x
+integration	Run actions/setup-go@v5	2026-09-16T17:15:09.1453019Z Found in cache @ /opt/hostedtoolcache/go/1.25.14/x64
+integration	Run actions/setup-go@v5	2026-09-16T17:15:09.1455702Z Added go to the path
+integration	Run actions/setup-go@v5	2026-09-16T17:15:09.1460089Z Successfully set up Go version 1.25.x
+integration	Run actions/setup-go@v5	2026-09-16T17:15:09.1463761Z (node:2041) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+integration	Run actions/setup-go@v5	2026-09-16T17:15:09.1470045Z (Use `node --trace-deprecation ...` to show where the warning was created)
+integration	Run actions/setup-go@v5	2026-09-16T17:15:09.9456104Z [command]/opt/hostedtoolcache/go/1.25.14/x64/bin/go env GOMODCACHE
+integration	Run actions/setup-go@v5	2026-09-16T17:15:09.9512816Z [command]/opt/hostedtoolcache/go/1.25.14/x64/bin/go env GOCACHE
+integration	Run actions/setup-go@v5	2026-09-16T17:15:09.9539615Z /home/runner/go/pkg/mod
+integration	Run actions/setup-go@v5	2026-09-16T17:15:09.9576722Z /home/runner/.cache/go-build
+integration	Run actions/setup-go@v5	2026-09-16T17:15:10.1203672Z Cache hit for: setup-go-Linux-x64-ubuntu24-go-1.25.14-072c5e6068315c0ea6c702af5bed094699d1ab96d0aade39470ee9e3dd80e2b7
+integration	Run actions/setup-go@v5	2026-09-16T17:15:10.1315229Z (node:2041) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+integration	Run actions/setup-go@v5	2026-09-16T17:15:10.8852165Z Received 37557973 of 37557973 (100.0%), 55.2 MBs/sec
+integration	Run actions/setup-go@v5	2026-09-16T17:15:10.8859641Z Cache Size: ~36 MB (37557973 B)
+integration	Run actions/setup-go@v5	2026-09-16T17:15:10.8881999Z [command]/usr/bin/tar -xf /home/runner/work/_temp/a2b0c076-6a70-461d-ad3a-3f9fa5c2a887/cache.tzst -P -C /home/runner/work/KaliMac/KaliMac --use-compress-program unzstd
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.2951093Z Cache restored successfully
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3030847Z Cache restored from key: setup-go-Linux-x64-ubuntu24-go-1.25.14-072c5e6068315c0ea6c702af5bed094699d1ab96d0aade39470ee9e3dd80e2b7
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3068044Z go version go1.25.14 linux/amd64
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3068875Z 
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3070159Z ##[group]go env
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3243167Z AR='ar'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3244197Z CC='gcc'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3348849Z CGO_CFLAGS='-O2 -g'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3351709Z CGO_CPPFLAGS=''
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3352084Z CGO_CXXFLAGS='-O2 -g'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3352440Z CGO_ENABLED='1'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3352755Z CGO_FFLAGS='-O2 -g'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3353092Z CGO_LDFLAGS='-O2 -g'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3353405Z CXX='g++'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3353792Z GCCGO='gccgo'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3354118Z GO111MODULE=''
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3354452Z GOAMD64='v1'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3354852Z GOARCH='amd64'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3355229Z GOAUTH='netrc'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3355573Z GOBIN=''
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3355941Z GOCACHE='/home/runner/.cache/go-build'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3356433Z GOCACHEPROG=''
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3356783Z GODEBUG=''
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3357145Z GOENV='/home/runner/.config/go/env'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3357610Z GOEXE=''
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3358025Z GOEXPERIMENT=''
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3358423Z GOFIPS140='off'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3358760Z GOFLAGS=''
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3360167Z GOGCCFLAGS='-fPIC -m64 -pthread -Wl,--no-gc-sections -fmessage-length=0 -ffile-prefix-map=/tmp/go-build3484841686=/tmp/go-build -gno-record-gcc-switches'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3361338Z GOHOSTARCH='amd64'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3361692Z GOHOSTOS='linux'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3362035Z GOINSECURE=''
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3362451Z GOMOD='/home/runner/work/KaliMac/KaliMac/go.mod'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3363035Z GOMODCACHE='/home/runner/go/pkg/mod'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3363496Z GONOPROXY=''
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3364478Z GONOSUMDB=''
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3364798Z GOOS='linux'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3365352Z GOPATH='/home/runner/go'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3365738Z GOPRIVATE=''
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3366197Z GOPROXY='https://proxy.golang.org,direct'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3366779Z GOROOT='/opt/hostedtoolcache/go/1.25.14/x64'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3367275Z GOSUMDB='sum.golang.org'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3367634Z GOTELEMETRY='local'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3368035Z GOTELEMETRYDIR='/home/runner/.config/go/telemetry'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3368504Z GOTMPDIR=''
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3368821Z GOTOOLCHAIN='auto'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3369527Z GOTOOLDIR='/opt/hostedtoolcache/go/1.25.14/x64/pkg/tool/linux_amd64'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3370104Z GOVCS=''
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3370409Z GOVERSION='go1.25.14'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3370744Z GOWORK=''
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3371063Z PKG_CONFIG='pkg-config'
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3371277Z 
+integration	Run actions/setup-go@v5	2026-09-16T17:15:11.3371751Z ##[endgroup]
+integration	Docker 引擎预检（不可达必须失败）	﻿2026-09-16T17:15:11.3494148Z ##[group]Run docker info
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.3494520Z ^[[36;1mdocker info^[[0m
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.3542451Z shell: /usr/bin/bash -e {0}
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.3542826Z ##[endgroup]
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6743603Z Client: Docker Engine - Community
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6755050Z  Version:    28.0.4
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6758938Z  Context:    default
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6760441Z  Debug Mode: false
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6761115Z  Plugins:
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6761848Z   buildx: Docker Buildx (Docker Inc.)
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6762643Z     Version:  v0.37.0
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6763655Z     Path:     /usr/libexec/docker/cli-plugins/docker-buildx
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6764461Z   compose: Docker Compose (Docker Inc.)
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6765342Z     Version:  v2.38.2
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6765930Z     Path:     /usr/libexec/docker/cli-plugins/docker-compose
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6766332Z 
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6766578Z Server:
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6767477Z  Containers: 0
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6768229Z   Running: 0
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6768962Z   Paused: 0
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6770348Z   Stopped: 0
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6771127Z  Images: 6
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6771975Z  Server Version: 28.0.4
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6772708Z  Storage Driver: overlay2
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6773494Z   Backing Filesystem: extfs
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6774247Z   Supports d_type: true
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6774953Z   Using metacopy: false
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6775660Z   Native Overlay Diff: false
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6776385Z   userxattr: false
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6777647Z  Logging Driver: json-file
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6778153Z  Cgroup Driver: systemd
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6778948Z  Cgroup Version: 2
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6779981Z  Plugins:
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6780824Z   Volume: local
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6781593Z   Network: bridge host ipvlan macvlan null overlay
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6782445Z   Log: awslogs fluentd gcplogs gelf journald json-file local splunk syslog
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6783046Z  Swarm: inactive
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6783839Z  Runtimes: io.containerd.runc.v2 runc
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6784551Z  Default Runtime: runc
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6785268Z  Init Binary: docker-init
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6786067Z  containerd version: db8809540e1a7a9da5d518876894933ff55692ab
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6786752Z  runc version: v1.5.1-0-g8f2685a4
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6787463Z  init version: de40ad0
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6788158Z  Security Options:
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6788942Z   apparmor
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6790473Z   seccomp
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6791057Z    Profile: builtin
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6792090Z   cgroupns
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6792672Z  Kernel Version: 6.17.0-1022-azure
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6795049Z  Operating System: Ubuntu 24.04.5 LTS
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6795565Z  OSType: linux
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6796072Z  Architecture: x86_64
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6796438Z  CPUs: 2
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6796681Z  Total Memory: 7.752GiB
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6796932Z  Name: runnervmlun5p
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6797394Z  ID: a4efb8b6-20f9-46f4-b827-91ac0547be3a
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6797917Z  Docker Root Dir: /var/lib/docker
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6798366Z  Debug Mode: false
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6798745Z  Username: githubactions
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6799406Z  Experimental: false
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6800235Z  Insecure Registries:
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6800627Z   ::1/128
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6800955Z   127.0.0.0/8
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6801319Z  Live Restore Enabled: false
+integration	Docker 引擎预检（不可达必须失败）	2026-09-16T17:15:11.6801585Z 
+integration	预拉取官方基础/工具镜像（CI 不经国内镜像站）	﻿2026-09-16T17:15:11.6835441Z ##[group]Run docker pull kalilinux/kali-rolling:latest
+integration	预拉取官方基础/工具镜像（CI 不经国内镜像站）	2026-09-16T17:15:11.6835886Z ^[[36;1mdocker pull kalilinux/kali-rolling:latest^[[0m
+integration	预拉取官方基础/工具镜像（CI 不经国内镜像站）	2026-09-16T17:15:11.6836238Z ^[[36;1mdocker pull busybox:stable^[[0m
+integration	预拉取官方基础/工具镜像（CI 不经国内镜像站）	2026-09-16T17:15:11.6877966Z shell: /usr/bin/bash -e {0}
+integration	预拉取官方基础/工具镜像（CI 不经国内镜像站）	2026-09-16T17:15:11.6878251Z ##[endgroup]
+integration	预拉取官方基础/工具镜像（CI 不经国内镜像站）	2026-09-16T17:15:12.1093623Z latest: Pulling from kalilinux/kali-rolling
+integration	预拉取官方基础/工具镜像（CI 不经国内镜像站）	2026-09-16T17:15:12.2271766Z 2833d00c1990: Pulling fs layer
+integration	预拉取官方基础/工具镜像（CI 不经国内镜像站）	2026-09-16T17:15:12.5121146Z 2833d00c1990: Verifying Checksum
+integration	预拉取官方基础/工具镜像（CI 不经国内镜像站）	2026-09-16T17:15:12.5122032Z 2833d00c1990: Download complete
+integration	预拉取官方基础/工具镜像（CI 不经国内镜像站）	2026-09-16T17:15:14.3597653Z 2833d00c1990: Pull complete
+integration	预拉取官方基础/工具镜像（CI 不经国内镜像站）	2026-09-16T17:15:14.3655726Z Digest: sha256:49d174981a2a211e76acdde22a2e4978ea19bc0433487292cd9ad865da24ee42
+integration	预拉取官方基础/工具镜像（CI 不经国内镜像站）	2026-09-16T17:15:14.3664516Z Status: Downloaded newer image for kalilinux/kali-rolling:latest
+integration	预拉取官方基础/工具镜像（CI 不经国内镜像站）	2026-09-16T17:15:14.3674560Z docker.io/kalilinux/kali-rolling:latest
+integration	预拉取官方基础/工具镜像（CI 不经国内镜像站）	2026-09-16T17:15:14.7687734Z stable: Pulling from library/busybox
+integration	预拉取官方基础/工具镜像（CI 不经国内镜像站）	2026-09-16T17:15:14.8833252Z 034d6572bf28: Pulling fs layer
+integration	预拉取官方基础/工具镜像（CI 不经国内镜像站）	2026-09-16T17:15:15.0423161Z 034d6572bf28: Verifying Checksum
+integration	预拉取官方基础/工具镜像（CI 不经国内镜像站）	2026-09-16T17:15:15.0427324Z 034d6572bf28: Download complete
+integration	预拉取官方基础/工具镜像（CI 不经国内镜像站）	2026-09-16T17:15:15.1299484Z 034d6572bf28: Pull complete
+integration	预拉取官方基础/工具镜像（CI 不经国内镜像站）	2026-09-16T17:15:15.1338283Z Digest: sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662
+integration	预拉取官方基础/工具镜像（CI 不经国内镜像站）	2026-09-16T17:15:15.1351939Z Status: Downloaded newer image for busybox:stable
+integration	预拉取官方基础/工具镜像（CI 不经国内镜像站）	2026-09-16T17:15:15.1360308Z docker.io/library/busybox:stable
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	﻿2026-09-16T17:15:15.1416340Z ##[group]Run docker build \
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.1416664Z ^[[36;1mdocker build \^[[0m
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.1417002Z ^[[36;1m  --build-arg KALI_BASE=kalilinux/kali-rolling:latest \^[[0m
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.1417455Z ^[[36;1m  --build-arg KALI_APT_MIRROR=http://kali.download/kali/ \^[[0m
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.1417878Z ^[[36;1m  -t kali-mac-min:0.2 images/kali^[[0m
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.1458471Z shell: /usr/bin/bash -e {0}
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.1458752Z ##[endgroup]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.4780849Z #0 building with "default" instance using docker driver
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.4783099Z 
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.4783730Z #1 [internal] load build definition from Dockerfile
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.4784512Z #1 transferring dockerfile: 1.94kB done
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.4785172Z #1 DONE 0.0s
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.4785576Z 
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.4786118Z #2 [internal] load metadata for docker.io/kalilinux/kali-rolling:latest
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.4786927Z #2 DONE 0.0s
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.4787309Z 
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.4787679Z #3 [internal] load .dockerignore
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.4788410Z #3 transferring context: 2B done
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.4788998Z #3 DONE 0.0s
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.4789604Z 
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.4790052Z #4 [1/2] FROM docker.io/kalilinux/kali-rolling:latest
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.4790753Z #4 DONE 0.0s
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.4791128Z 
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.4794153Z #5 [2/2] RUN printf 'Types: deb\nURIs: '"http://kali.download/kali/"'\nSuites: kali-rolling\nComponents: main contrib non-free non-free-firmware\nSigned-By: /usr/share/keyrings/kali-archive-keyring.gpg\n'       > /etc/apt/sources.list.d/kali.sources  && apt-get -o Acquire::Retries=5 update  && apt-get -o Acquire::Retries=5 install -y --no-install-recommends       procps       util-linux       coreutils       python3       curl       jq       file       openssl       nmap  && rm -rf /var/lib/apt/lists/*
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.5484012Z #5 0.225 Get:1 http://kali.download/kali kali-rolling InRelease [34.0 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.7664500Z #5 0.253 Get:2 http://kali.download/kali kali-rolling/contrib amd64 Packages [115 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.7666417Z #5 0.277 Get:3 http://kali.download/kali kali-rolling/non-free-firmware amd64 Packages [16.0 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.7667605Z #5 0.292 Get:4 http://kali.download/kali kali-rolling/main amd64 Packages [21.5 MB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:15.7876087Z #5 0.464 Get:5 http://kali.download/kali kali-rolling/non-free amd64 Packages [183 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:16.5598083Z #5 1.236 Fetched 21.9 MB in 1s (21.2 MB/s)
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:17.1895943Z #5 1.236 Reading package lists...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:17.8823182Z #5 1.883 Reading package lists...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.0579835Z #5 2.568 Building dependency tree...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.2545414Z #5 2.734 Reading state information...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.2552413Z #5 2.772 coreutils is already the newest version (9.10-1).
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.2553423Z #5 2.772 Solving dependencies...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.2554459Z #5 2.931 The following additional packages will be installed:
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.4072430Z #5 2.931   bsdutils libblas3 libblkid1 libbrotli1 libcom-err2 libcurl4t64 libdbus-1-3
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.4074531Z #5 2.931   libexpat1 libffi8 libgssapi-krb5-2 libidn2-0 libjq1 libk5crypto3
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.4075792Z #5 2.931   libkeyutils1 libkrb5-3 libkrb5support0 libldap2 liblinear4 liblua5.4-0
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.4077074Z #5 2.931   libmagic-mgc libmagic1t64 libmount1 libncursesw6 libnghttp2-14 libnghttp3-9
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.4078294Z #5 2.931   libngtcp2-16 libngtcp2-crypto-ossl0 libonig5 libpcap0.8t64 libproc2-1
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.4079643Z #5 2.931   libpsl5t64 libpython3-stdlib libpython3.14-minimal libpython3.14-stdlib
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.4080871Z #5 2.932   libreadline8t64 libsasl2-2 libsasl2-modules-db libsmartcols1 libsqlite3-0
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.4082044Z #5 2.932   libssh2-1t64 libunistring5 libuuid1 login media-types mount netbase
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.4083215Z #5 2.932   nmap-common python3-minimal python3.14 python3.14-minimal readline-common
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.4084171Z #5 2.933 Suggested packages:
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.4084939Z #5 2.933   krb5-doc krb5-user liblinear-tools liblinear-dev ncat ndiff zenmap
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.4086672Z #5 2.933   ca-certificates python3-doc python3-tk python3-venv python3.14-venv
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.4087722Z #5 2.933   python3.14-doc binutils binfmt-support readline-doc
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.4088523Z #5 2.933 Recommended packages:
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.4089546Z #5 2.933   bash-completion ca-certificates krb5-locales libldap-common libgpm2
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.4090648Z #5 2.933   publicsuffix libsasl2-modules psmisc linux-sysctl-defaults
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.7728959Z #5 3.449 The following NEW packages will be installed:
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.8840233Z #5 3.449   curl file jq libblas3 libbrotli1 libcom-err2 libcurl4t64 libdbus-1-3
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.8841186Z #5 3.450   libexpat1 libffi8 libgssapi-krb5-2 libidn2-0 libjq1 libk5crypto3
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.8842083Z #5 3.450   libkeyutils1 libkrb5-3 libkrb5support0 libldap2 liblinear4 liblua5.4-0
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.8842858Z #5 3.450   libmagic-mgc libmagic1t64 libncursesw6 libnghttp2-14 libnghttp3-9
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.8843674Z #5 3.450   libngtcp2-16 libngtcp2-crypto-ossl0 libonig5 libpcap0.8t64 libproc2-1
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.8844505Z #5 3.450   libpsl5t64 libpython3-stdlib libpython3.14-minimal libpython3.14-stdlib
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.8845319Z #5 3.450   libreadline8t64 libsasl2-2 libsasl2-modules-db libsqlite3-0 libssh2-1t64
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.8846165Z #5 3.451   libunistring5 media-types netbase nmap nmap-common openssl procps python3
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.8846710Z #5 3.451   python3-minimal python3.14 python3.14-minimal readline-common
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.8847133Z #5 3.451 The following packages will be upgraded:
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.8847597Z #5 3.452   bsdutils libblkid1 libmount1 libsmartcols1 libuuid1 login mount util-linux
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.8848123Z #5 3.544 8 upgraded, 51 newly installed, 0 to remove and 7 not upgraded.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.8848504Z #5 3.544 Need to get 24.8 MB of archives.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.8848902Z #5 3.544 After this operation, 88.3 MB of additional disk space will be used.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.8849700Z #5 3.544 Get:1 http://kali.download/kali kali-rolling/main amd64 libuuid1 amd64 2.42.2-4 [34.4 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.8850554Z #5 3.561 Get:2 http://kali.download/kali kali-rolling/main amd64 libblkid1 amd64 2.42.2-4 [185 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.9913427Z #5 3.569 Get:3 http://kali.download/kali kali-rolling/main amd64 libmount1 amd64 2.42.2-4 [230 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.9917094Z #5 3.577 Get:4 http://kali.download/kali kali-rolling/main amd64 libsmartcols1 amd64 2.42.2-4 [153 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.9920083Z #5 3.591 Get:5 http://kali.download/kali kali-rolling/main amd64 util-linux amd64 2.42.2-4 [1244 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.9921897Z #5 3.611 Get:6 http://kali.download/kali kali-rolling/main amd64 mount amd64 2.42.2-4 [169 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.9923786Z #5 3.623 Get:7 http://kali.download/kali kali-rolling/main amd64 login amd64 1:4.16.0-2+really2.42.2-4 [121 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.9926086Z #5 3.634 Get:8 http://kali.download/kali kali-rolling/main amd64 libexpat1 amd64 2.8.3-1 [127 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.9928427Z #5 3.649 Get:9 http://kali.download/kali kali-rolling/main amd64 libpython3.14-minimal amd64 3.14.7-3 [902 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:18.9930050Z #5 3.668 Get:10 http://kali.download/kali kali-rolling/main amd64 python3.14-minimal amd64 3.14.7-3 [2712 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.1217912Z #5 3.695 Get:11 http://kali.download/kali kali-rolling/main amd64 python3-minimal amd64 3.14.7-3 [25.3 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.1219559Z #5 3.711 Get:12 http://kali.download/kali kali-rolling/main amd64 media-types all 14.0.0 [30.8 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.1220764Z #5 3.722 Get:13 http://kali.download/kali kali-rolling/main amd64 netbase all 6.6 [10.3 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.1221884Z #5 3.732 Get:14 http://kali.download/kali kali-rolling/main amd64 libffi8 amd64 3.8.0-2 [32.5 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.1223097Z #5 3.749 Get:15 http://kali.download/kali kali-rolling/main amd64 libncursesw6 amd64 6.6+20260608-2 [137 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.1224318Z #5 3.754 Get:16 http://kali.download/kali kali-rolling/main amd64 readline-common all 8.3-4 [74.8 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.1225838Z #5 3.764 Get:17 http://kali.download/kali kali-rolling/main amd64 libreadline8t64 amd64 8.3-4 [181 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.1227018Z #5 3.798 Get:18 http://kali.download/kali kali-rolling/main amd64 libsqlite3-0 amd64 3.53.4-2 [974 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.2278090Z #5 3.803 Get:19 http://kali.download/kali kali-rolling/main amd64 libpython3.14-stdlib amd64 3.14.7-3 [2360 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.2279760Z #5 3.825 Get:20 http://kali.download/kali kali-rolling/main amd64 python3.14 amd64 3.14.7-3 [861 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.2281220Z #5 3.845 Get:21 http://kali.download/kali kali-rolling/main amd64 libpython3-stdlib amd64 3.14.7-3 [8252 B]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.2282469Z #5 3.857 Get:22 http://kali.download/kali kali-rolling/main amd64 python3 amd64 3.14.7-3 [26.0 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.2283439Z #5 3.866 Get:23 http://kali.download/kali kali-rolling/main amd64 bsdutils amd64 1:2.42.2-4 [92.9 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.2284555Z #5 3.879 Get:24 http://kali.download/kali kali-rolling/main amd64 libproc2-1 amd64 2:4.0.6-3 [69.4 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.2285568Z #5 3.885 Get:25 http://kali.download/kali kali-rolling/main amd64 procps amd64 2:4.0.6-3 [983 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.2286586Z #5 3.904 Get:26 http://kali.download/kali kali-rolling/main amd64 libmagic-mgc amd64 1:5.47-4 [345 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.3290303Z #5 3.914 Get:27 http://kali.download/kali kali-rolling/main amd64 libmagic1t64 amd64 1:5.47-4 [111 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.3291466Z #5 3.927 Get:28 http://kali.download/kali kali-rolling/main amd64 file amd64 1:5.47-4 [43.0 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.3293105Z #5 3.941 Get:29 http://kali.download/kali kali-rolling/main amd64 libnghttp3-9 amd64 1.17.0-1 [68.1 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.3294203Z #5 3.952 Get:30 http://kali.download/kali kali-rolling/main amd64 libngtcp2-16 amd64 1.24.0-1 [145 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.3295264Z #5 3.963 Get:31 http://kali.download/kali kali-rolling/main amd64 libbrotli1 amd64 1.2.0-4+b1 [312 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.3296403Z #5 3.979 Get:32 http://kali.download/kali kali-rolling/main amd64 libkrb5support0 amd64 1.22.1-3 [31.1 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.3297531Z #5 3.989 Get:33 http://kali.download/kali kali-rolling/main amd64 libcom-err2 amd64 1.47.4-1+b1 [19.5 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.3298632Z #5 4.005 Get:34 http://kali.download/kali kali-rolling/main amd64 libk5crypto3 amd64 1.22.1-3 [79.0 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.4506716Z #5 4.016 Get:35 http://kali.download/kali kali-rolling/main amd64 libkeyutils1 amd64 1.6.3-6+b2 [9348 B]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.4508370Z #5 4.032 Get:36 http://kali.download/kali kali-rolling/main amd64 libkrb5-3 amd64 1.22.1-3 [335 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.4510053Z #5 4.046 Get:37 http://kali.download/kali kali-rolling/main amd64 libgssapi-krb5-2 amd64 1.22.1-3 [137 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.4511035Z #5 4.070 Get:38 http://kali.download/kali kali-rolling/main amd64 libunistring5 amd64 1.4.2-1 [480 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.4511915Z #5 4.089 Get:39 http://kali.download/kali kali-rolling/main amd64 libidn2-0 amd64 2.3.8-5 [109 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.4512990Z #5 4.105 Get:40 http://kali.download/kali kali-rolling/main amd64 libsasl2-modules-db amd64 2.1.28+dfsg1-11 [17.2 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.4519584Z #5 4.127 Get:41 http://kali.download/kali kali-rolling/main amd64 libsasl2-2 amd64 2.1.28+dfsg1-11 [55.2 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.5509605Z #5 4.140 Get:42 http://kali.download/kali kali-rolling/main amd64 libldap2 amd64 2.6.14+dfsg-2 [200 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.5511166Z #5 4.151 Get:43 http://kali.download/kali kali-rolling/main amd64 libnghttp2-14 amd64 1.70.0-1 [92.7 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.5512281Z #5 4.162 Get:44 http://kali.download/kali kali-rolling/main amd64 libngtcp2-crypto-ossl0 amd64 1.24.0-1 [26.5 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.5513364Z #5 4.171 Get:45 http://kali.download/kali kali-rolling/main amd64 libpsl5t64 amd64 0.23.3-1 [61.7 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.5514643Z #5 4.186 Get:46 http://kali.download/kali kali-rolling/main amd64 libssh2-1t64 amd64 1.11.1-6 [253 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.5516056Z #5 4.198 Get:47 http://kali.download/kali kali-rolling/main amd64 libcurl4t64 amd64 8.21.0-2 [422 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.5517068Z #5 4.212 Get:48 http://kali.download/kali kali-rolling/main amd64 curl amd64 8.21.0-2 [283 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.5518083Z #5 4.228 Get:49 http://kali.download/kali kali-rolling/main amd64 libonig5 amd64 6.9.10-1+b1 [192 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.6588330Z #5 4.251 Get:50 http://kali.download/kali kali-rolling/main amd64 libjq1 amd64 1.8.2-1 [170 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.6590318Z #5 4.266 Get:51 http://kali.download/kali kali-rolling/main amd64 jq amd64 1.8.2-1 [88.2 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.6599417Z #5 4.279 Get:52 http://kali.download/kali kali-rolling/main amd64 libblas3 amd64 3.12.1-8 [206 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.6601289Z #5 4.292 Get:53 http://kali.download/kali kali-rolling/main amd64 libdbus-1-3 amd64 1.16.2-5+b1 [176 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.6603132Z #5 4.303 Get:54 http://kali.download/kali kali-rolling/main amd64 liblinear4 amd64 2.3.0+dfsg-5+b3 [42.9 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.6604869Z #5 4.316 Get:55 http://kali.download/kali kali-rolling/main amd64 liblua5.4-0 amd64 5.4.9-1 [152 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.6607381Z #5 4.327 Get:56 http://kali.download/kali kali-rolling/main amd64 libpcap0.8t64 amd64 1.10.6-2 [176 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.6612590Z #5 4.335 Get:57 http://kali.download/kali kali-rolling/non-free amd64 nmap-common all 7.99+dfsg-1kali1 [4698 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.8638626Z #5 4.388 Get:58 http://kali.download/kali kali-rolling/non-free amd64 nmap amd64 7.99+dfsg-1kali1 [1987 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.8640221Z #5 4.408 Get:59 http://kali.download/kali kali-rolling/main amd64 openssl amd64 3.6.3-1 [1522 kB]
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.8641516Z #5 4.539 debconf: unable to initialize frontend: Dialog
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:19.8642433Z #5 4.539 debconf: (TERM is not set, so the dialog frontend is not usable.)
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:20.0197025Z #5 4.539 debconf: falling back to frontend: Readline
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:20.0197771Z #5 4.542 debconf: unable to initialize frontend: Readline
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:20.0200988Z #5 4.542 debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC entries checked: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.42.2 /usr/local/share/perl/5.42.2 /usr/lib/x86_64-linux-gnu/perl5/5.42 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.42 /usr/share/perl/5.42 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 8, <STDIN> line 59.)
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:20.0204287Z #5 4.542 debconf: falling back to frontend: Teletype
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:20.0204930Z #5 4.546 debconf: unable to initialize frontend: Teletype
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:20.0205594Z #5 4.546 debconf: (This frontend requires a controlling tty.)
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:20.0206233Z #5 4.546 debconf: falling back to frontend: Noninteractive
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.1673233Z #5 5.844 Fetched 24.8 MB in 1s (26.1 MB/s)
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2762753Z #5 5.858 (Reading database ... 
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2763611Z (Reading database ... 5%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2764076Z (Reading database ... 10%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2764469Z (Reading database ... 15%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2764837Z (Reading database ... 20%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2765203Z (Reading database ... 25%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2765582Z (Reading database ... 30%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2765948Z (Reading database ... 35%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2766331Z (Reading database ... 40%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2766693Z (Reading database ... 45%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2767057Z (Reading database ... 50%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2767429Z (Reading database ... 55%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2767793Z (Reading database ... 60%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2768156Z (Reading database ... 65%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2768517Z (Reading database ... 70%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2768892Z (Reading database ... 75%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2769443Z (Reading database ... 80%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2769814Z (Reading database ... 85%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2770241Z (Reading database ... 90%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2770621Z (Reading database ... 95%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2770996Z (Reading database ... 100%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2771897Z (Reading database ... 5151 files and directories currently installed.)
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2772376Z #5 5.867 Preparing to unpack .../libuuid1_2.42.2-4_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2773034Z #5 5.871 Unpacking libuuid1:amd64 (2.42.2-4) over (2.42.2-2) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2773515Z #5 5.894 Setting up libuuid1:amd64 (2.42.2-4) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2774182Z #5 5.911 (Reading database ... 
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2774594Z (Reading database ... 5%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2774998Z (Reading database ... 10%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2775278Z (Reading database ... 15%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2775722Z (Reading database ... 20%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2776008Z (Reading database ... 25%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2776260Z (Reading database ... 30%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2776494Z (Reading database ... 35%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2776984Z (Reading database ... 40%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2777359Z (Reading database ... 45%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2777754Z (Reading database ... 50%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2778117Z (Reading database ... 55%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2778506Z (Reading database ... 60%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2778876Z (Reading database ... 65%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2779842Z (Reading database ... 70%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2780266Z (Reading database ... 75%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2780533Z (Reading database ... 80%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2780792Z (Reading database ... 85%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2781025Z (Reading database ... 90%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2781263Z (Reading database ... 95%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2781711Z (Reading database ... 100%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2782111Z (Reading database ... 5151 files and directories currently installed.)
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2782949Z #5 5.919 Preparing to unpack .../libblkid1_2.42.2-4_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2783609Z #5 5.922 Unpacking libblkid1:amd64 (2.42.2-4) over (2.42.2-2) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.2783998Z #5 5.952 Setting up libblkid1:amd64 (2.42.2-4) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3945481Z #5 5.971 (Reading database ... 
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3946230Z (Reading database ... 5%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3947196Z (Reading database ... 10%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3948921Z (Reading database ... 15%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3950031Z (Reading database ... 20%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3951843Z (Reading database ... 25%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3954136Z (Reading database ... 30%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3960150Z (Reading database ... 35%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3961008Z (Reading database ... 40%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3961313Z (Reading database ... 45%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3961561Z (Reading database ... 50%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3961793Z (Reading database ... 55%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3962056Z (Reading database ... 60%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3962291Z (Reading database ... 65%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3962548Z (Reading database ... 70%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3962873Z (Reading database ... 75%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3963107Z (Reading database ... 80%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3963339Z (Reading database ... 85%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3963569Z (Reading database ... 90%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3963810Z (Reading database ... 95%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3964045Z (Reading database ... 100%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3964432Z (Reading database ... 5151 files and directories currently installed.)
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3964909Z #5 5.981 Preparing to unpack .../libmount1_2.42.2-4_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3965354Z #5 5.983 Unpacking libmount1:amd64 (2.42.2-4) over (2.42.2-2) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3965745Z #5 6.015 Setting up libmount1:amd64 (2.42.2-4) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3966070Z #5 6.033 (Reading database ... 
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3966335Z (Reading database ... 5%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3966587Z (Reading database ... 10%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3966831Z (Reading database ... 15%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3967331Z (Reading database ... 20%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3967693Z (Reading database ... 25%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3968058Z (Reading database ... 30%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3968443Z (Reading database ... 35%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3968821Z (Reading database ... 40%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3970081Z (Reading database ... 45%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3970435Z (Reading database ... 50%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3970679Z (Reading database ... 55%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3971195Z (Reading database ... 60%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3971427Z (Reading database ... 65%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3971656Z (Reading database ... 70%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3971890Z (Reading database ... 75%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3972448Z (Reading database ... 80%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3972696Z (Reading database ... 85%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3972937Z (Reading database ... 90%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3974536Z (Reading database ... 95%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3974964Z (Reading database ... 100%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3975326Z (Reading database ... 5151 files and directories currently installed.)
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3976045Z #5 6.039 Preparing to unpack .../libsmartcols1_2.42.2-4_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3979624Z #5 6.043 Unpacking libsmartcols1:amd64 (2.42.2-4) over (2.42.2-2) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.3980404Z #5 6.071 Setting up libsmartcols1:amd64 (2.42.2-4) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.5775222Z #5 6.091 (Reading database ... 
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.5777199Z (Reading database ... 5%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.5789951Z (Reading database ... 10%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.5799728Z (Reading database ... 15%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.5804472Z (Reading database ... 20%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.5805759Z (Reading database ... 25%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.5807392Z (Reading database ... 30%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.5808169Z (Reading database ... 35%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.5809464Z (Reading database ... 40%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.5810213Z (Reading database ... 45%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.5811213Z (Reading database ... 50%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.5836083Z (Reading database ... 55%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.5840499Z (Reading database ... 60%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.5841231Z (Reading database ... 65%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.5843885Z (Reading database ... 70%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.5844773Z (Reading database ... 75%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.5845832Z (Reading database ... 80%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.5846543Z (Reading database ... 85%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.5847577Z (Reading database ... 90%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.5848275Z (Reading database ... 95%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.5849561Z (Reading database ... 100%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.5852143Z (Reading database ... 5151 files and directories currently installed.)
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.5852879Z #5 6.099 Preparing to unpack .../util-linux_2.42.2-4_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.5853531Z #5 6.102 Unpacking util-linux (2.42.2-4) over (2.42.2-2) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.6103316Z #5 6.286 Setting up util-linux (2.42.2-4) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.8526307Z #5 6.407 (Reading database ... 
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.8527223Z (Reading database ... 5%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.8545036Z (Reading database ... 10%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.8556399Z (Reading database ... 15%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.8569840Z (Reading database ... 20%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.8570538Z (Reading database ... 25%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.8572927Z (Reading database ... 30%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.8573353Z (Reading database ... 35%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.8573791Z (Reading database ... 40%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.8574234Z (Reading database ... 45%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.8574616Z (Reading database ... 50%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.8575016Z (Reading database ... 55%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.8579725Z (Reading database ... 60%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.8580147Z (Reading database ... 65%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.8580538Z (Reading database ... 70%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.8580933Z (Reading database ... 75%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.8581329Z (Reading database ... 80%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.8581753Z (Reading database ... 85%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.8582151Z (Reading database ... 90%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.8582548Z (Reading database ... 95%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.8582939Z (Reading database ... 100%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.8583538Z (Reading database ... 5151 files and directories currently installed.)
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.8584319Z #5 6.415 Preparing to unpack .../mount_2.42.2-4_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.8584970Z #5 6.417 Unpacking mount (2.42.2-4) over (2.42.2-2) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.8585722Z #5 6.454 Preparing to unpack .../login_1%3a4.16.0-2+really2.42.2-4_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.8586648Z #5 6.476 Unpacking login (1:4.16.0-2+really2.42.2-4) over (1:4.16.0-2+really2.42.2-2) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.8587878Z #5 6.529 Selecting previously unselected package libexpat1:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.9600686Z #5 6.531 Preparing to unpack .../libexpat1_2.8.3-1_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.9601750Z #5 6.533 Unpacking libexpat1:amd64 (2.8.3-1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.9604203Z #5 6.555 Selecting previously unselected package libpython3.14-minimal:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.9605075Z #5 6.557 Preparing to unpack .../libpython3.14-minimal_3.14.7-3_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.9605746Z #5 6.558 Unpacking libpython3.14-minimal:amd64 (3.14.7-3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:21.9606387Z #5 6.636 Selecting previously unselected package python3.14-minimal.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:22.0981640Z #5 6.639 Preparing to unpack .../python3.14-minimal_3.14.7-3_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:22.0982826Z #5 6.643 Unpacking python3.14-minimal (3.14.7-3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:22.0983465Z #5 6.774 Setting up libpython3.14-minimal:amd64 (3.14.7-3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:22.2560871Z #5 6.778 Setting up libexpat1:amd64 (2.8.3-1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:22.2561899Z #5 6.781 Setting up python3.14-minimal (3.14.7-3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.0007527Z #5 7.677 Selecting previously unselected package python3-minimal.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1323840Z #5 7.677 (Reading database ... 
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1324975Z (Reading database ... 5%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1325652Z (Reading database ... 10%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1326184Z (Reading database ... 15%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1326709Z (Reading database ... 20%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1327234Z (Reading database ... 25%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1327732Z (Reading database ... 30%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1328234Z (Reading database ... 35%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1328738Z (Reading database ... 40%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1329432Z (Reading database ... 45%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1329929Z (Reading database ... 50%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1330431Z (Reading database ... 55%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1330931Z (Reading database ... 60%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1331427Z (Reading database ... 65%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1331921Z (Reading database ... 70%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1332424Z (Reading database ... 75%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1332936Z (Reading database ... 80%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1333432Z (Reading database ... 85%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1339605Z (Reading database ... 90%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1340796Z (Reading database ... 95%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1341569Z (Reading database ... 100%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1342558Z (Reading database ... 5506 files and directories currently installed.)
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1343398Z #5 7.685 Preparing to unpack .../00-python3-minimal_3.14.7-3_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1344087Z #5 7.685 Unpacking python3-minimal (3.14.7-3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1344776Z #5 7.708 Selecting previously unselected package media-types.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1345466Z #5 7.709 Preparing to unpack .../01-media-types_14.0.0_all.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1346064Z #5 7.711 Unpacking media-types (14.0.0) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1346639Z #5 7.728 Selecting previously unselected package netbase.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1347268Z #5 7.729 Preparing to unpack .../02-netbase_6.6_all.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1347827Z #5 7.730 Unpacking netbase (6.6) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1348391Z #5 7.747 Selecting previously unselected package libffi8:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1349576Z #5 7.749 Preparing to unpack .../03-libffi8_3.8.0-2_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1350276Z #5 7.750 Unpacking libffi8:amd64 (3.8.0-2) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.1350909Z #5 7.809 Selecting previously unselected package libncursesw6:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.2781022Z #5 7.811 Preparing to unpack .../04-libncursesw6_6.6+20260608-2_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.2782069Z #5 7.813 Unpacking libncursesw6:amd64 (6.6+20260608-2) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.2782980Z #5 7.836 Selecting previously unselected package readline-common.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.2786647Z #5 7.837 Preparing to unpack .../05-readline-common_8.3-4_all.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.2788598Z #5 7.839 Unpacking readline-common (8.3-4) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.2790367Z #5 7.858 Selecting previously unselected package libreadline8t64:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.2792122Z #5 7.859 Preparing to unpack .../06-libreadline8t64_8.3-4_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.2796902Z #5 7.864 Adding 'diversion of /lib/x86_64-linux-gnu/libhistory.so.8 to /lib/x86_64-linux-gnu/libhistory.so.8.usr-is-merged by libreadline8t64'
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.2805769Z #5 7.868 Adding 'diversion of /lib/x86_64-linux-gnu/libhistory.so.8.2 to /lib/x86_64-linux-gnu/libhistory.so.8.2.usr-is-merged by libreadline8t64'
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.2807777Z #5 7.872 Adding 'diversion of /lib/x86_64-linux-gnu/libreadline.so.8 to /lib/x86_64-linux-gnu/libreadline.so.8.usr-is-merged by libreadline8t64'
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.2809890Z #5 7.876 Adding 'diversion of /lib/x86_64-linux-gnu/libreadline.so.8.2 to /lib/x86_64-linux-gnu/libreadline.so.8.2.usr-is-merged by libreadline8t64'
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.2811257Z #5 7.878 Unpacking libreadline8t64:amd64 (8.3-4) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.2812140Z #5 7.902 Selecting previously unselected package libsqlite3-0:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.2813098Z #5 7.904 Preparing to unpack .../07-libsqlite3-0_3.53.4-2_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.2814041Z #5 7.905 Unpacking libsqlite3-0:amd64 (3.53.4-2) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.2814922Z #5 7.954 Selecting previously unselected package libpython3.14-stdlib:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.4229040Z #5 7.956 Preparing to unpack .../08-libpython3.14-stdlib_3.14.7-3_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.4231133Z #5 7.957 Unpacking libpython3.14-stdlib:amd64 (3.14.7-3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.4232099Z #5 8.100 Selecting previously unselected package python3.14.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.6577475Z #5 8.101 Preparing to unpack .../09-python3.14_3.14.7-3_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.6578611Z #5 8.102 Unpacking python3.14 (3.14.7-3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.6579981Z #5 8.165 Selecting previously unselected package libpython3-stdlib:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.6581055Z #5 8.166 Preparing to unpack .../10-libpython3-stdlib_3.14.7-3_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.6581998Z #5 8.167 Unpacking libpython3-stdlib:amd64 (3.14.7-3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.6582789Z #5 8.184 Setting up python3-minimal (3.14.7-3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.6664437Z #5 8.343 Selecting previously unselected package python3.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8249213Z #5 8.343 (Reading database ... 
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8251605Z (Reading database ... 5%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8256163Z (Reading database ... 10%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8257911Z (Reading database ... 15%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8258567Z (Reading database ... 20%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8259546Z (Reading database ... 25%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8260189Z (Reading database ... 30%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8260785Z (Reading database ... 35%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8261380Z (Reading database ... 40%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8261966Z (Reading database ... 45%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8262545Z (Reading database ... 50%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8263113Z (Reading database ... 55%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8263694Z (Reading database ... 60%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8264260Z (Reading database ... 65%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8264845Z (Reading database ... 70%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8265437Z (Reading database ... 75%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8266044Z (Reading database ... 80%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8266626Z (Reading database ... 85%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8267221Z (Reading database ... 90%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8267805Z (Reading database ... 95%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8268406Z (Reading database ... 100%
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8269403Z (Reading database ... 6035 files and directories currently installed.)
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8270422Z #5 8.350 Preparing to unpack .../00-python3_3.14.7-3_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8271309Z #5 8.354 Unpacking python3 (3.14.7-3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8272125Z #5 8.371 Preparing to unpack .../01-bsdutils_1%3a2.42.2-4_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8273052Z #5 8.374 Unpacking bsdutils (1:2.42.2-4) over (1:2.42.2-2) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8277364Z #5 8.402 Selecting previously unselected package libproc2-1:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8278418Z #5 8.404 Preparing to unpack .../02-libproc2-1_2%3a4.0.6-3_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8279599Z #5 8.405 Unpacking libproc2-1:amd64 (2:4.0.6-3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8280448Z #5 8.424 Selecting previously unselected package procps.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8281663Z #5 8.425 Preparing to unpack .../03-procps_2%3a4.0.6-3_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8282513Z #5 8.431 Unpacking procps (2:4.0.6-3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8283334Z #5 8.501 Selecting previously unselected package libmagic-mgc.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.8284314Z #5 8.501 Preparing to unpack .../04-libmagic-mgc_1%3a5.47-4_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.9462675Z #5 8.502 Unpacking libmagic-mgc (1:5.47-4) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.9463870Z #5 8.552 Selecting previously unselected package libmagic1t64:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.9466877Z #5 8.553 Preparing to unpack .../05-libmagic1t64_1%3a5.47-4_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.9467641Z #5 8.554 Unpacking libmagic1t64:amd64 (1:5.47-4) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.9468258Z #5 8.574 Selecting previously unselected package file.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.9468939Z #5 8.575 Preparing to unpack .../06-file_1%3a5.47-4_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.9469837Z #5 8.576 Unpacking file (1:5.47-4) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.9470529Z #5 8.593 Selecting previously unselected package libnghttp3-9:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.9471294Z #5 8.595 Preparing to unpack .../07-libnghttp3-9_1.17.0-1_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.9472143Z #5 8.596 Unpacking libnghttp3-9:amd64 (1.17.0-1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.9472803Z #5 8.622 Selecting previously unselected package libngtcp2-16:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.9473584Z #5 8.622 Preparing to unpack .../08-libngtcp2-16_1.24.0-1_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:23.9474234Z #5 8.622 Unpacking libngtcp2-16:amd64 (1.24.0-1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.0671390Z #5 8.648 Selecting previously unselected package libbrotli1:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.0672802Z #5 8.650 Preparing to unpack .../09-libbrotli1_1.2.0-4+b1_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.0674225Z #5 8.651 Unpacking libbrotli1:amd64 (1.2.0-4+b1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.0675285Z #5 8.682 Selecting previously unselected package libkrb5support0:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.0680158Z #5 8.684 Preparing to unpack .../10-libkrb5support0_1.22.1-3_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.0684485Z #5 8.685 Unpacking libkrb5support0:amd64 (1.22.1-3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.0700374Z #5 8.702 Selecting previously unselected package libcom-err2:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.0702206Z #5 8.703 Preparing to unpack .../11-libcom-err2_1.47.4-1+b1_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.0703623Z #5 8.704 Unpacking libcom-err2:amd64 (1.47.4-1+b1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.0704898Z #5 8.720 Selecting previously unselected package libk5crypto3:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.0705898Z #5 8.722 Preparing to unpack .../12-libk5crypto3_1.22.1-3_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.0707117Z #5 8.723 Unpacking libk5crypto3:amd64 (1.22.1-3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.0708065Z #5 8.743 Selecting previously unselected package libkeyutils1:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.1864572Z #5 8.745 Preparing to unpack .../13-libkeyutils1_1.6.3-6+b2_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.1866250Z #5 8.746 Unpacking libkeyutils1:amd64 (1.6.3-6+b2) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.1877670Z #5 8.763 Selecting previously unselected package libkrb5-3:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.1878473Z #5 8.765 Preparing to unpack .../14-libkrb5-3_1.22.1-3_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.1879472Z #5 8.766 Unpacking libkrb5-3:amd64 (1.22.1-3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.1880232Z #5 8.801 Selecting previously unselected package libgssapi-krb5-2:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.1881110Z #5 8.801 Preparing to unpack .../15-libgssapi-krb5-2_1.22.1-3_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.1881869Z #5 8.802 Unpacking libgssapi-krb5-2:amd64 (1.22.1-3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.1882640Z #5 8.862 Selecting previously unselected package libunistring5:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.1883429Z #5 8.862 Preparing to unpack .../16-libunistring5_1.4.2-1_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.3140346Z #5 8.946 Unpacking libunistring5:amd64 (1.4.2-1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.3141300Z #5 8.990 Selecting previously unselected package libidn2-0:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.4141183Z #5 8.992 Preparing to unpack .../17-libidn2-0_2.3.8-5_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.4141927Z #5 8.993 Unpacking libidn2-0:amd64 (2.3.8-5) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.4143000Z #5 9.023 Selecting previously unselected package libsasl2-modules-db:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.4143908Z #5 9.025 Preparing to unpack .../18-libsasl2-modules-db_2.1.28+dfsg1-11_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.4144861Z #5 9.026 Unpacking libsasl2-modules-db:amd64 (2.1.28+dfsg1-11) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.4146042Z #5 9.041 Selecting previously unselected package libsasl2-2:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.4152965Z #5 9.043 Preparing to unpack .../19-libsasl2-2_2.1.28+dfsg1-11_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.4153943Z #5 9.044 Unpacking libsasl2-2:amd64 (2.1.28+dfsg1-11) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.4154715Z #5 9.062 Selecting previously unselected package libldap2:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.4155551Z #5 9.064 Preparing to unpack .../20-libldap2_2.6.14+dfsg-2_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.4156308Z #5 9.065 Unpacking libldap2:amd64 (2.6.14+dfsg-2) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.4157062Z #5 9.089 Selecting previously unselected package libnghttp2-14:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.4157930Z #5 9.091 Preparing to unpack .../21-libnghttp2-14_1.70.0-1_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.5344550Z #5 9.092 Unpacking libnghttp2-14:amd64 (1.70.0-1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.5346208Z #5 9.112 Selecting previously unselected package libngtcp2-crypto-ossl0:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.5354294Z #5 9.113 Preparing to unpack .../22-libngtcp2-crypto-ossl0_1.24.0-1_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.5361641Z #5 9.114 Unpacking libngtcp2-crypto-ossl0:amd64 (1.24.0-1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.5363297Z #5 9.130 Selecting previously unselected package libpsl5t64:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.5365596Z #5 9.132 Preparing to unpack .../23-libpsl5t64_0.23.3-1_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.5366320Z #5 9.133 Unpacking libpsl5t64:amd64 (0.23.3-1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.5367407Z #5 9.150 Selecting previously unselected package libssh2-1t64:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.5370599Z #5 9.152 Preparing to unpack .../24-libssh2-1t64_1.11.1-6_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.5371658Z #5 9.152 Unpacking libssh2-1t64:amd64 (1.11.1-6) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.5372567Z #5 9.175 Selecting previously unselected package libcurl4t64:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.5373949Z #5 9.177 Preparing to unpack .../25-libcurl4t64_8.21.0-2_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.5374910Z #5 9.178 Unpacking libcurl4t64:amd64 (8.21.0-2) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.5376436Z #5 9.210 Selecting previously unselected package curl.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.6345127Z #5 9.212 Preparing to unpack .../26-curl_8.21.0-2_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.6346169Z #5 9.213 Unpacking curl (8.21.0-2) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.6347266Z #5 9.240 Selecting previously unselected package libonig5:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.6348170Z #5 9.241 Preparing to unpack .../27-libonig5_6.9.10-1+b1_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.6349565Z #5 9.243 Unpacking libonig5:amd64 (6.9.10-1+b1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.6350544Z #5 9.267 Selecting previously unselected package libjq1:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.6351642Z #5 9.268 Preparing to unpack .../28-libjq1_1.8.2-1_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.6352397Z #5 9.269 Unpacking libjq1:amd64 (1.8.2-1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.6353468Z #5 9.292 Selecting previously unselected package jq.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.6354260Z #5 9.292 Preparing to unpack .../29-jq_1.8.2-1_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.6355234Z #5 9.293 Unpacking jq (1.8.2-1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.6364263Z #5 9.311 Selecting previously unselected package libblas3:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.7352157Z #5 9.313 Preparing to unpack .../30-libblas3_3.12.1-8_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.7352847Z #5 9.315 Unpacking libblas3:amd64 (3.12.1-8) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.7353554Z #5 9.341 Selecting previously unselected package libdbus-1-3:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.7359391Z #5 9.342 Preparing to unpack .../31-libdbus-1-3_1.16.2-5+b1_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.7361739Z #5 9.343 Unpacking libdbus-1-3:amd64 (1.16.2-5+b1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.7363344Z #5 9.366 Selecting previously unselected package liblinear4:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.7365419Z #5 9.368 Preparing to unpack .../32-liblinear4_2.3.0+dfsg-5+b3_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.7366947Z #5 9.369 Unpacking liblinear4:amd64 (2.3.0+dfsg-5+b3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.7367811Z #5 9.388 Selecting previously unselected package liblua5.4-0:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.7369779Z #5 9.388 Preparing to unpack .../33-liblua5.4-0_5.4.9-1_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.7371572Z #5 9.389 Unpacking liblua5.4-0:amd64 (5.4.9-1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.7373118Z #5 9.411 Selecting previously unselected package libpcap0.8t64:amd64.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.9145578Z #5 9.413 Preparing to unpack .../34-libpcap0.8t64_1.10.6-2_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.9146639Z #5 9.414 Unpacking libpcap0.8t64:amd64 (1.10.6-2) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.9147983Z #5 9.437 Selecting previously unselected package nmap-common.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.9148994Z #5 9.438 Preparing to unpack .../35-nmap-common_7.99+dfsg-1kali1_all.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:24.9150644Z #5 9.439 Unpacking nmap-common (7.99+dfsg-1kali1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.0870288Z #5 9.763 Selecting previously unselected package nmap.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.2627951Z #5 9.765 Preparing to unpack .../36-nmap_7.99+dfsg-1kali1_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.2632645Z #5 9.766 Unpacking nmap (7.99+dfsg-1kali1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.2633801Z #5 9.845 Selecting previously unselected package openssl.
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.2634544Z #5 9.847 Preparing to unpack .../37-openssl_3.6.3-1_amd64.deb ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.2635244Z #5 9.848 Unpacking openssl (3.6.3-1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.2635836Z #5 9.939 Setting up media-types (14.0.0) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3645601Z #5 9.943 Setting up libkeyutils1:amd64 (1.6.3-6+b2) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3647650Z #5 9.946 Setting up bsdutils (1:2.42.2-4) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3648591Z #5 9.949 Setting up libmagic-mgc (1:5.47-4) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3649566Z #5 9.951 Setting up libbrotli1:amd64 (1.2.0-4+b1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3650258Z #5 9.954 Setting up libsqlite3-0:amd64 (3.53.4-2) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3650966Z #5 9.957 Setting up libmagic1t64:amd64 (1:5.47-4) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3651552Z #5 9.960 Setting up libnghttp2-14:amd64 (1.70.0-1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3652282Z #5 9.962 Setting up libcom-err2:amd64 (1.47.4-1+b1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3652824Z #5 9.964 Setting up file (1:5.47-4) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3653354Z #5 9.966 Setting up libkrb5support0:amd64 (1.22.1-3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3654316Z #5 9.968 Setting up libsasl2-modules-db:amd64 (2.1.28+dfsg1-11) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3654964Z #5 9.970 Setting up libblas3:amd64 (3.12.1-8) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3656790Z #5 9.974 update-alternatives: using /usr/lib/x86_64-linux-gnu/blas/libblas.so.3 to provide /usr/lib/x86_64-linux-gnu/libblas.so.3 (libblas.so.3-x86_64-linux-gnu) in auto mode
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3658299Z #5 9.976 Setting up libproc2-1:amd64 (2:4.0.6-3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3659044Z #5 9.978 Setting up libdbus-1-3:amd64 (1.16.2-5+b1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3660310Z #5 9.980 Setting up libunistring5:amd64 (1.4.2-1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3665067Z #5 9.982 Setting up libncursesw6:amd64 (6.6+20260608-2) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3665935Z #5 9.984 Setting up libk5crypto3:amd64 (1.22.1-3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3670266Z #5 9.987 Setting up libsasl2-2:amd64 (2.1.28+dfsg1-11) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3672261Z #5 9.989 Setting up libnghttp3-9:amd64 (1.17.0-1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3673291Z #5 9.991 Setting up libffi8:amd64 (3.8.0-2) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3676120Z #5 9.993 Setting up nmap-common (7.99+dfsg-1kali1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3676768Z #5 10.00 Setting up mount (2.42.2-4) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3677251Z #5 10.00 Setting up procps (2:4.0.6-3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3677694Z #5 10.02 Setting up liblua5.4-0:amd64 (5.4.9-1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3678048Z #5 10.03 Setting up libpcap0.8t64:amd64 (1.10.6-2) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3678363Z #5 10.03 Setting up netbase (6.6) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3678674Z #5 10.03 Setting up libngtcp2-16:amd64 (1.24.0-1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3679019Z #5 10.04 Setting up libkrb5-3:amd64 (1.22.1-3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3680182Z #5 10.04 Setting up libssh2-1t64:amd64 (1.11.1-6) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.3681068Z #5 10.04 Setting up openssl (3.6.3-1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.5735143Z #5 10.05 Setting up readline-common (8.3-4) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.5736279Z #5 10.05 Setting up libldap2:amd64 (2.6.14+dfsg-2) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.5738845Z #5 10.05 Setting up libonig5:amd64 (6.9.10-1+b1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.5739741Z #5 10.06 Setting up login (1:4.16.0-2+really2.42.2-4) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.5740272Z #5 10.07 Setting up libjq1:amd64 (1.8.2-1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.5740839Z #5 10.07 Setting up libidn2-0:amd64 (2.3.8-5) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.5741424Z #5 10.07 Setting up liblinear4:amd64 (2.3.0+dfsg-5+b3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.5742065Z #5 10.08 Setting up libgssapi-krb5-2:amd64 (1.22.1-3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.5742718Z #5 10.08 Setting up libngtcp2-crypto-ossl0:amd64 (1.24.0-1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.5743348Z #5 10.08 Setting up libreadline8t64:amd64 (8.3-4) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.5743863Z #5 10.09 Setting up jq (1.8.2-1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.5744417Z #5 10.09 Setting up libpython3.14-stdlib:amd64 (3.14.7-3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.5745045Z #5 10.09 Setting up libpsl5t64:amd64 (0.23.3-1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.5745609Z #5 10.09 Setting up nmap (7.99+dfsg-1kali1) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:25.5746154Z #5 10.10 Setting up python3.14 (3.14.7-3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:26.3683647Z #5 11.04 Setting up libpython3-stdlib:amd64 (3.14.7-3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:26.4915051Z #5 11.05 Setting up libcurl4t64:amd64 (8.21.0-2) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:26.4916538Z #5 11.05 Setting up python3 (3.14.7-3) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:26.4917066Z #5 11.06 running python rtupdate hooks for python3.14...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:26.4917501Z #5 11.06 running python post-rtupdate hooks for python3.14...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:26.4917860Z #5 11.17 Setting up curl (8.21.0-2) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:26.6386324Z #5 11.17 Processing triggers for libc-bin (2.43-4) ...
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:26.6387218Z #5 DONE 11.3s
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:26.7890278Z 
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:26.7891160Z #6 exporting to image
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:26.7891937Z #6 exporting layers
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:27.4295991Z #6 exporting layers 0.8s done
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:27.4299981Z #6 writing image sha256:65a4eff5d58f43128f24536b42167a6bc78e014714878454030c9b5a76af3052
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:27.4438232Z #6 writing image sha256:65a4eff5d58f43128f24536b42167a6bc78e014714878454030c9b5a76af3052 done
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:27.4440257Z #6 naming to docker.io/library/kali-mac-min:0.2 done
+integration	构建最小镜像（官方基础镜像 + 官方 apt CDN）	2026-09-16T17:15:27.4441283Z #6 DONE 0.8s
+integration	集成套件	﻿2026-09-16T17:15:27.4539727Z ##[group]Run go test -tags=integration -count=1 -timeout 15m -v ./tests/integration/
+integration	集成套件	2026-09-16T17:15:27.4540365Z ^[[36;1mgo test -tags=integration -count=1 -timeout 15m -v ./tests/integration/^[[0m
+integration	集成套件	2026-09-16T17:15:27.4580353Z shell: /usr/bin/bash -e {0}
+integration	集成套件	2026-09-16T17:15:27.4580618Z env:
+integration	集成套件	2026-09-16T17:15:27.4580885Z   KM_TEST_TOOL_IMAGE: kalilinux/kali-rolling:latest
+integration	集成套件	2026-09-16T17:15:27.4581227Z   KM_TEST_DRIFT_IMAGE: busybox:stable
+integration	集成套件	2026-09-16T17:15:27.4581502Z ##[endgroup]
+integration	集成套件	2026-09-16T17:15:33.4228775Z === RUN   TestP2BResidueCheck
+integration	集成套件	2026-09-16T17:15:33.4235074Z --- PASS: TestP2BResidueCheck (0.00s)
+integration	集成套件	2026-09-16T17:15:33.4236029Z === RUN   TestInitRunStopRestoreLoop
+integration	集成套件	2026-09-16T17:15:35.1901082Z --- PASS: TestInitRunStopRestoreLoop (1.77s)
+integration	集成套件	2026-09-16T17:15:35.1902082Z === RUN   TestRunComplexArgvAndExitCodes
+integration	集成套件	2026-09-16T17:15:37.4680207Z --- PASS: TestRunComplexArgvAndExitCodes (2.27s)
+integration	集成套件	2026-09-16T17:15:37.4680957Z === RUN   TestRunBinaryPipeAndStderr
+integration	集成套件	2026-09-16T17:15:38.1992188Z --- PASS: TestRunBinaryPipeAndStderr (0.73s)
+integration	集成套件	2026-09-16T17:15:38.1993402Z === RUN   TestRunChineseSpacePathsAndSubdirCwd
+integration	集成套件	2026-09-16T17:15:39.2119879Z --- PASS: TestRunChineseSpacePathsAndSubdirCwd (1.01s)
+integration	集成套件	2026-09-16T17:15:39.2120610Z === RUN   TestRunCancelCleansSession
+integration	集成套件	2026-09-16T17:15:41.5794294Z --- PASS: TestRunCancelCleansSession (2.37s)
+integration	集成套件	2026-09-16T17:15:41.5795247Z === RUN   TestRunMultiProjectIsolationAndBusy
+integration	集成套件	2026-09-16T17:15:44.4474544Z --- PASS: TestRunMultiProjectIsolationAndBusy (2.87s)
+integration	集成套件	2026-09-16T17:15:44.4481814Z === RUN   TestRunEngineDriftRejected
+integration	集成套件	2026-09-16T17:15:44.9547387Z --- PASS: TestRunEngineDriftRejected (0.51s)
+integration	集成套件	2026-09-16T17:15:44.9560873Z === RUN   TestRunSameNameConflictRejected
+integration	集成套件	2026-09-16T17:15:45.7277531Z --- PASS: TestRunSameNameConflictRejected (0.77s)
+integration	集成套件	2026-09-16T17:15:45.7278776Z === RUN   TestRunImageIdentityConflictRejected
+integration	集成套件	2026-09-16T17:15:46.3078819Z --- PASS: TestRunImageIdentityConflictRejected (0.58s)
+integration	集成套件	2026-09-16T17:15:46.3080931Z === RUN   TestInitFailureRecovery
+integration	集成套件	2026-09-16T17:15:47.2810658Z --- PASS: TestInitFailureRecovery (0.97s)
+integration	集成套件	2026-09-16T17:15:47.2824439Z === RUN   TestCuratedToolSmoke
+integration	集成套件	2026-09-16T17:15:48.4742534Z === RUN   TestCuratedToolSmoke/python3-fixture
+integration	集成套件	2026-09-16T17:15:48.7517903Z === RUN   TestCuratedToolSmoke/curl-local-service
+integration	集成套件	2026-09-16T17:15:49.0393755Z === RUN   TestCuratedToolSmoke/jq-fixed-json
+integration	集成套件	2026-09-16T17:15:49.3121838Z === RUN   TestCuratedToolSmoke/nmap-local-loopback
+integration	集成套件	2026-09-16T17:15:49.6533858Z === RUN   TestCuratedToolSmoke/file-text
+integration	集成套件	2026-09-16T17:15:50.3630490Z --- PASS: TestCuratedToolSmoke (3.08s)
+integration	集成套件	2026-09-16T17:15:50.3631397Z     --- PASS: TestCuratedToolSmoke/python3-fixture (0.28s)
+integration	集成套件	2026-09-16T17:15:50.3643855Z     --- PASS: TestCuratedToolSmoke/curl-local-service (0.29s)
+integration	集成套件	2026-09-16T17:15:50.3646512Z     --- PASS: TestCuratedToolSmoke/jq-fixed-json (0.27s)
+integration	集成套件	2026-09-16T17:15:50.3654585Z     --- PASS: TestCuratedToolSmoke/nmap-local-loopback (0.34s)
+integration	集成套件	2026-09-16T17:15:50.3655522Z     --- PASS: TestCuratedToolSmoke/file-text (0.27s)
+integration	集成套件	2026-09-16T17:15:50.3661386Z === RUN   TestRunCancelChildIgnoresTERM
+integration	集成套件	2026-09-16T17:15:53.6811308Z --- PASS: TestRunCancelChildIgnoresTERM (3.32s)
+integration	集成套件	2026-09-16T17:15:53.6812192Z === RUN   TestRunNormalExitDrainsLingeringChild
+integration	集成套件	2026-09-16T17:15:54.6068068Z --- PASS: TestRunNormalExitDrainsLingeringChild (0.93s)
+integration	集成套件	2026-09-16T17:15:54.6073139Z === RUN   TestStaleHostLockActiveSessionBlocked
+integration	集成套件	2026-09-16T17:15:59.1965573Z --- PASS: TestStaleHostLockActiveSessionBlocked (4.59s)
+integration	集成套件	2026-09-16T17:15:59.1978209Z === RUN   TestConcurrentInitSingleEnvironment
+integration	集成套件	2026-09-16T17:15:59.9593642Z --- PASS: TestConcurrentInitSingleEnvironment (0.76s)
+integration	集成套件	2026-09-16T17:15:59.9610960Z === RUN   TestRealSessionArgvPassthrough
+integration	集成套件	2026-09-16T17:16:00.3876586Z --- PASS: TestRealSessionArgvPassthrough (0.43s)
+integration	集成套件	2026-09-16T17:16:00.3877553Z === RUN   TestRealSessionBinaryRoundtripAndStderr
+integration	集成套件	2026-09-16T17:16:00.8295350Z --- PASS: TestRealSessionBinaryRoundtripAndStderr (0.44s)
+integration	集成套件	2026-09-16T17:16:00.8320291Z === RUN   TestRealSessionExitCodes
+integration	集成套件	2026-09-16T17:16:01.4140878Z --- PASS: TestRealSessionExitCodes (0.58s)
+integration	集成套件	2026-09-16T17:16:01.4160575Z === RUN   TestRealSessionLongTaskNotKilledByMgmtTimeout
+integration	集成套件	2026-09-16T17:16:06.8576101Z --- PASS: TestRealSessionLongTaskNotKilledByMgmtTimeout (5.44s)
+integration	集成套件	2026-09-16T17:16:06.8577753Z === RUN   TestRealSessionCancelNocleanFixture
+integration	集成套件	2026-09-16T17:16:08.0514228Z --- PASS: TestRealSessionCancelNocleanFixture (1.19s)
+integration	集成套件	2026-09-16T17:16:08.0515515Z === RUN   TestRealSessionCancelSelfcleanFixture
+integration	集成套件	2026-09-16T17:16:09.0848958Z --- PASS: TestRealSessionCancelSelfcleanFixture (1.03s)
+integration	集成套件	2026-09-16T17:16:09.0849937Z === RUN   TestRealSessionCancelGrandchild
+integration	集成套件	2026-09-16T17:16:10.1709213Z --- PASS: TestRealSessionCancelGrandchild (1.09s)
+integration	集成套件	2026-09-16T17:16:10.1710294Z === RUN   TestRealSessionRepeatCancelIdempotent
+integration	集成套件	2026-09-16T17:16:16.1659437Z --- PASS: TestRealSessionRepeatCancelIdempotent (5.99s)
+integration	集成套件	2026-09-16T17:16:16.1660355Z === RUN   TestRealSessionStartupCancel
+integration	集成套件	2026-09-16T17:16:16.5628972Z --- PASS: TestRealSessionStartupCancel (0.40s)
+integration	集成套件	2026-09-16T17:16:16.5635726Z === RUN   TestRealSessionMultiProjectIsolation
+integration	集成套件	2026-09-16T17:16:20.1479316Z --- PASS: TestRealSessionMultiProjectIsolation (3.58s)
+integration	集成套件	2026-09-16T17:16:20.1480889Z === RUN   TestRealSessionClientSigkillObservedSeparately
+integration	集成套件	2026-09-16T17:16:21.8264347Z --- PASS: TestRealSessionClientSigkillObservedSeparately (1.68s)
+integration	集成套件	2026-09-16T17:16:21.8265339Z === RUN   TestSessionRecoveryChain
+integration	集成套件	2026-09-16T17:16:26.4662816Z --- PASS: TestSessionRecoveryChain (4.64s)
+integration	集成套件	2026-09-16T17:16:26.4664821Z === RUN   TestSessionCmdsArgsAndUnknown
+integration	集成套件	2026-09-16T17:16:27.3928173Z --- PASS: TestSessionCmdsArgsAndUnknown (0.93s)
+integration	集成套件	2026-09-16T17:16:27.3937428Z === RUN   TestSessionCmdsProjectIsolationAndNoLock
+integration	集成套件	2026-09-16T17:16:29.7924874Z --- PASS: TestSessionCmdsProjectIsolationAndNoLock (2.40s)
+integration	集成套件	2026-09-16T17:16:29.7933972Z === RUN   TestSessionCmdsRepeatAndNaturalExit
+integration	集成套件	2026-09-16T17:16:34.1738463Z --- PASS: TestSessionCmdsRepeatAndNaturalExit (4.38s)
+integration	集成套件	2026-09-16T17:16:34.1739938Z === RUN   TestSessionCancelNoiseRegression
+integration	集成套件	2026-09-16T17:16:41.4477736Z --- PASS: TestSessionCancelNoiseRegression (7.27s)
+integration	集成套件	2026-09-16T17:16:41.4479812Z === RUN   TestC1PromptControlTerminal
+integration	集成套件	2026-09-16T17:16:42.4750621Z --- PASS: TestC1PromptControlTerminal (1.03s)
+integration	集成套件	2026-09-16T17:16:42.4751300Z === RUN   TestC1CtrlCDuringSleepAndAtPrompt
+integration	集成套件	2026-09-16T17:16:44.8210992Z --- PASS: TestC1CtrlCDuringSleepAndAtPrompt (2.35s)
+integration	集成套件	2026-09-16T17:16:44.8223133Z === RUN   TestC1ExitPaths
+integration	集成套件	2026-09-16T17:16:46.3927359Z --- PASS: TestC1ExitPaths (1.57s)
+integration	集成套件	2026-09-16T17:16:46.3928814Z === RUN   TestC1JobControl
+integration	集成套件	2026-09-16T17:16:49.2944402Z --- PASS: TestC1JobControl (2.90s)
+integration	集成套件	2026-09-16T17:16:49.2945321Z === RUN   TestC1WindowSizeFollows
+integration	集成套件	2026-09-16T17:16:51.9018882Z --- PASS: TestC1WindowSizeFollows (2.61s)
+integration	集成套件	2026-09-16T17:16:51.9020243Z === RUN   TestC1BackgroundCleanupAtSessionEnd
+integration	集成套件	2026-09-16T17:16:59.3441183Z --- PASS: TestC1BackgroundCleanupAtSessionEnd (7.44s)
+integration	集成套件	2026-09-16T17:16:59.3442616Z === RUN   TestC1TermiosRestored
+integration	集成套件	2026-09-16T17:17:11.0763971Z --- PASS: TestC1TermiosRestored (11.73s)
+integration	集成套件	2026-09-16T17:17:11.0765111Z === RUN   TestC1ProjectIsolation
+integration	集成套件	2026-09-16T17:17:12.8465248Z --- PASS: TestC1ProjectIsolation (1.77s)
+integration	集成套件	2026-09-16T17:17:12.8466092Z === RUN   TestC1SigkillObservedSeparately
+integration	集成套件	2026-09-16T17:17:14.3457607Z --- PASS: TestC1SigkillObservedSeparately (1.50s)
+integration	集成套件	2026-09-16T17:17:14.3459459Z === RUN   TestC1DetachKeys
+integration	集成套件	2026-09-16T17:17:30.8652636Z     shell_c1_test.go:434: 结果 A：bash 已退出，会话已清扫，run 直接成功
+integration	集成套件	2026-09-16T17:17:31.0878576Z --- PASS: TestC1DetachKeys (16.74s)
+integration	集成套件	2026-09-16T17:17:31.0880004Z === RUN   TestC1NonTTYFailsEarly
+integration	集成套件	2026-09-16T17:17:31.1319319Z --- PASS: TestC1NonTTYFailsEarly (0.04s)
+integration	集成套件	2026-09-16T17:17:31.1320737Z === RUN   TestC2PipelineJobCleanup
+integration	集成套件	2026-09-16T17:17:32.9083757Z --- PASS: TestC2PipelineJobCleanup (1.78s)
+integration	集成套件	2026-09-16T17:17:32.9122471Z === RUN   TestC2StoppedJobCleanup
+integration	集成套件	2026-09-16T17:17:35.4920977Z --- PASS: TestC2StoppedJobCleanup (2.58s)
+integration	集成套件	2026-09-16T17:17:35.4922205Z === RUN   TestC2ShellExternalSignals
+integration	集成套件	2026-09-16T17:17:47.4843362Z --- PASS: TestC2ShellExternalSignals (11.99s)
+integration	集成套件	2026-09-16T17:17:47.4844805Z === RUN   TestC2ShellStartupFailure
+integration	集成套件	2026-09-16T17:17:48.0753263Z --- PASS: TestC2ShellStartupFailure (0.59s)
+integration	集成套件	2026-09-16T17:17:48.0763636Z === RUN   TestC2ShellInteractiveAndRegistered
+integration	集成套件	2026-09-16T17:17:50.0190826Z --- PASS: TestC2ShellInteractiveAndRegistered (1.94s)
+integration	集成套件	2026-09-16T17:17:50.0191631Z === RUN   TestC2ShellCtrlC
+integration	集成套件	2026-09-16T17:17:52.6572345Z --- PASS: TestC2ShellCtrlC (2.64s)
+integration	集成套件	2026-09-16T17:17:52.6573682Z === RUN   TestC2ShellExitCodePassthrough
+integration	集成套件	2026-09-16T17:17:53.7641714Z --- PASS: TestC2ShellExitCodePassthrough (1.11s)
+integration	集成套件	2026-09-16T17:17:53.7660609Z === RUN   TestC2ShellSessionBlocksAfterHostKill
+integration	集成套件	2026-09-16T17:18:00.4558322Z --- PASS: TestC2ShellSessionBlocksAfterHostKill (6.69s)
+integration	集成套件	2026-09-16T17:18:00.4559509Z === RUN   TestC2ShellRequiresTTY
+integration	集成套件	2026-09-16T17:18:00.4609329Z --- PASS: TestC2ShellRequiresTTY (0.00s)
+integration	集成套件	2026-09-16T17:18:00.4610135Z === RUN   TestC2ShellSigkillBashSurvives
+integration	集成套件	2026-09-16T17:18:02.0077492Z --- PASS: TestC2ShellSigkillBashSurvives (1.55s)
+integration	集成套件	2026-09-16T17:18:02.0078232Z PASS
+integration	集成套件	2026-09-16T17:18:02.4692568Z ok  	kalimac/tests/integration	149.785s
+integration	Post Run actions/setup-go@v5	﻿2026-09-16T17:18:02.5051625Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+integration	Post Run actions/setup-go@v5	2026-09-16T17:18:02.5052835Z Post job cleanup.
+integration	Post Run actions/setup-go@v5	2026-09-16T17:18:02.6418289Z (node:34058) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+integration	Post Run actions/setup-go@v5	2026-09-16T17:18:02.6420092Z (Use `node --trace-deprecation ...` to show where the warning was created)
+integration	Post Run actions/setup-go@v5	2026-09-16T17:18:02.6550595Z [command]/opt/hostedtoolcache/go/1.25.14/x64/bin/go env GOMODCACHE
+integration	Post Run actions/setup-go@v5	2026-09-16T17:18:02.6630952Z [command]/opt/hostedtoolcache/go/1.25.14/x64/bin/go env GOCACHE
+integration	Post Run actions/setup-go@v5	2026-09-16T17:18:02.6720518Z /home/runner/go/pkg/mod
+integration	Post Run actions/setup-go@v5	2026-09-16T17:18:02.6750263Z /home/runner/.cache/go-build
+integration	Post Run actions/setup-go@v5	2026-09-16T17:18:02.6771073Z Cache hit occurred on the primary key setup-go-Linux-x64-ubuntu24-go-1.25.14-072c5e6068315c0ea6c702af5bed094699d1ab96d0aade39470ee9e3dd80e2b7, not saving cache.
+integration	Post Run actions/checkout@v4	﻿2026-09-16T17:18:02.7051570Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+integration	Post Run actions/checkout@v4	2026-09-16T17:18:02.7053680Z Post job cleanup.
+integration	Post Run actions/checkout@v4	2026-09-16T17:18:02.8103515Z [command]/usr/bin/git version
+integration	Post Run actions/checkout@v4	2026-09-16T17:18:02.8160326Z git version 2.55.0
+integration	Post Run actions/checkout@v4	2026-09-16T17:18:02.8218279Z Temporarily overriding HOME='/home/runner/work/_temp/99853e1e-a640-42b8-836d-3265dae28865' before making global git config changes
+integration	Post Run actions/checkout@v4	2026-09-16T17:18:02.8228714Z Adding repository directory to the temporary git global config as a safe directory
+integration	Post Run actions/checkout@v4	2026-09-16T17:18:02.8230149Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/KaliMac/KaliMac
+integration	Post Run actions/checkout@v4	2026-09-16T17:18:02.8311376Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+integration	Post Run actions/checkout@v4	2026-09-16T17:18:02.8380482Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+integration	Post Run actions/checkout@v4	2026-09-16T17:18:02.8773188Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+integration	Post Run actions/checkout@v4	2026-09-16T17:18:02.8807721Z http.https://github.com/.extraheader
+integration	Post Run actions/checkout@v4	2026-09-16T17:18:02.8856926Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+integration	Post Run actions/checkout@v4	2026-09-16T17:18:02.8867747Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+integration	Post Run actions/checkout@v4	2026-09-16T17:18:02.9570367Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+integration	Post Run actions/checkout@v4	2026-09-16T17:18:02.9710274Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+integration	Complete job	﻿2026-09-16T17:18:03.0188985Z Cleaning up orphan processes
+integration	Complete job	2026-09-16T17:18:03.1082125Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-go@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
