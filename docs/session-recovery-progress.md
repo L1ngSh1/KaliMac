@@ -33,6 +33,17 @@
 2. 已被清除的会话再次 cancel → 按冻结合同报 `KM_SESSION_UNKNOWN` 退出 1（不把未知
    报成成功）；STALE（仍登记、组空）会话的 cancel 才是幂等清除路径。
 
+## 审查收口（2026-09-17，外部静态审查三项发现全部修复）
+
+| 发现 | 修复 | 证据 |
+| --- | --- | --- |
+| 容器停止/脚本缺失时 cancel 误报 KM_SESSION_UNKNOWN（与冻结合同不一致） | collectSessions 以 info 状态区分「查询不可执行」（两命令均说明原因退出 0）与「查询成功但 ID 不存在」（KM_SESSION_UNKNOWN 退出 1）；合同补充进计划文档；新增单测 TestCancelInfoStatesExitZero | `s4b-review-tests.txt` |
+| 「20 次未知 ID 零噪音」未覆盖修复路径（CLI 前置检查即返回） | 表述撤回；F2 证据改为三层确定性分层：①源形态守卫单测 ②容器内进程翻涌因果演示（旧顺序 **220 条噪音 / 新顺序 0 条**，`s4c-f2-churn-demo.txt`）③真实活跃会话取消 ×10（真实竞争窗口，零噪音，`s4b-review-tests.txt`）。附注：全路径演示为概率竞争，修复前 10 连未触发，不作为区分器 | 同左 |
+| 跨项目测试未用 A 的真实 ID | 改为 A 真实活跃 ID 在 B 中取消 → 拒绝（KM_SESSION_UNKNOWN）→ A 列表仍 ACTIVE（任务存活）→ 从 A 正常取消（143 客户端语义验证保留）；B 侧先跑一次命令安装脚本使「列表成功但 ID 不存在」路径可测 | 同左 |
+
+收口后全量回归：gofmt 零脏、vet（含 integration tag）PASS、单测/race 全 ok、build PASS、
+全套件 145.3s 零 SKIP 零残留（`s5-review-battery.txt`）。
+
 ## 最终完成判定对照
 
 | 判定 | 证据 |

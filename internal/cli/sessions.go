@@ -35,9 +35,15 @@ func runSessionsCommand(ctx context.Context, rest []string, stdout, stderr io.Wr
 	if len(rest) > 0 {
 		return usageError(stderr, "km sessions 不接受参数")
 	}
-	sessions, _, _, code := collectSessions(ctx, stdout, stderr, dk)
+	sessions, _, _, info, code := collectSessions(ctx, stdout, stderr, dk)
 	if code != ExitOK {
 		return code
+	}
+	if info != "" {
+		// 查询不可执行的信息状态（容器未运行/脚本未安装）：说明原因即完成，
+		// 不存在「无会话」与「未知」的混淆。
+		fmt.Fprintln(stdout, info)
+		return ExitOK
 	}
 	if len(sessions.kind) == 0 {
 		fmt.Fprintln(stdout, "当前项目无会话")
@@ -65,9 +71,16 @@ func runCancelCommand(ctx context.Context, rest []string, stdout, stderr io.Writ
 	if !sessionIDPattern.MatchString(sid) {
 		return usageError(stderr, "会话 ID 格式非法（应为 s 开头的 16 位十六进制，完整 ID 见 km sessions）: %q", sid)
 	}
-	sessions, containerID, ctl, code := collectSessions(ctx, stdout, stderr, dk)
+	sessions, containerID, ctl, info, code := collectSessions(ctx, stdout, stderr, dk)
 	if code != ExitOK {
 		return code
+	}
+	if info != "" {
+		// 查询不可执行的信息状态（容器未运行/脚本未安装）：无法列出会话，
+		// 但「取消」在这两种状态下没有可作用的对象——说明原因并成功返回，
+		// 不报 KM_SESSION_UNKNOWN（审查收口：与冻结合同对齐）。
+		fmt.Fprintln(stdout, info)
+		return ExitOK
 	}
 	kind, known := sessions.kind[sid]
 	if !known {
@@ -104,44 +117,48 @@ type sessionListing struct {
 }
 
 // collectSessions 完成恢复命令共用的前置链路：项目栈 → 只读归属门禁 →
-// 容器内会话列表（严格解析）。任何失败都以 KM_* 稳定标识非零退出；
-// 脚本未安装（127）与容器未运行是明确定义的非失败情形（退出 0）。
+// 容器内会话列表（严格解析）。任何失败都以 KM_* 稳定标识非零退出。
+// 「容器未运行」「脚本未安装（127）」是查询不可执行的信息状态：info 返回
+// 说明文本、code 为 ExitOK、listing 为空——调用方须输出 info 并成功返回，
+// 不得把这两种状态当作「无会话」或「未知 ID」（两者只在查询成功时判定）。
 // 返回列表视图、记录的容器完整 ID 与已固定 endpoint 的控制器（cancel 用）。
-func collectSessions(ctx context.Context, stdout, stderr io.Writer, dk *runtime.Docker) (sessionListing, string, *session.DockerController, int) {
+func collectSessions(ctx context.Context, stdout, stderr io.Writer, dk *runtime.Docker) (sessionListing, string, *session.DockerController, string, int) {
 	listing := sessionListing{kind: map[string]string{}}
 	wd, err := os.Getwd()
 	if err != nil {
 		fmt.Fprintf(stderr, "KM_ENV: 无法获取当前目录: %v\n", err)
-		return listing, "", nil, ExitEnv
+		return listing, "", nil, "", ExitEnv
 	}
 	root, _, st, err := loadProjectStack(wd)
 	if err != nil {
-		return listing, "", nil, envError(stderr, err)
+		return listing, "", nil, "", envError(stderr, err)
 	}
 	ep, res, err := verifyStackForQuery(ctx, dk, root, st)
 	if err != nil {
-		return listing, "", nil, envError(stderr, err)
+		return listing, "", nil, "", envError(stderr, err)
 	}
 	if res.State != "running" {
-		fmt.Fprintf(stdout, "容器未在运行（%s）：活跃任务不可能存在；登记目录将在下次执行时自动清扫\n", res.State)
-		return listing, st.Container.ID, nil, ExitOK
+		return listing, st.Container.ID, nil,
+			fmt.Sprintf("容器未在运行（%s）：活跃任务不可能存在；登记目录将在下次执行时自动清扫", res.State),
+			ExitOK
 	}
 	ctl := newSessionController(ep.Endpoint)
 	sOut, sErrStr, sExit, serr := ctl.Sessions(ctx, st.Container.ID)
 	switch {
 	case serr != nil:
-		return listing, "", nil, envError(stderr, &runtime.Error{Code: runtime.CodeSessionUnknown,
+		return listing, "", nil, "", envError(stderr, &runtime.Error{Code: runtime.CodeSessionUnknown,
 			Msg: "容器内会话状态查询失败，无法确认会话状态", Err: serr})
 	case sExit == 127:
-		fmt.Fprintf(stdout, "会话脚本未安装（init 后首次 run/shell 时安装）：当前项目不存在通过 km 登记的会话\n")
-		return listing, st.Container.ID, ctl, ExitOK
+		return listing, st.Container.ID, ctl,
+			"会话脚本未安装（init 后首次 run/shell 时安装）：当前项目不存在通过 km 登记的会话",
+			ExitOK
 	case sExit != 0:
-		return listing, "", nil, envError(stderr, &runtime.Error{Code: runtime.CodeSessionUnknown,
+		return listing, "", nil, "", envError(stderr, &runtime.Error{Code: runtime.CodeSessionUnknown,
 			Msg: fmt.Sprintf("容器内会话状态查询退出码 %d（stderr: %s）", sExit, strings.TrimSpace(sErrStr))})
 	}
 	active, stale, parseOK := session.ParseSessions(sOut)
 	if !parseOK {
-		return listing, "", nil, envError(stderr, &runtime.Error{Code: runtime.CodeSessionUnknown,
+		return listing, "", nil, "", envError(stderr, &runtime.Error{Code: runtime.CodeSessionUnknown,
 			Msg: fmt.Sprintf("容器内会话状态输出异常（%q）", strings.TrimSpace(sOut))})
 	}
 	for _, id := range active {
@@ -157,5 +174,5 @@ func collectSessions(ctx context.Context, stdout, stderr io.Writer, dk *runtime.
 	}
 	listing.active = active
 	sort.Strings(listing.order)
-	return listing, st.Container.ID, ctl, ExitOK
+	return listing, st.Container.ID, ctl, "", ExitOK
 }

@@ -1,0 +1,18 @@
+== 审查收口后全量回归 ==
+gofmt-dirty: 0
+vet: PASS
+?   	kalimac/cmd/shellproto	[no test files]
+ok  	kalimac/internal/cli	0.137s
+ok  	kalimac/internal/project	0.313s
+ok  	kalimac/internal/residue	0.281s
+ok  	kalimac/internal/runtime	0.596s
+ok  	kalimac/internal/session	0.226s
+?   	kalimac/cmd/shellproto	[no test files]
+ok  	kalimac/internal/cli	1.402s
+ok  	kalimac/internal/project	1.349s
+ok  	kalimac/internal/residue	1.299s
+ok  	kalimac/internal/runtime	1.626s
+ok  	kalimac/internal/session	1.467s
+build: PASS
+== 全量集成 ==
+ok  	kalimac/tests/integration	145.342s

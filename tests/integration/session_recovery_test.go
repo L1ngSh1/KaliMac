@@ -6,7 +6,6 @@
 package integration
 
 import (
-	"fmt"
 	"os/exec"
 	"strings"
 	"testing"
@@ -107,6 +106,10 @@ func TestSessionCmdsArgsAndUnknown(t *testing.T) {
 		t.Fatalf("init: %s", errb)
 	}
 	registerProjectCleanup(t, dir)
+	// 会话列表语义（未知 ID 等）需要容器内已安装脚本：先跑一次命令引导
+	if _, _, c := kmRun(t, dir, nil, "run", "--", "/bin/true"); c != 0 {
+		t.Fatal("引导 run 失败")
+	}
 
 	// 缺参 / 多参 → KM_USAGE exit 2
 	if _, errb, code := kmRun(t, dir, nil, "cancel"); code != 2 || !strings.Contains(errb, "KM_USAGE") {
@@ -148,17 +151,14 @@ func TestSessionCmdsProjectIsolationAndNoLock(t *testing.T) {
 	}
 	idA := registerProjectCleanup(t, dirA)
 	registerProjectCleanup(t, dirB)
+	// B 的容器也需要脚本：跑一次命令，使「列表成功但 ID 不存在」路径可测
+	if _, _, c := kmRun(t, dirB, nil, "run", "--", "/bin/true"); c != 0 {
+		t.Fatal("B 引导 run 失败")
+	}
 
 	// A 启动长任务（持有执行锁），等会话建立
 	cmd := kmRunAsync(t, dirA, "run", "--", "/bin/sh", "-c", "sleep 60")
 	waitSessionDir(t, idA)
-
-	// B 先造一个自己的 STALE 遗留（后台任务立即退出，组空 → STALE）
-	// 简化：直接在 A 列会话；B 的 cancel 对 A 的 ID 必须拒绝。
-	_, errbB, codeB := kmCancel(t, dirB, "s0000000000000000")
-	if codeB != 1 || !strings.Contains(errbB, "KM_SESSION_UNKNOWN") {
-		t.Fatalf("B 对未知 ID: code=%d err=%s", codeB, errbB)
-	}
 
 	// A 忙碌（锁被持有）：sessions 仍可用并列出 ACTIVE——取消入口不因执行锁失效
 	sOut, sErrb, sCode := kmSessions(t, dirA)
@@ -167,7 +167,18 @@ func TestSessionCmdsProjectIsolationAndNoLock(t *testing.T) {
 	}
 	sid := strings.TrimSpace(strings.TrimPrefix(strings.Split(strings.TrimSpace(sOut), "\n")[0], "ACTIVE "))
 
-	// km cancel 取消 A 的活跃任务：执行中的 km 客户端应以 130 结束
+	// 跨项目拒绝：用 A 的真实活跃会话 ID 在 B 中取消——B 的列表里没有它，
+	// 必须拒绝且不影响 A 的任务
+	_, errbX, codeX := kmCancel(t, dirB, sid)
+	if codeX != 1 || !strings.Contains(errbX, "KM_SESSION_UNKNOWN") {
+		t.Fatalf("B 取消 A 的真实 ID 应拒绝: code=%d err=%s", codeX, errbX)
+	}
+	sOutA, _, sCodeA := kmSessions(t, dirA)
+	if sCodeA != 0 || !strings.Contains(sOutA, "ACTIVE "+sid) {
+		t.Fatalf("跨项目取消后 A 的任务必须仍存活: code=%d out=%q", sCodeA, sOutA)
+	}
+
+	// 从 A 正常取消：执行中的 km 客户端以 143 结束（容器侧 TERM，工具退出码原样透传）
 	cOut, cErrb, cCode := kmCancel(t, dirA, sid)
 	if cCode != 0 || !strings.Contains(cOut, "已取消并确认收尾") {
 		t.Fatalf("取消: code=%d out=%q err=%s", cCode, cOut, cErrb)
@@ -227,19 +238,38 @@ func TestSessionCmdsRepeatAndNaturalExit(t *testing.T) {
 	assertNoSessionNoise(t, cOut1+cOut2, cErrb1+cErrb2)
 }
 
-// F2 定向证据：对已结束/未知会话连续 20 次 cancel，捕获的输出必须零噪音、
-// 退出码符合合同（未知=1）。
+// F2 定向证据（审查收口）：对 10 个真实活跃会话执行 cancel——容器侧 km-ctl
+// 的 /proc 扫描在 TERM/KILL 进程退出竞争窗口内真实运行（这正是噪音发生的
+// 路径）。修复后输出必须零噪音、退出码 0、消息为「已取消并确认收尾」；
+// 未知的 ID 报错路径由 TestSessionCmdsArgsAndUnknown 覆盖。
 func TestSessionCancelNoiseRegression(t *testing.T) {
 	dir := newP2BProject(t)
 	if _, errb, code := kmRun(t, dir, nil, "init"); code != 0 {
 		t.Fatalf("init: %s", errb)
 	}
-	registerProjectCleanup(t, dir)
-	for i := 0; i < 20; i++ {
-		out, errb, code := kmCancel(t, dir, fmt.Sprintf("s%016x", i))
-		if code != 1 || !strings.Contains(errb, "KM_SESSION_UNKNOWN") {
-			t.Fatalf("第 %d 次: code=%d", i, code)
+	id := registerProjectCleanup(t, dir)
+	for i := 0; i < 10; i++ {
+		cmd := kmRunAsync(t, dir, "run", "--", "/bin/sh", "-c", "sleep 60")
+		waitSessionDir(t, id)
+		sOut, _, sCode := kmSessions(t, dir)
+		if sCode != 0 {
+			t.Fatalf("第 %d 轮 sessions: code=%d", i, sCode)
+		}
+		sid := strings.TrimSpace(strings.TrimPrefix(strings.Split(strings.TrimSpace(sOut), "\n")[0], "ACTIVE "))
+		out, errb, code := kmCancel(t, dir, sid)
+		if code != 0 || !strings.Contains(out, "已取消并确认收尾") {
+			t.Fatalf("第 %d 轮 cancel: code=%d out=%q err=%s", i, code, out, errb)
 		}
 		assertNoSessionNoise(t, out, errb)
+		done := make(chan error, 1)
+		go func() { done <- cmd.Wait() }()
+		select {
+		case err := <-done:
+			if ee, ok := err.(*exec.ExitError); !ok || ee.ExitCode() != 143 {
+				t.Fatalf("第 %d 轮客户端应 143: %v", i, err)
+			}
+		case <-time.After(30 * time.Second):
+			t.Fatalf("第 %d 轮等待客户端退出超时", i)
+		}
 	}
 }

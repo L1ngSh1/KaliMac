@@ -1,0 +1,339 @@
+diff --git a/docs/session-recovery-plan.md b/docs/session-recovery-plan.md
+index 9620f38..6c36783 100644
+--- a/docs/session-recovery-plan.md
++++ b/docs/session-recovery-plan.md
+@@ -92,6 +92,19 @@ amd64 未实测的事实继续保留。
+ 造成错误操作；③"未知 ID"与"已完成会话"的证据如何区分；④超时、退出码、稳定错误
+ 标识如何沿用现有约定。
+ 
++#### 审查收口补充（2026-09-17）
++
++- **信息状态 vs 未知 ID**：容器未运行、脚本未安装属于「查询不可执行的信息状态」，
++  sessions 与 cancel 均说明原因并**退出 0**（cancel 无可作用对象，不报
++  KM_SESSION_UNKNOWN）；「列表中不存在该 ID」只在**查询成功**时判定，报
++  `KM_SESSION_UNKNOWN` 退出 1。实现与测试已同步（TestCancelInfoStatesExitZero）。
++- **外部取消的退出码**：被 `km cancel` 取消的运行中任务，其客户端退出码为工具真实
++  状态（TERM=143 原样透传）；Ctrl-C 的 130 语义不变。
++- **F2 证据的确定性分层**：①源形态守卫（单测，确定性区分修复前后）；②容器内进程
++  翻涌因果演示（同一扫描逻辑：旧顺序 220 条噪音 / 新顺序 0 条，确定性）；③真实
++  取消路径 10 连（真实 /proc 竞争窗口下的端到端覆盖，噪音零发生——注意单轮概率
++  竞争下全路径演示不构成稳定区分器，①②才是）。
++
+ ### S1 审查结论（2026-09-16，代码位置与验证方式）
+ 
+ | 问题 | 结论 | 依据 |
+diff --git a/docs/session-recovery-progress.md b/docs/session-recovery-progress.md
+index 68ff624..7e7fc78 100644
+--- a/docs/session-recovery-progress.md
++++ b/docs/session-recovery-progress.md
+@@ -33,6 +33,17 @@
+ 2. 已被清除的会话再次 cancel → 按冻结合同报 `KM_SESSION_UNKNOWN` 退出 1（不把未知
+    报成成功）；STALE（仍登记、组空）会话的 cancel 才是幂等清除路径。
+ 
++## 审查收口（2026-09-17，外部静态审查三项发现全部修复）
++
++| 发现 | 修复 | 证据 |
++| --- | --- | --- |
++| 容器停止/脚本缺失时 cancel 误报 KM_SESSION_UNKNOWN（与冻结合同不一致） | collectSessions 以 info 状态区分「查询不可执行」（两命令均说明原因退出 0）与「查询成功但 ID 不存在」（KM_SESSION_UNKNOWN 退出 1）；合同补充进计划文档；新增单测 TestCancelInfoStatesExitZero | `s4b-review-tests.txt` |
++| 「20 次未知 ID 零噪音」未覆盖修复路径（CLI 前置检查即返回） | 表述撤回；F2 证据改为三层确定性分层：①源形态守卫单测 ②容器内进程翻涌因果演示（旧顺序 **220 条噪音 / 新顺序 0 条**，`s4c-f2-churn-demo.txt`）③真实活跃会话取消 ×10（真实竞争窗口，零噪音，`s4b-review-tests.txt`）。附注：全路径演示为概率竞争，修复前 10 连未触发，不作为区分器 | 同左 |
++| 跨项目测试未用 A 的真实 ID | 改为 A 真实活跃 ID 在 B 中取消 → 拒绝（KM_SESSION_UNKNOWN）→ A 列表仍 ACTIVE（任务存活）→ 从 A 正常取消（143 客户端语义验证保留）；B 侧先跑一次命令安装脚本使「列表成功但 ID 不存在」路径可测 | 同左 |
++
++收口后全量回归：gofmt 零脏、vet（含 integration tag）PASS、单测/race 全 ok、build PASS、
++全套件 145.3s 零 SKIP 零残留（`s5-review-battery.txt`）。
++
+ ## 最终完成判定对照
+ 
+ | 判定 | 证据 |
+diff --git a/docs/verification.md b/docs/verification.md
+index a1389d8..c69e6ab 100644
+--- a/docs/verification.md
++++ b/docs/verification.md
+@@ -29,14 +29,31 @@
+   格式/未知 ID 不宣称成功/ACTIVE 收尾/STALE 幂等/exit3 幂等/exit4 非零）。
+ - 真实集成：关键端到端（长任务→强杀→KM_SESSION_ACTIVE 阻断含新入口指引→
+   sessions 列出完整 ID→cancel「已取消并确认收尾」→列表空→run 恢复）**连续 3/3 轮
+-  通过**；参数/未知 ID/隔离与持锁可用性/重复与自然退出竞争 4 项通过；
+-  F2 定向证据 = 20 次连续 cancel 零噪音且退出码符合合同。
++  通过**；参数/未知 ID/隔离与持锁可用性/重复与自然退出竞争 4 项通过。
+ - 全套件回归 143.4s 零 SKIP 零残留；gofmt/vet（含 integration tag）/单测/race/build
+   全绿（s4-final-battery.txt）。
+ - 行为澄清（测试中发现并回填合同）：外部 `km cancel` 取消运行中任务 → 客户端退出码
+   为工具真实状态 TERM=143（原样透传）；Ctrl-C 的 130 不变。重复 cancel 已清除的会话
+   → 按合同报 KM_SESSION_UNKNOWN 退出 1（不把未知报成成功）。
+ 
++### 审查收口（2026-09-17，外部静态审查三项发现全部修复）
++
++1. **信息状态与未知 ID 混淆**：容器未运行/脚本未安装时 cancel 误报 KM_SESSION_UNKNOWN
++   退出 1，与冻结合同「说明原因退出 0」不一致。修复：collectSessions 以 info 状态
++   区分「查询不可执行」（说明原因退出 0）与「查询成功但 ID 不存在」（KM_SESSION_UNKNOWN
++   退出 1）；新增单测 TestCancelInfoStatesExitZero。
++2. **F2 证据未覆盖修复路径**：原「20 次未知 ID 零噪音」在 CLI 前置检查即返回，未进入
++   容器侧 /proc 扫描——表述撤回。替换为三层确定性证据：①源形态守卫单测（确定性区分
++   修复前后）；②容器内进程翻涌因果演示：同一扫描逻辑旧顺序 **220 条噪音 / 新顺序 0 条**
++   （s4c-f2-churn-demo.txt）；③真实活跃会话取消 ×10（进入真实竞争窗口，零噪音）。
++   附注：全路径单轮演示为概率竞争（修复前 10 连未触发噪音），不作为区分器。
++3. **跨项目测试未用真实 ID**：改为取 A 的真实活跃会话 ID 在 B 中取消 → 断言拒绝
++   （KM_SESSION_UNKNOWN 退出 1）且 A 任务仍存活（A 列表仍 ACTIVE）→ 从 A 正常取消
++   成功（143 客户端语义验证保留）。
++
++收口后全量回归：gofmt 零脏、vet（含 integration tag）PASS、单测/race 全 ok、build PASS、
++全套件 145.3s 零 SKIP 零残留（s5-review-battery.txt）。
++
+ ## 第七轮：goal 1789353851（2026-09-14，资源生命周期收口 + 端到端实走）
+ 
+ 计划见 docs/goal-plan.md，逐项状态与证据见 docs/goal-progress.md（run-id `goal-1789353851`）。
+diff --git a/internal/cli/sessions.go b/internal/cli/sessions.go
+index 88bd38b..0434e59 100644
+--- a/internal/cli/sessions.go
++++ b/internal/cli/sessions.go
+@@ -35,10 +35,16 @@ func runSessionsCommand(ctx context.Context, rest []string, stdout, stderr io.Wr
+ 	if len(rest) > 0 {
+ 		return usageError(stderr, "km sessions 不接受参数")
+ 	}
+-	sessions, _, _, code := collectSessions(ctx, stdout, stderr, dk)
++	sessions, _, _, info, code := collectSessions(ctx, stdout, stderr, dk)
+ 	if code != ExitOK {
+ 		return code
+ 	}
++	if info != "" {
++		// 查询不可执行的信息状态（容器未运行/脚本未安装）：说明原因即完成，
++		// 不存在「无会话」与「未知」的混淆。
++		fmt.Fprintln(stdout, info)
++		return ExitOK
++	}
+ 	if len(sessions.kind) == 0 {
+ 		fmt.Fprintln(stdout, "当前项目无会话")
+ 		return ExitOK
+@@ -65,10 +71,17 @@ func runCancelCommand(ctx context.Context, rest []string, stdout, stderr io.Writ
+ 	if !sessionIDPattern.MatchString(sid) {
+ 		return usageError(stderr, "会话 ID 格式非法（应为 s 开头的 16 位十六进制，完整 ID 见 km sessions）: %q", sid)
+ 	}
+-	sessions, containerID, ctl, code := collectSessions(ctx, stdout, stderr, dk)
++	sessions, containerID, ctl, info, code := collectSessions(ctx, stdout, stderr, dk)
+ 	if code != ExitOK {
+ 		return code
+ 	}
++	if info != "" {
++		// 查询不可执行的信息状态（容器未运行/脚本未安装）：无法列出会话，
++		// 但「取消」在这两种状态下没有可作用的对象——说明原因并成功返回，
++		// 不报 KM_SESSION_UNKNOWN（审查收口：与冻结合同对齐）。
++		fmt.Fprintln(stdout, info)
++		return ExitOK
++	}
+ 	kind, known := sessions.kind[sid]
+ 	if !known {
+ 		return envError(stderr, &runtime.Error{Code: runtime.CodeSessionUnknown,
+@@ -104,44 +117,48 @@ type sessionListing struct {
+ }
+ 
+ // collectSessions 完成恢复命令共用的前置链路：项目栈 → 只读归属门禁 →
+-// 容器内会话列表（严格解析）。任何失败都以 KM_* 稳定标识非零退出；
+-// 脚本未安装（127）与容器未运行是明确定义的非失败情形（退出 0）。
++// 容器内会话列表（严格解析）。任何失败都以 KM_* 稳定标识非零退出。
++// 「容器未运行」「脚本未安装（127）」是查询不可执行的信息状态：info 返回
++// 说明文本、code 为 ExitOK、listing 为空——调用方须输出 info 并成功返回，
++// 不得把这两种状态当作「无会话」或「未知 ID」（两者只在查询成功时判定）。
+ // 返回列表视图、记录的容器完整 ID 与已固定 endpoint 的控制器（cancel 用）。
+-func collectSessions(ctx context.Context, stdout, stderr io.Writer, dk *runtime.Docker) (sessionListing, string, *session.DockerController, int) {
++func collectSessions(ctx context.Context, stdout, stderr io.Writer, dk *runtime.Docker) (sessionListing, string, *session.DockerController, string, int) {
+ 	listing := sessionListing{kind: map[string]string{}}
+ 	wd, err := os.Getwd()
+ 	if err != nil {
+ 		fmt.Fprintf(stderr, "KM_ENV: 无法获取当前目录: %v\n", err)
+-		return listing, "", nil, ExitEnv
++		return listing, "", nil, "", ExitEnv
+ 	}
+ 	root, _, st, err := loadProjectStack(wd)
+ 	if err != nil {
+-		return listing, "", nil, envError(stderr, err)
++		return listing, "", nil, "", envError(stderr, err)
+ 	}
+ 	ep, res, err := verifyStackForQuery(ctx, dk, root, st)
+ 	if err != nil {
+-		return listing, "", nil, envError(stderr, err)
++		return listing, "", nil, "", envError(stderr, err)
+ 	}
+ 	if res.State != "running" {
+-		fmt.Fprintf(stdout, "容器未在运行（%s）：活跃任务不可能存在；登记目录将在下次执行时自动清扫\n", res.State)
+-		return listing, st.Container.ID, nil, ExitOK
++		return listing, st.Container.ID, nil,
++			fmt.Sprintf("容器未在运行（%s）：活跃任务不可能存在；登记目录将在下次执行时自动清扫", res.State),
++			ExitOK
+ 	}
+ 	ctl := newSessionController(ep.Endpoint)
+ 	sOut, sErrStr, sExit, serr := ctl.Sessions(ctx, st.Container.ID)
+ 	switch {
+ 	case serr != nil:
+-		return listing, "", nil, envError(stderr, &runtime.Error{Code: runtime.CodeSessionUnknown,
++		return listing, "", nil, "", envError(stderr, &runtime.Error{Code: runtime.CodeSessionUnknown,
+ 			Msg: "容器内会话状态查询失败，无法确认会话状态", Err: serr})
+ 	case sExit == 127:
+-		fmt.Fprintf(stdout, "会话脚本未安装（init 后首次 run/shell 时安装）：当前项目不存在通过 km 登记的会话\n")
+-		return listing, st.Container.ID, ctl, ExitOK
++		return listing, st.Container.ID, ctl,
++			"会话脚本未安装（init 后首次 run/shell 时安装）：当前项目不存在通过 km 登记的会话",
++			ExitOK
+ 	case sExit != 0:
+-		return listing, "", nil, envError(stderr, &runtime.Error{Code: runtime.CodeSessionUnknown,
++		return listing, "", nil, "", envError(stderr, &runtime.Error{Code: runtime.CodeSessionUnknown,
+ 			Msg: fmt.Sprintf("容器内会话状态查询退出码 %d（stderr: %s）", sExit, strings.TrimSpace(sErrStr))})
+ 	}
+ 	active, stale, parseOK := session.ParseSessions(sOut)
+ 	if !parseOK {
+-		return listing, "", nil, envError(stderr, &runtime.Error{Code: runtime.CodeSessionUnknown,
++		return listing, "", nil, "", envError(stderr, &runtime.Error{Code: runtime.CodeSessionUnknown,
+ 			Msg: fmt.Sprintf("容器内会话状态输出异常（%q）", strings.TrimSpace(sOut))})
+ 	}
+ 	for _, id := range active {
+@@ -157,5 +174,5 @@ func collectSessions(ctx context.Context, stdout, stderr io.Writer, dk *runtime.
+ 	}
+ 	listing.active = active
+ 	sort.Strings(listing.order)
+-	return listing, st.Container.ID, ctl, ExitOK
++	return listing, st.Container.ID, ctl, "", ExitOK
+ }
+diff --git a/internal/cli/sessions_test.go b/internal/cli/sessions_test.go
+index 98ac7ef..94082f1 100644
+--- a/internal/cli/sessions_test.go
++++ b/internal/cli/sessions_test.go
+@@ -206,3 +206,28 @@ func TestCancelUnconfirmedExit4Fails(t *testing.T) {
+ 		t.Fatalf("未确认必须非零并保留诊断: code=%d err=%q", code, errb)
+ 	}
+ }
++
++// 审查收口：查询不可执行的信息状态（脚本未安装/容器未运行）下，cancel 说明
++// 原因并成功返回——与「查询成功但 ID 不存在」的 KM_SESSION_UNKNOWN 严格区分。
++func TestCancelInfoStatesExitZero(t *testing.T) {
++	// 脚本未安装（sessions 返回 127）
++	root := setupProject(t, validConfig, stateJSON(fakeContainerID, fakeImageID, localEndpoint))
++	t.Chdir(root)
++	dk127 := sessFake(t, root, "", 127, nil, nil)
++	code, out, errb := runCancel(t, root, dk127, sessA)
++	if code != ExitOK || !strings.Contains(out, "会话脚本未安装") || errb != "" {
++		t.Fatalf("127 应信息退出0: code=%d out=%q err=%q", code, out, errb)
++	}
++	// 容器未运行（inspect state=exited）
++	exitedRoot := project.CanonicalPath(root)
++	exited := &runtime.Docker{Exec: doctorFake(containerLine(fakeContainerID, "km-"+fakeProjectID, "exited", fakeProjectID, fakeImageID, exitedRoot))}
++	code, out, errb = runCancel(t, exitedRoot, exited, sessA)
++	if code != ExitOK || !strings.Contains(out, "容器未在运行") || errb != "" {
++		t.Fatalf("容器停止应信息退出0: code=%d out=%q err=%q", code, out, errb)
++	}
++	// sessions 同样输出信息文本而非「无会话」
++	code, out, _ = runSessions(t, exitedRoot, exited)
++	if code != ExitOK || !strings.Contains(out, "容器未在运行") {
++		t.Fatalf("sessions 容器停止: code=%d out=%q", code, out)
++	}
++}
+diff --git a/tests/integration/session_recovery_test.go b/tests/integration/session_recovery_test.go
+index 5846eca..6ed8fa0 100644
+--- a/tests/integration/session_recovery_test.go
++++ b/tests/integration/session_recovery_test.go
+@@ -6,7 +6,6 @@
+ package integration
+ 
+ import (
+-	"fmt"
+ 	"os/exec"
+ 	"strings"
+ 	"testing"
+@@ -107,6 +106,10 @@ func TestSessionCmdsArgsAndUnknown(t *testing.T) {
+ 		t.Fatalf("init: %s", errb)
+ 	}
+ 	registerProjectCleanup(t, dir)
++	// 会话列表语义（未知 ID 等）需要容器内已安装脚本：先跑一次命令引导
++	if _, _, c := kmRun(t, dir, nil, "run", "--", "/bin/true"); c != 0 {
++		t.Fatal("引导 run 失败")
++	}
+ 
+ 	// 缺参 / 多参 → KM_USAGE exit 2
+ 	if _, errb, code := kmRun(t, dir, nil, "cancel"); code != 2 || !strings.Contains(errb, "KM_USAGE") {
+@@ -148,18 +151,15 @@ func TestSessionCmdsProjectIsolationAndNoLock(t *testing.T) {
+ 	}
+ 	idA := registerProjectCleanup(t, dirA)
+ 	registerProjectCleanup(t, dirB)
++	// B 的容器也需要脚本：跑一次命令，使「列表成功但 ID 不存在」路径可测
++	if _, _, c := kmRun(t, dirB, nil, "run", "--", "/bin/true"); c != 0 {
++		t.Fatal("B 引导 run 失败")
++	}
+ 
+ 	// A 启动长任务（持有执行锁），等会话建立
+ 	cmd := kmRunAsync(t, dirA, "run", "--", "/bin/sh", "-c", "sleep 60")
+ 	waitSessionDir(t, idA)
+ 
+-	// B 先造一个自己的 STALE 遗留（后台任务立即退出，组空 → STALE）
+-	// 简化：直接在 A 列会话；B 的 cancel 对 A 的 ID 必须拒绝。
+-	_, errbB, codeB := kmCancel(t, dirB, "s0000000000000000")
+-	if codeB != 1 || !strings.Contains(errbB, "KM_SESSION_UNKNOWN") {
+-		t.Fatalf("B 对未知 ID: code=%d err=%s", codeB, errbB)
+-	}
+-
+ 	// A 忙碌（锁被持有）：sessions 仍可用并列出 ACTIVE——取消入口不因执行锁失效
+ 	sOut, sErrb, sCode := kmSessions(t, dirA)
+ 	if sCode != 0 || !strings.Contains(sOut, "ACTIVE ") {
+@@ -167,7 +167,18 @@ func TestSessionCmdsProjectIsolationAndNoLock(t *testing.T) {
+ 	}
+ 	sid := strings.TrimSpace(strings.TrimPrefix(strings.Split(strings.TrimSpace(sOut), "\n")[0], "ACTIVE "))
+ 
+-	// km cancel 取消 A 的活跃任务：执行中的 km 客户端应以 130 结束
++	// 跨项目拒绝：用 A 的真实活跃会话 ID 在 B 中取消——B 的列表里没有它，
++	// 必须拒绝且不影响 A 的任务
++	_, errbX, codeX := kmCancel(t, dirB, sid)
++	if codeX != 1 || !strings.Contains(errbX, "KM_SESSION_UNKNOWN") {
++		t.Fatalf("B 取消 A 的真实 ID 应拒绝: code=%d err=%s", codeX, errbX)
++	}
++	sOutA, _, sCodeA := kmSessions(t, dirA)
++	if sCodeA != 0 || !strings.Contains(sOutA, "ACTIVE "+sid) {
++		t.Fatalf("跨项目取消后 A 的任务必须仍存活: code=%d out=%q", sCodeA, sOutA)
++	}
++
++	// 从 A 正常取消：执行中的 km 客户端以 143 结束（容器侧 TERM，工具退出码原样透传）
+ 	cOut, cErrb, cCode := kmCancel(t, dirA, sid)
+ 	if cCode != 0 || !strings.Contains(cOut, "已取消并确认收尾") {
+ 		t.Fatalf("取消: code=%d out=%q err=%s", cCode, cOut, cErrb)
+@@ -227,19 +238,38 @@ func TestSessionCmdsRepeatAndNaturalExit(t *testing.T) {
+ 	assertNoSessionNoise(t, cOut1+cOut2, cErrb1+cErrb2)
+ }
+ 
+-// F2 定向证据：对已结束/未知会话连续 20 次 cancel，捕获的输出必须零噪音、
+-// 退出码符合合同（未知=1）。
++// F2 定向证据（审查收口）：对 10 个真实活跃会话执行 cancel——容器侧 km-ctl
++// 的 /proc 扫描在 TERM/KILL 进程退出竞争窗口内真实运行（这正是噪音发生的
++// 路径）。修复后输出必须零噪音、退出码 0、消息为「已取消并确认收尾」；
++// 未知的 ID 报错路径由 TestSessionCmdsArgsAndUnknown 覆盖。
+ func TestSessionCancelNoiseRegression(t *testing.T) {
+ 	dir := newP2BProject(t)
+ 	if _, errb, code := kmRun(t, dir, nil, "init"); code != 0 {
+ 		t.Fatalf("init: %s", errb)
+ 	}
+-	registerProjectCleanup(t, dir)
+-	for i := 0; i < 20; i++ {
+-		out, errb, code := kmCancel(t, dir, fmt.Sprintf("s%016x", i))
+-		if code != 1 || !strings.Contains(errb, "KM_SESSION_UNKNOWN") {
+-			t.Fatalf("第 %d 次: code=%d", i, code)
++	id := registerProjectCleanup(t, dir)
++	for i := 0; i < 10; i++ {
++		cmd := kmRunAsync(t, dir, "run", "--", "/bin/sh", "-c", "sleep 60")
++		waitSessionDir(t, id)
++		sOut, _, sCode := kmSessions(t, dir)
++		if sCode != 0 {
++			t.Fatalf("第 %d 轮 sessions: code=%d", i, sCode)
++		}
++		sid := strings.TrimSpace(strings.TrimPrefix(strings.Split(strings.TrimSpace(sOut), "\n")[0], "ACTIVE "))
++		out, errb, code := kmCancel(t, dir, sid)
++		if code != 0 || !strings.Contains(out, "已取消并确认收尾") {
++			t.Fatalf("第 %d 轮 cancel: code=%d out=%q err=%s", i, code, out, errb)
+ 		}
+ 		assertNoSessionNoise(t, out, errb)
++		done := make(chan error, 1)
++		go func() { done <- cmd.Wait() }()
++		select {
++		case err := <-done:
++			if ee, ok := err.(*exec.ExitError); !ok || ee.ExitCode() != 143 {
++				t.Fatalf("第 %d 轮客户端应 143: %v", i, err)
++			}
++		case <-time.After(30 * time.Second):
++			t.Fatalf("第 %d 轮等待客户端退出超时", i)
++		}
+ 	}
+ }

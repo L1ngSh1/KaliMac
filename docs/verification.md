@@ -29,13 +29,30 @@
   格式/未知 ID 不宣称成功/ACTIVE 收尾/STALE 幂等/exit3 幂等/exit4 非零）。
 - 真实集成：关键端到端（长任务→强杀→KM_SESSION_ACTIVE 阻断含新入口指引→
   sessions 列出完整 ID→cancel「已取消并确认收尾」→列表空→run 恢复）**连续 3/3 轮
-  通过**；参数/未知 ID/隔离与持锁可用性/重复与自然退出竞争 4 项通过；
-  F2 定向证据 = 20 次连续 cancel 零噪音且退出码符合合同。
+  通过**；参数/未知 ID/隔离与持锁可用性/重复与自然退出竞争 4 项通过。
 - 全套件回归 143.4s 零 SKIP 零残留；gofmt/vet（含 integration tag）/单测/race/build
   全绿（s4-final-battery.txt）。
 - 行为澄清（测试中发现并回填合同）：外部 `km cancel` 取消运行中任务 → 客户端退出码
   为工具真实状态 TERM=143（原样透传）；Ctrl-C 的 130 不变。重复 cancel 已清除的会话
   → 按合同报 KM_SESSION_UNKNOWN 退出 1（不把未知报成成功）。
+
+### 审查收口（2026-09-17，外部静态审查三项发现全部修复）
+
+1. **信息状态与未知 ID 混淆**：容器未运行/脚本未安装时 cancel 误报 KM_SESSION_UNKNOWN
+   退出 1，与冻结合同「说明原因退出 0」不一致。修复：collectSessions 以 info 状态
+   区分「查询不可执行」（说明原因退出 0）与「查询成功但 ID 不存在」（KM_SESSION_UNKNOWN
+   退出 1）；新增单测 TestCancelInfoStatesExitZero。
+2. **F2 证据未覆盖修复路径**：原「20 次未知 ID 零噪音」在 CLI 前置检查即返回，未进入
+   容器侧 /proc 扫描——表述撤回。替换为三层确定性证据：①源形态守卫单测（确定性区分
+   修复前后）；②容器内进程翻涌因果演示：同一扫描逻辑旧顺序 **220 条噪音 / 新顺序 0 条**
+   （s4c-f2-churn-demo.txt）；③真实活跃会话取消 ×10（进入真实竞争窗口，零噪音）。
+   附注：全路径单轮演示为概率竞争（修复前 10 连未触发噪音），不作为区分器。
+3. **跨项目测试未用真实 ID**：改为取 A 的真实活跃会话 ID 在 B 中取消 → 断言拒绝
+   （KM_SESSION_UNKNOWN 退出 1）且 A 任务仍存活（A 列表仍 ACTIVE）→ 从 A 正常取消
+   成功（143 客户端语义验证保留）。
+
+收口后全量回归：gofmt 零脏、vet（含 integration tag）PASS、单测/race 全 ok、build PASS、
+全套件 145.3s 零 SKIP 零残留（s5-review-battery.txt）。
 
 ## 第七轮：goal 1789353851（2026-09-14，资源生命周期收口 + 端到端实走）
 

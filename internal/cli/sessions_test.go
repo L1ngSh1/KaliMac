@@ -206,3 +206,28 @@ func TestCancelUnconfirmedExit4Fails(t *testing.T) {
 		t.Fatalf("未确认必须非零并保留诊断: code=%d err=%q", code, errb)
 	}
 }
+
+// 审查收口：查询不可执行的信息状态（脚本未安装/容器未运行）下，cancel 说明
+// 原因并成功返回——与「查询成功但 ID 不存在」的 KM_SESSION_UNKNOWN 严格区分。
+func TestCancelInfoStatesExitZero(t *testing.T) {
+	// 脚本未安装（sessions 返回 127）
+	root := setupProject(t, validConfig, stateJSON(fakeContainerID, fakeImageID, localEndpoint))
+	t.Chdir(root)
+	dk127 := sessFake(t, root, "", 127, nil, nil)
+	code, out, errb := runCancel(t, root, dk127, sessA)
+	if code != ExitOK || !strings.Contains(out, "会话脚本未安装") || errb != "" {
+		t.Fatalf("127 应信息退出0: code=%d out=%q err=%q", code, out, errb)
+	}
+	// 容器未运行（inspect state=exited）
+	exitedRoot := project.CanonicalPath(root)
+	exited := &runtime.Docker{Exec: doctorFake(containerLine(fakeContainerID, "km-"+fakeProjectID, "exited", fakeProjectID, fakeImageID, exitedRoot))}
+	code, out, errb = runCancel(t, exitedRoot, exited, sessA)
+	if code != ExitOK || !strings.Contains(out, "容器未在运行") || errb != "" {
+		t.Fatalf("容器停止应信息退出0: code=%d out=%q err=%q", code, out, errb)
+	}
+	// sessions 同样输出信息文本而非「无会话」
+	code, out, _ = runSessions(t, exitedRoot, exited)
+	if code != ExitOK || !strings.Contains(out, "容器未在运行") {
+		t.Fatalf("sessions 容器停止: code=%d out=%q", code, out)
+	}
+}

@@ -1,0 +1,5 @@
+=== RUN   TestSessionCancelNoiseRegression
+--- PASS: TestSessionCancelNoiseRegression (7.21s)
+PASS
+ok  	kalimac/tests/integration	8.027s
+prefix-rc=0
