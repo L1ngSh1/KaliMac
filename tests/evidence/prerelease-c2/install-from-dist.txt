@@ -1,0 +1,10 @@
+== 从打包产物安装（KM_BIN=dist 产物）==
+已安装 km 0.3.0-p2 → /tmp/km-c2-install.HNbQKR/prefix/opt/km-trial
+  清单: /tmp/km-c2-install.HNbQKR/prefix/opt/km-trial/share/km/manifest.txt（卸载只删除清单内文件）
+  （DESTDIR 暂存模式：未写入系统路径）
+提示：/opt/km-trial/bin 不在 PATH；或直接用绝对路径调用
+== 安装的二进制与 dist 产物一致性 ==
+OK: 安装二进制 = dist 产物 (698516482a2a8e70597cee6fc4135ca050afea34939a6234e6a7ed536ff8e394)
+== 不依赖开发目录：开发 bin/km 暂改名后安装二进制仍工作 ==
+km 0.3.0-p2
+version-rc=0

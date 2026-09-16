@@ -1,0 +1,20 @@
+打包完成 → /Users/y4n9/Workspace/Projects/My-github-projects/KaliMac/dist
+version: 0.3.0-p2
+code_rev: 04e7ca4288e1888c5bab5ad16e81cac0a50b029c
+built_at: 2026-09-16T23:21:47+0800
+builder_go: go version go1.26.6 darwin/arm64
+host: Darwin/arm64
+toolchain: CGO_ENABLED=0 go build -trimpath ./cmd/km
+image_ref: kali-mac-min:0.2
+image_content_id: sha256:bd829afded6ed952168fbe01fe15418f083cf86678cf1c5b1a35b2924b71bb03
+platforms:
+  - darwin/arm64（宿主架构：本机实测）
+  - darwin/amd64（交叉编译：未在真实硬件测试）
+
+f1e5e15e283f0f3975fffd4d5c0fd0595a1f1d594fee8f81a741e597ae18482d  km-0.3.0-p2-darwin-amd64
+698516482a2a8e70597cee6fc4135ca050afea34939a6234e6a7ed536ff8e394  km-0.3.0-p2-darwin-arm64
+km-0.3.0-p2-darwin-amd64: OK
+km-0.3.0-p2-darwin-arm64: OK
+== Rosetta 探测 ==
+arch: posix_spawnp: /usr/bin/true: Bad CPU type in executable
+rosetta=unavailable

@@ -1,0 +1,12 @@
+== 卸载金丝雀核验 ==
+已删除 /tmp/km-c2-install.HNbQKR/prefix/opt/km-trial/bin/km
+已删除 /tmp/km-c2-install.HNbQKR/prefix/opt/km-trial/share/km/VERSION
+已删除 /tmp/km-c2-install.HNbQKR/prefix/opt/km-trial/share/km/manifest.txt
+已移除空目录 /tmp/km-c2-install.HNbQKR/prefix/opt/km-trial/share/km
+已移除空目录 /tmp/km-c2-install.HNbQKR/prefix/opt/km-trial/share
+卸载完成
+OK: 清单外金丝雀保留
+OK: 清单内文件全部删除
+== 试用项目清理（完整 ID 核对）==
+removed container 54465421555e7f964fcf44f39c02a6a79dca44f7088105ad11ff235bd825f7f8
+removed trial dir

@@ -86,11 +86,26 @@ SIGTERM/SIGHUP/SIGKILL 语义跨平台成立）；Node 20 deprecation 是 action
 - [x] CI 运行证据回填并提交（`tests/evidence/prerelease-c1/`、
       `tests/evidence/p2c-shellproto-1789491527/`）
 
-## 阶段二：安装包与新用户路径验收 — 未开始
+## 阶段二：安装包与新用户路径验收 — **passed**
 
-前置改动计划：`scripts/install.sh` 支持从 dist 产物安装（KM_BIN 覆盖，模式同 PERF_KM_BIN）。
+证据目录 `tests/evidence/prerelease-c2/`。
 
-## 阶段三：真实项目试用 — 未开始
+| 验收项 | 结果 | 证据 |
+| --- | --- | --- |
+| install.sh 支持从 dist 产物安装（KM_BIN 覆盖） | ✓ | `install-from-dist.txt` |
+| 安装二进制与 dist 产物一致（SHA256 比对） | ✓ 69851648… | 同上 |
+| 不依赖开发目录（bin/km 改名后安装版仍工作） | ✓ | 同上 |
+| 指南实走 version/help→init→run→共享→shell→doctor→stop→恢复 | ✓ 全流程 | `guide-walkthrough.txt`、`guide-shell-stop-restore.txt` |
+| 中文+空格项目路径 | ✓ `$HOME/Workspace/km 试用 项目` | 同上 |
+| 双向文件共享（含中文文件名 结果.txt） | ✓ | `guide-walkthrough.txt` |
+| PTY shell：Ctrl-C→130、作业控制、窗口 40×100、exit 7 透传 | ✓ PASS | `shell-pty-driver.py` 运行输出 |
+| 卸载只删清单内文件（金丝雀保留） | ✓ | `uninstall-cleanup.txt` |
+| arm64 | ✓ 本机实测全流程 | 本表各项 |
+| amd64 | 构建成功 + SHA256SUMS 校验通过；**实机未验证（Rosetta 未安装，无 Intel 实机），以元数据与本文档明确标注，不以交叉编译替代实测** | `package.txt` |
+
+试用项目已按完整 ID 清理（容器 54465421…、临时安装目录已删除）；`kali-mac-min:0.2` 未改动。
+
+## 阶段三：真实项目小范围试用 — 未开始
 
 ## 阶段四：确定下一轮主题 — 未开始
 

@@ -1,0 +1,18 @@
+== 项目路径（中文+空格）== /Users/y4n9/Workspace/km 试用 项目
+== init ==
+km init: 环境就绪（project=p7e229704f7 container=54465421555e image=sha256:bd829）
+rc=0
+== doctor ==
+
+结论: 10 通过, 1 警告, 0 失败
+== run：python3/pwd ==
+Python 3.14.6
+/workspace
+== 共享 Mac→容器 ==
+安装版实走 hello
+== 共享 容器→Mac ==
+容器写入
+== 管道/重定向/退出码 ==
+2
+安装版实走 hello
+exit7-rc=7

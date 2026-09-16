@@ -1,0 +1,13 @@
+== shell（PTY 实操）==
+
+[SHELL_EXIT_CODE=7]
+[SHELL_WALKTHROUGH_PASS]
+shell-rc=
+== stop → 恢复 → doctor 终态 ==
+km stop: 容器 km-p7e229704f7 已停止；容器与项目文件均保留，下次执行自动恢复
+stop-rc=0
+km: 容器已停止，正在恢复…
+安装版实走 hello
+restore-rc=0
+
+结论: 11 通过, 0 警告, 0 失败

@@ -5,6 +5,7 @@
 #   scripts/install.sh                     # 安装到 /usr/local（需相应写权限）
 #   PREFIX=$HOME/.local scripts/install.sh # 用户级前缀
 #   DESTDIR=/tmp/stage PREFIX=/usr/local scripts/install.sh  # 打包/暂存（不落真实路径）
+#   KM_BIN=dist/km-…-darwin-arm64 PREFIX=… scripts/install.sh  # 安装指定二进制（如打包产物）
 #
 # 行为：只安装清单内文件（二进制 + 版本元数据 + 清单自身）；清单写在
 # $PREFIX/share/km/manifest.txt（相对 PREFIX 的路径），卸载（scripts/uninstall.sh）
@@ -13,7 +14,7 @@ set -euo pipefail
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 PREFIX="${PREFIX:-/usr/local}"
 DESTDIR="${DESTDIR:-}"
-BIN_SRC="$REPO/bin/km"
+BIN_SRC="${KM_BIN:-$REPO/bin/km}"
 [ -x "$BIN_SRC" ] || { echo "FATAL: 先 make build（缺 $BIN_SRC）" >&2; exit 2; }
 
 ROOT="$DESTDIR$PREFIX"
