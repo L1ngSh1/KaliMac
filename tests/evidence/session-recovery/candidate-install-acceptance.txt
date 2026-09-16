@@ -1,0 +1,23 @@
+== ① 从 dist 产物安装候选版本 ==
+已安装 km 0.4.0-p3 → /tmp/km-candidate.1dZxpZ/prefix/opt/km-candidate
+  清单: /tmp/km-candidate.1dZxpZ/prefix/opt/km-candidate/share/km/manifest.txt（卸载只删除清单内文件）
+  （DESTDIR 暂存模式：未写入系统路径）
+提示：/opt/km-candidate/bin 不在 PATH；或直接用绝对路径调用
+OK: 安装二进制=dist 产物
+km 0.4.0-p3
+== ② 任务→强杀→阻断→sessions→cancel→恢复（全程安装版）==
+init ok
+blocked-rc=1
+KM_SESSION_ACTIVE: 容器内存在活跃会话 [s8f29c855724f8f52]（疑似宿主中断遗留，任务可能仍在运行）；运行 km sessions 查看详情，确认后 km cancel <会话ID> 显式清理，再重试
+ACTIVE s8f29c855724f8f52
+取消活跃会话: km cancel <上面列出的 ID>
+sessions-rc=0
+已取消并确认收尾: s8f29c855724f8f52
+cancel-rc=0
+RECOVERED
+recover-rc=0
+== ③ 卸载 ==
+卸载完成
+764fd79892cbe2062bb821f6a66e269f18f5e5c84126a5fa7b9a34127a32e62e
+removed 764fd79892cbe2062bb821f6a66e269f18f5e5c84126a5fa7b9a34127a32e62e
+zero km containers
