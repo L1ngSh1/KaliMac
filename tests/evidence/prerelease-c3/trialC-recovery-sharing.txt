@@ -1,0 +1,12 @@
+== C 项目：会话恢复+数据保留 ==
+stopped
+km: 容器已停止，正在恢复…
+笔记索引 v1
+restore-rc=0
+== 文件共享+子目录 cwd 映射 ==
+/workspace/笔记 2026
+1
+原始笔记
+== 容器内处理回写 Mac 可读 ==
+SHA2-256(/workspace/index.txt)= 6ab12bd51d29c6cbe988b5722935435fc0725eccdfb23da282423bc4cf157919
+6ab12bd51d29c6cbe988b5722935435fc0725eccdfb23da282423bc4cf157919

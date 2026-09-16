@@ -1,0 +1,4 @@
+PROMPT_OK_BEFORE_KILL: True
+PTY_TAIL_AFTER_KILL: '/kb/HT208050.\r\n\x1b[?1034h$ exec /Users/y4n9/Workspace/Projects/My-github-projects/KaliMac/bin/km shell\r\n\x1b[?2004hKM_SHELL> '
+PROC_ALIVE: no
+final-rc=0

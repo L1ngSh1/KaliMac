@@ -1,0 +1,12 @@
+== 隔离：A 长任务忙碌时，B/C 不受影响 ==
+B_STILL_OK
+B-rc=0
+C_STILL_OK
+C-rc=0
+== 同项目并发：预期 KM_PROJECT_BUSY（无管道取真实退出码）==
+busy-rc=1
+KM_PROJECT_BUSY: 项目正被其他 km 会话占用（pid=3149，自 2026-09-16T15:25:46Z）；同项目执行串行，其他项目不受影响
+== A 遗留会话清理（km-ctl sweep 路径：下次执行自动清扫）==
+km: 清理了遗留锁（持有人进程已退出）；这不代表容器内任务已结束，正在核验容器内会话…
+KM_SESSION_ACTIVE: 容器内存在活跃会话 [s13b174a5d3f9c91d]（疑似宿主中断遗留，任务可能仍在运行）；确认后执行 docker exec 2fea4d262d71 /tmp/km-bin/km-ctl cancel s13b174a5d3f9c91d 显式清理，再重试
+A-rc=1

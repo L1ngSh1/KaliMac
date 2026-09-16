@@ -1,0 +1,16 @@
+== B 项目：异常退出（SIGKILL 宿主 km）→ 阻断 → 按报错指引显式恢复 ==
+-- 模拟强杀（kill -9 宿主 km 进程树）--
+-- 立即再执行：预期 KM_SESSION_ACTIVE 阻断 --
+km: 清理了遗留锁（持有人进程已退出）；这不代表容器内任务已结束，正在核验容器内会话…
+KM_SESSION_ACTIVE: 容器内存在活跃会话 [s4db236015a564037]（疑似宿主中断遗留，任务可能仍在运行）；确认后执行 docker exec cb2fc80c4251 /tmp/km-bin/km-ctl cancel s4db236015a564037 显式清理，再重试
+blocked-rc=0
+-- doctor 应报告活跃会话 --
+  [警告] 容器内活跃会话: [s4db236015a564037]（若宿主已无对应 km 进程，可显式 cancel 清理）
+结论: 10 通过, 1 警告, 0 失败
+-- 按报错/doctor 指引显式 cancel --
+cancel s4db236015a564037
+/tmp/km-bin/km-ctl: 7: cannot open /proc/27/stat: No such file
+cancel-rc=0
+-- 恢复后再执行 --
+RECOVERED
+recover-rc=0
