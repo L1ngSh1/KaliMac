@@ -1,0 +1,21 @@
+run-id: session-recovery-20260916-235624
+head: f479accf05374c62f92eb531e85d52a7a09cff32
+origin/master: f479acc
+version: km 0.3.0-p2
+go: go version go1.26.6 darwin/arm64
+os: 27.0/arm64
+image: sha256:bd829afded6ed952168fbe01fe15418f083cf86678cf1c5b1a35b2924b71bb03
+unpushed commits: 0
+--- local test baseline (S0 重跑) ---
+gofmt-dirty-files: 0
+vet: PASS
+?   	kalimac/cmd/shellproto	[no test files]
+ok  	kalimac/internal/cli	0.580s
+ok  	kalimac/internal/project	0.549s
+ok  	kalimac/internal/residue	0.520s
+ok  	kalimac/internal/runtime	0.835s
+ok  	kalimac/internal/session	0.671s
+--- CI 最近两次（远端）---
+completed	success	docs+evidence：阶段三试用通过（3 项目、发现 F1-F3）；阶段四决定下一轮主题=会话查看与显式恢复入口	ci	master	push	35115960282	3m5s	2026-09-16T15:31:51Z
+completed	success	install+docs：安装支持 dist 产物源；阶段二安装包验收通过	ci	master	push	35115057217	3m13s	2026-09-16T15:23:52Z
+completed	success	chore：忽略 __pycache__；补驱动器修复本地回归证据	ci	master	push	35002511955	3m7s	2026-09-15T17:38:19Z

@@ -1,5 +1,42 @@
 # 验证记录
 
+## 第八轮：会话查看与显式恢复（2026-09-16，session-recovery 计划）
+
+计划与行为合同：docs/session-recovery-plan.md（S1 审查结论与 S2 冻结合同在该文件）。
+证据：tests/evidence/session-recovery/。本轮未推送（计划约定不自动 push）。
+
+### 交付
+
+- `km sessions`（只读）与 `km cancel <id>`（定向取消），行为合同冻结于计划文档并落进
+  cli-contract.md。两命令不取项目执行锁（S1 审查：锁只保护执行临界区；恢复必须恰在
+  锁持有人卡死/死亡时可用），并发正确性由容器侧 km-ctl 协议幂等（0/3/4）保证；
+  归属门禁复用 run 的容器身份检查，**不含镜像内容检查**（镜像漂移不阻止恢复）。
+- `KM_SESSION_ACTIVE` 阻断提示改为指向 `km sessions` / `km cancel <id>`；帮助文本同步。
+- 共享逻辑整理：run.go 抽出 verifyStackForQuery（verifyStackForMutation 复用，run 既有
+  行为不变——既有单测/集成全绿佐证）。
+
+### F2 根因与修复
+
+试用观察到的 `/tmp/km-bin/km-ctl: 7: cannot open /proc/27/stat` 为 **shell 重定向顺序
+缺陷**：POSIX 重定向自左向右生效，`< "$p/stat" 2>/dev/null` 的输入重定向先失败，错误
+消息在 stderr 重定向前逃逸；`|| continue` 语义与清理结果始终正确 → 纯竞争噪音。
+修复：5 处（km-run 1、km-ctl 3、km-observe 1）统一为 `2>/dev/null < "$p/stat"`，加
+守卫测试 TestContainerScriptsRedirectOrder。生效时机=脚本随 run/shell 引导刷新。
+
+### 验证（本地，未推送）
+
+- 新增单测 12 项：sessions（空表/列表/127/查询失败三态/带参拒绝）、cancel（缺参/
+  格式/未知 ID 不宣称成功/ACTIVE 收尾/STALE 幂等/exit3 幂等/exit4 非零）。
+- 真实集成：关键端到端（长任务→强杀→KM_SESSION_ACTIVE 阻断含新入口指引→
+  sessions 列出完整 ID→cancel「已取消并确认收尾」→列表空→run 恢复）**连续 3/3 轮
+  通过**；参数/未知 ID/隔离与持锁可用性/重复与自然退出竞争 4 项通过；
+  F2 定向证据 = 20 次连续 cancel 零噪音且退出码符合合同。
+- 全套件回归 143.4s 零 SKIP 零残留；gofmt/vet（含 integration tag）/单测/race/build
+  全绿（s4-final-battery.txt）。
+- 行为澄清（测试中发现并回填合同）：外部 `km cancel` 取消运行中任务 → 客户端退出码
+  为工具真实状态 TERM=143（原样透传）；Ctrl-C 的 130 不变。重复 cancel 已清除的会话
+  → 按合同报 KM_SESSION_UNKNOWN 退出 1（不把未知报成成功）。
+
 ## 第七轮：goal 1789353851（2026-09-14，资源生命周期收口 + 端到端实走）
 
 计划见 docs/goal-plan.md，逐项状态与证据见 docs/goal-progress.md（run-id `goal-1789353851`）。

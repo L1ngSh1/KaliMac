@@ -1,0 +1,16 @@
+== S4 最终验证组合 ==
+gofmt-dirty: 0
+vet: PASS
+?   	kalimac/cmd/shellproto	[no test files]
+ok  	kalimac/internal/cli	0.877s
+ok  	kalimac/internal/project	0.841s
+ok  	kalimac/internal/residue	0.797s
+ok  	kalimac/internal/runtime	0.710s
+ok  	kalimac/internal/session	0.961s
+?   	kalimac/cmd/shellproto	[no test files]
+ok  	kalimac/internal/cli	1.658s
+ok  	kalimac/internal/project	1.605s
+ok  	kalimac/internal/residue	1.557s
+ok  	kalimac/internal/runtime	1.877s
+ok  	kalimac/internal/session	1.721s
+build: PASS

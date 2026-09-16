@@ -1,0 +1,10 @@
+=== RUN   TestSessionCmdsArgsAndUnknown
+--- PASS: TestSessionCmdsArgsAndUnknown (0.70s)
+=== RUN   TestSessionCmdsProjectIsolationAndNoLock
+--- PASS: TestSessionCmdsProjectIsolationAndNoLock (1.60s)
+=== RUN   TestSessionCmdsRepeatAndNaturalExit
+--- PASS: TestSessionCmdsRepeatAndNaturalExit (4.16s)
+=== RUN   TestSessionCancelNoiseRegression
+--- PASS: TestSessionCancelNoiseRegression (1.88s)
+PASS
+ok  	kalimac/tests/integration	9.770s

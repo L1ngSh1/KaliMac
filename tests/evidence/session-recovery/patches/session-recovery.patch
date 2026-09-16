@@ -1,0 +1,314 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index f5e691c..cbcadb5 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -3,7 +3,41 @@
+ 版本约定：`主.次.修-阶段`（如 `0.3.0-p2`）；版本常量在 `internal/cli/cli.go` 的 `Version`。
+ 历史轮次的详细验证记录见 [docs/verification.md](docs/verification.md)。
+ 
+-## 未发布（本轮 goal 1789353851 的变更；候选版本号、tag 与发布命令为待审步骤，尚未执行）
++## 未发布（会话恢复轮：`km sessions` / `km cancel <id>`；候选版本号、tag 与发布命令为待审步骤，尚未执行）
++
++### 新增
++
++- `km sessions`：只读列出当前项目的容器内会话（`ACTIVE <id>` / `STALE <id>`，完整 ID
++  可复制）；无会话、脚本未安装、容器未运行均有明确定义的非失败输出；查询失败/输出
++  异常 → `KM_SESSION_UNKNOWN` 非零退出。
++- `km cancel <id>`：显式取消当前项目的指定会话并核验终态。完整 ID 精确匹配（非法格式
++  为用法错误）；列表中不存在的 ID 明确报错、不宣称成功、不操作其他项目；活跃取消 →
++  「已取消并确认收尾」；已结束/已清扫 → 幂等说明；km-ctl 退出码 4 → 非零并保留诊断。
++  两命令均不取项目执行锁（必须恰在锁持有人卡死/死亡时可用），并发正确性由容器侧
++  km-ctl 协议（0/3/4）幂等保证。
++- `KM_SESSION_ACTIVE` 阻断提示与帮助文本指向新恢复入口；底层
++  `docker exec … km-ctl cancel` 保留为高级排障手段。
++
++### 修复
++
++- F2（试用记录）：容器脚本中 `/proc` 读写的 shell 重定向顺序缺陷——POSIX 重定向自左
++  向右生效，旧写法 `< "$p/stat" 2>/dev/null` 使输入重定向的 "cannot open" 错误在
++  stderr 重定向生效前逃逸到用户终端。纯观感缺陷（清理逻辑与退出码一直正确）；5 处
++  统一修复并加回归守卫测试；脚本随 run/shell 引导刷新后生效。
++
++### 行为澄清（非变更）
++
++- 被 `km cancel` 外部取消的运行中任务，客户端退出码为工具真实状态（TERM=143 原样
++  透传）；Ctrl-C 的 130 语义不变。
++
++### 验收（macOS 26.6.2/arm64，Docker 29.6.1，本地）
++
++- 新增单测 12 项（两命令合同全覆盖）+ 容器脚本重定向守卫。
++- 真实集成：关键端到端链路（长任务→强杀→阻断→sessions→cancel→核验→恢复）连续
++  3/3 轮通过；参数/隔离/重复与自然退出竞争/F2 零噪音 4 项通过；全套件回归
++  143s 零 SKIP 零残留；gofmt/vet（含 integration tag）/单测/race/build 全绿。
++
++## 未发布（上一轮 goal 1789353851 的变更；已在 2026-09-16 随预发布验收推送）
+ 
+ ### 修复
+ 
+diff --git a/docs/architecture.md b/docs/architecture.md
+index e00594f..45ae3de 100644
+--- a/docs/architecture.md
++++ b/docs/architecture.md
+@@ -29,6 +29,12 @@ Mac 终端
+ 8. **测试资源生命周期（goal 1789353851 收口）**：集成测试创建的每个容器按完整 ID 登记进套件终检
+    （TestMain）；终检区分「确认消失/确认残留/无法核实」，查询失败响亮失败而非静默通过；
+    Docker 引擎不可达时 TestMain 预检显式 `P2-INTEGRATION-SKIP` 跳过（不在 `-run '^$'` 下访问引擎或构建镜像）。
++9. **锁与恢复命令的协作（会话恢复轮）**：项目执行锁只保护 run/shell/init 的执行临界区；
++   `km sessions`（只读）与 `km cancel <id>`（定向控制）**不取执行锁**——它们必须恰在锁
++   持有人卡死或死亡时可用。并发正确性不由锁保证，而由容器侧 km-ctl 协议幂等性保证
++   （0=已收尾、3=已消失、4=未确认）；cancel 前先列会话确认归属与存在，列表与取消之间
++   的状态变化由协议码兜底。归属门禁复用 run 的容器身份检查（不含镜像内容检查：镜像
++   漂移不阻止只读恢复）。
+ 
+ ## 错误模型
+ 
+diff --git a/docs/cli-contract.md b/docs/cli-contract.md
+index 2aa3150..aa76d02 100644
+--- a/docs/cli-contract.md
++++ b/docs/cli-contract.md
+@@ -14,10 +14,12 @@
+ | `km run -- TOOL ARG...` | 已实现（非交互） | 同上长形式；`--` 必需，解决工具与 km 管理命令重名 |
+ | `km shell` | 已实现（C2） | 交互 bash：Docker CLI 接管真实终端（raw mode/恢复/尺寸归客户端）；会话登记进 /tmp/km-sessions（与工具会话互斥，崩溃遗留阻断后续任务）；stdin/stdout 非终端 → KM_NOT_TTY（exit 1，进入前失败）；外部 SIGTERM/SIGHUP → 恢复终端并退出 143；键盘 Ctrl-C/Ctrl-D/作业控制直达 bash；退出码原样透传 |
+ | `km stop` | 已实现 | 只停止当前项目已验证身份的容器；不删除容器/文件/镜像；幂等；执行中返回 KM_PROJECT_BUSY |
++| `km sessions` | 已实现（会话恢复） | 只读列出当前项目容器内会话：stdout 为 `ACTIVE <id>` / `STALE <id>` 行（完整 ID 可复制），辅助提示走 stderr；无会话输出「当前项目无会话」退出 0；脚本未安装（127）说明为预期状态退出 0；容器未运行时说明登记将随下次执行清扫退出 0（不启动容器）；查询失败/输出异常 → `KM_SESSION_UNKNOWN` 退出 1。门禁=只读归属校验（endpoint 固定 + 引擎匹配 + 容器 ID/名称/标签/挂载），**不含镜像内容检查**（镜像漂移不阻止恢复）；不取项目执行锁，不安装脚本、不清扫、不改变任何运行状态 |
++| `km cancel <id>` | 已实现（会话恢复） | 显式取消当前项目的指定会话并核验终态。完整 ID 精确匹配（`s`+16 hex，非法 → KM_USAGE 退出 2）；先列会话确认归属，列表中不存在的 ID → `KM_SESSION_UNKNOWN` 退出 1（不宣称成功，不操作其他项目）；活跃会话取消成功 → 「已取消并确认收尾」退出 0；已结束/已被清扫 → 幂等消息（「已结束，登记已清除」/「会话已不存在」）退出 0；km-ctl 退出码 4 或查询/取消失败 → `KM_SESSION_UNKNOWN` 退出 1 并保留诊断。不停止容器、不取执行锁；被外部取消的客户端退出码为工具真实状态（TERM=143 原样透传）；主动 setsid 脱离的进程不在保证范围（ADR-004） |
+ 
+ ## 解析规则
+ 
+-- 第一段匹配管理命令（help/version/init/shell/doctor/stop/run）→ km 解析；其余一律视为工具调用，工具名之后的所有 argv 原样属于工具。
++- 第一段匹配管理命令（help/version/init/shell/doctor/stop/run/sessions/cancel）→ km 解析；其余一律视为工具调用，工具名之后的所有 argv 原样属于工具。
+ - `--help`/`--version` 在任何管理命令名之前识别；未知 `-` 开头首参 → `KM_USAGE` 退出 2。
+ - `km run` 必须带 `--`；`--` 后第一段是工具名，即使它叫 `stop`/`run` 也属于工具。
+ - 工具 argv 永远逐元素传递（argv 数组），km 不拼接 shell 字符串；用户要 shell 语义需显式 `sh -c '...'`。
+@@ -30,7 +32,7 @@
+ 
+ ## 错误标识
+ 
+-`KM_PROJECT_NESTED`（嵌套 init；init 全程持项目锁，同项目并发/任务执行中返回 KM_PROJECT_BUSY）、`KM_PROJECT_BUSY`（同项目执行中）、`KM_IMAGE_DRIFT`（镜像标签内容与项目记录不一致）、`KM_SESSION_ACTIVE`（容器内仍有活跃会话，宿主疑似中断遗留；阻断新任务并给出显式 cancel 指引）、`KM_RUNTIME_MISSING`（无 docker CLI / 容器内命令缺失 / context 无 endpoint）、`KM_RUNTIME_OFFLINE`（引擎不可达）、`KM_ENDPOINT_REMOTE`（远程 endpoint，拒绝且不发引擎查询）、`KM_PROJECT_MISSING`、`KM_CONFIG_INVALID`、`KM_STATE_INVALID`、`KM_CONTAINER_CONFLICT`（ID/名称/标签/挂载/镜像内容任一不符或同名重建，不接管）、`KM_RUNTIME_MISMATCH`（状态记录的引擎与当前有效 endpoint 漂移，跳过容器/镜像检查）、`KM_TIMEOUT`（管理查询超时）、`KM_CANCELED`（km 收到取消，子进程已终止）、`KM_USAGE`。
++`KM_PROJECT_NESTED`（嵌套 init；init 全程持项目锁，同项目并发/任务执行中返回 KM_PROJECT_BUSY）、`KM_PROJECT_BUSY`（同项目执行中）、`KM_IMAGE_DRIFT`（镜像标签内容与项目记录不一致）、`KM_SESSION_ACTIVE`（容器内仍有活跃会话，宿主疑似中断遗留；阻断新任务并指向 `km sessions` / `km cancel <id>` 恢复入口）、`KM_SESSION_UNKNOWN`（会话状态查询失败/输出异常/取消未确认/指定 ID 不在当前项目会话列表中；绝不把未知或失败报成成功）、`KM_RUNTIME_MISSING`（无 docker CLI / 容器内命令缺失 / context 无 endpoint）、`KM_RUNTIME_OFFLINE`（引擎不可达）、`KM_ENDPOINT_REMOTE`（远程 endpoint，拒绝且不发引擎查询）、`KM_PROJECT_MISSING`、`KM_CONFIG_INVALID`、`KM_STATE_INVALID`、`KM_CONTAINER_CONFLICT`（ID/名称/标签/挂载/镜像内容任一不符或同名重建，不接管）、`KM_RUNTIME_MISMATCH`（状态记录的引擎与当前有效 endpoint 漂移，跳过容器/镜像检查）、`KM_TIMEOUT`（管理查询超时）、`KM_CANCELED`（km 收到取消，子进程已终止）、`KM_USAGE`。
+ 
+ ## 超时
+ 
+diff --git a/docs/user-guide.md b/docs/user-guide.md
+index 71a9547..d3fad66 100644
+--- a/docs/user-guide.md
++++ b/docs/user-guide.md
+@@ -156,7 +156,7 @@ cd "$DEMO"                   # 或你实际的项目目录；新终端请填真
+ | `KM_RUNTIME_MISSING` / `KM_RUNTIME_OFFLINE` | 检查 Docker CLI、Docker Desktop 是否运行及引擎是否可达 |
+ | `KM_NOT_TTY` | 在真正的 Mac 终端直接运行 shell；脚本改用 `run --` |
+ | `KM_PROJECT_BUSY` | 同项目另一个 km 任务或 shell 正在运行；等待结束，或在原终端中断任务 / 退出 shell |
+-| `KM_SESSION_ACTIVE` | 容器仍有登记的旧会话；先核对任务，确认要结束后按错误输出的显式 cancel 指引处理，保持 Docker 引擎与项目一致 |
++| `KM_SESSION_ACTIVE` | 容器仍有登记的旧会话；先核对任务，确认要结束后用 `km sessions` 查看会话，再 `km cancel <id>` 显式清理（id 会话完整复制），保持 Docker 引擎与项目一致 |
+ | `KM_SESSION_UNKNOWN` | 会话查询失败或结果异常；检查 Docker 与 doctor 输出，不要通过删除登记目录绕过检查 |
+ | `KM_IMAGE_DRIFT` / `KM_RUNTIME_MISMATCH` / `KM_CONTAINER_CONFLICT` | 镜像、引擎或容器身份变化；保留配置和状态，先核对变动原因 |
+ 
+@@ -166,7 +166,8 @@ cd "$DEMO"                   # 或你实际的项目目录；新终端请填真
+ 
+ 仍然成立的行为约定：
+ 
+-- 宿主进程被强杀（SIGKILL/关终端）时，容器内的 shell 可能继续运行；后续命令会被 `KM_SESSION_ACTIVE` 保护性阻断——它不是应该删除的“缓存”，按提示用 `docker exec <容器> /tmp/km-bin/km-ctl cancel <会话ID>` 显式清理即可恢复。
++- 宿主进程被强杀（SIGKILL/关终端）时，容器内的 shell 可能继续运行；后续命令会被 `KM_SESSION_ACTIVE` 保护性阻断——它不是应该删除的“缓存”。恢复入口：**`km sessions` 查看会话，`km cancel <id>` 显式取消**（`<id>` 从 sessions 输出完整复制；取消只作用于当前项目，已结束的会话会得到幂等说明）。旧的 `docker exec <容器> /tmp/km-bin/km-ctl cancel <会话ID>` 保留为高级排障手段，普通恢复不再需要。
++- 被 `km cancel` 外部取消的运行中任务，其客户端退出码为工具真实状态（TERM=143）；Ctrl-C 的 130 语义不变。
+ - 主动 `setsid … &` 脱离会话的进程不属于 km 的清理范围，会一直存活（可观测、可手动清理）。
+ - `km shell` 每次启动会向容器安装/刷新一次会话脚本，热调用比裸 `docker exec` 慢约 160ms（2026-09 基线：km p50 203–207ms vs exec 45ms，见 tests/perf/evidence/ 与 CHANGELOG）。
+ - `init` 后、首次 `run`/`shell` 之前运行 `doctor`，会话检查会显示一条预期中的警告「会话脚本未安装」（此时容器内还没有会话脚本可查）；首次 `run` 或 `shell` 之后该检查自动变为 OK。
+diff --git a/docs/verification.md b/docs/verification.md
+index e5e44c0..a1389d8 100644
+--- a/docs/verification.md
++++ b/docs/verification.md
+@@ -1,5 +1,42 @@
+ # 验证记录
+ 
++## 第八轮：会话查看与显式恢复（2026-09-16，session-recovery 计划）
++
++计划与行为合同：docs/session-recovery-plan.md（S1 审查结论与 S2 冻结合同在该文件）。
++证据：tests/evidence/session-recovery/。本轮未推送（计划约定不自动 push）。
++
++### 交付
++
++- `km sessions`（只读）与 `km cancel <id>`（定向取消），行为合同冻结于计划文档并落进
++  cli-contract.md。两命令不取项目执行锁（S1 审查：锁只保护执行临界区；恢复必须恰在
++  锁持有人卡死/死亡时可用），并发正确性由容器侧 km-ctl 协议幂等（0/3/4）保证；
++  归属门禁复用 run 的容器身份检查，**不含镜像内容检查**（镜像漂移不阻止恢复）。
++- `KM_SESSION_ACTIVE` 阻断提示改为指向 `km sessions` / `km cancel <id>`；帮助文本同步。
++- 共享逻辑整理：run.go 抽出 verifyStackForQuery（verifyStackForMutation 复用，run 既有
++  行为不变——既有单测/集成全绿佐证）。
++
++### F2 根因与修复
++
++试用观察到的 `/tmp/km-bin/km-ctl: 7: cannot open /proc/27/stat` 为 **shell 重定向顺序
++缺陷**：POSIX 重定向自左向右生效，`< "$p/stat" 2>/dev/null` 的输入重定向先失败，错误
++消息在 stderr 重定向前逃逸；`|| continue` 语义与清理结果始终正确 → 纯竞争噪音。
++修复：5 处（km-run 1、km-ctl 3、km-observe 1）统一为 `2>/dev/null < "$p/stat"`，加
++守卫测试 TestContainerScriptsRedirectOrder。生效时机=脚本随 run/shell 引导刷新。
++
++### 验证（本地，未推送）
++
++- 新增单测 12 项：sessions（空表/列表/127/查询失败三态/带参拒绝）、cancel（缺参/
++  格式/未知 ID 不宣称成功/ACTIVE 收尾/STALE 幂等/exit3 幂等/exit4 非零）。
++- 真实集成：关键端到端（长任务→强杀→KM_SESSION_ACTIVE 阻断含新入口指引→
++  sessions 列出完整 ID→cancel「已取消并确认收尾」→列表空→run 恢复）**连续 3/3 轮
++  通过**；参数/未知 ID/隔离与持锁可用性/重复与自然退出竞争 4 项通过；
++  F2 定向证据 = 20 次连续 cancel 零噪音且退出码符合合同。
++- 全套件回归 143.4s 零 SKIP 零残留；gofmt/vet（含 integration tag）/单测/race/build
++  全绿（s4-final-battery.txt）。
++- 行为澄清（测试中发现并回填合同）：外部 `km cancel` 取消运行中任务 → 客户端退出码
++  为工具真实状态 TERM=143（原样透传）；Ctrl-C 的 130 不变。重复 cancel 已清除的会话
++  → 按合同报 KM_SESSION_UNKNOWN 退出 1（不把未知报成成功）。
++
+ ## 第七轮：goal 1789353851（2026-09-14，资源生命周期收口 + 端到端实走）
+ 
+ 计划见 docs/goal-plan.md，逐项状态与证据见 docs/goal-progress.md（run-id `goal-1789353851`）。
+diff --git a/internal/cli/cli.go b/internal/cli/cli.go
+index 93ee2ea..c86e4aa 100644
+--- a/internal/cli/cli.go
++++ b/internal/cli/cli.go
+@@ -27,6 +27,7 @@ const (
+ var managementCommands = map[string]bool{
+ 	"help": true, "version": true, "init": true, "shell": true,
+ 	"doctor": true, "stop": true, "run": true,
++	"sessions": true, "cancel": true,
+ }
+ 
+ // newDocker is the injection point for tests: swapping it lets tests assert
+@@ -61,6 +62,10 @@ func Run(ctx context.Context, argv []string, stdout, stderr io.Writer) int {
+ 		return runStopCommand(ctx, argv[1:], stdout, stderr, newDocker())
+ 	case "shell":
+ 		return runShellCommand(ctx, argv[1:], stdout, stderr, newDocker())
++	case "sessions":
++		return runSessionsCommand(ctx, argv[1:], stdout, stderr, newDocker())
++	case "cancel":
++		return runCancelCommand(ctx, argv[1:], stdout, stderr, newDocker())
+ 	}
+ 	if strings.HasPrefix(argv[0], "-") {
+ 		return usageError(stderr, "未知选项 %q；管理命令见 km --help", argv[0])
+@@ -103,6 +108,8 @@ func PrintHelp(w io.Writer) {
+   km run -- TOOL [ARG...]     同上，长形式，用于与 km 管理命令重名的工具
+   km shell                    交互 bash（真实终端接管；Ctrl-C/Ctrl-D/作业控制）
+   km stop                     停止当前项目容器，数据保留（幂等）
++  km sessions                 查看当前项目的会话（只读）
++  km cancel <id>              显式取消当前项目的指定会话（完整 ID 见 km sessions）
+ 
+ 说明:
+   项目文件留在 Mac；工具输出与退出状态回到原终端。
+diff --git a/internal/cli/run.go b/internal/cli/run.go
+index e158a5c..1a3300f 100644
+--- a/internal/cli/run.go
++++ b/internal/cli/run.go
+@@ -41,31 +41,44 @@ func loadProjectStack(dir string) (root string, cfg *project.Config, st *project
+ 	return root, cfg, st, nil
+ }
+ 
+-// verifyStackForMutation performs every read-only identity check that must
+-// pass before a mutating or executing command touches the container:
+-// local engine, recorded engine match, full container identity and image
+-// content identity. 返回解析并固定的 endpoint（R4）。
+-func verifyStackForMutation(ctx context.Context, dk *runtime.Docker, root string, cfg *project.Config, st *project.State) (runtime.EndpointInfo, error) {
++// verifyStackForQuery 是只读/定向恢复命令（sessions/cancel）的门禁：
++// endpoint 解析与固定、引擎匹配、容器存在与归属（完整 ID/名称/标签/挂载）。
++// 有意不检查镜像内容身份：镜像漂移不应阻止只读查询与定向清理
++// （KM_IMAGE_DRIFT 仍会阻断下一次 run/init，doctor 报告渠道不变）。
++// 返回 inspect 结果供调用方使用容器状态。
++func verifyStackForQuery(ctx context.Context, dk *runtime.Docker, root string, st *project.State) (runtime.EndpointInfo, runtime.InspectResult, error) {
+ 	ep, err := resolveEngine(ctx, dk)
+ 	if err != nil {
+-		return ep, err
++		return ep, runtime.InspectResult{}, err
+ 	}
+ 	if err := verifyProjectEngine(st, ep.Endpoint); err != nil {
+-		return ep, err
++		return ep, runtime.InspectResult{}, err
+ 	}
+ 	if st.Container.ID == "" {
+-		return ep, &runtime.Error{Code: runtime.CodeStateInvalid,
++		return ep, runtime.InspectResult{}, &runtime.Error{Code: runtime.CodeStateInvalid,
+ 			Msg: "本机状态缺少容器 ID（旧版状态）；请重新 init 重建本机身份，不按名称接管"}
+ 	}
+ 	res, exists, err := dk.InspectContainer(ctx, st.Container.ID)
+ 	if err != nil {
+-		return ep, err
++		return ep, runtime.InspectResult{}, err
+ 	}
+ 	if !exists {
+-		return ep, &runtime.Error{Code: runtime.CodeNotFound,
++		return ep, runtime.InspectResult{}, &runtime.Error{Code: runtime.CodeNotFound,
+ 			Msg: fmt.Sprintf("记录的容器（ID %s…）不存在（可能被外部删除）；运行 km init 恢复", shortID(st.Container.ID))}
+ 	}
+ 	if err := verifyContainerIdentity(st, res, root); err != nil {
++		return ep, runtime.InspectResult{}, err
++	}
++	return ep, res, nil
++}
++
++// verifyStackForMutation performs every read-only identity check that must
++// pass before a mutating or executing command touches the container:
++// local engine, recorded engine match, full container identity and image
++// content identity. 返回解析并固定的 endpoint（R4）。
++func verifyStackForMutation(ctx context.Context, dk *runtime.Docker, root string, cfg *project.Config, st *project.State) (runtime.EndpointInfo, error) {
++	ep, res, err := verifyStackForQuery(ctx, dk, root, st)
++	if err != nil {
+ 		return ep, err
+ 	}
+ 	cur, ok, err := dk.ImageID(ctx, cfg.Image)
+diff --git a/internal/cli/sessionctl.go b/internal/cli/sessionctl.go
+index 2a0f1a5..624d560 100644
+--- a/internal/cli/sessionctl.go
++++ b/internal/cli/sessionctl.go
+@@ -47,7 +47,7 @@ func verifyNoActiveSession(ctx context.Context, ctl *session.DockerController, c
+ 	}
+ 	if len(active) > 0 {
+ 		return &runtime.Error{Code: runtime.CodeSessionActive,
+-			Msg: fmt.Sprintf("容器内存在活跃会话 %v（疑似宿主中断遗留，任务可能仍在运行）；确认后执行 docker exec %s /tmp/km-bin/km-ctl cancel %s 显式清理，再重试", active, shortID(containerID), active[0])}
++			Msg: fmt.Sprintf("容器内存在活跃会话 %v（疑似宿主中断遗留，任务可能仍在运行）；运行 km sessions 查看详情，确认后 km cancel <会话ID> 显式清理，再重试", active)}
+ 	}
+ 	if _, swErrStr, swExit, swErr := ctl.Sweep(ctx, containerID); swErr != nil || swExit != 0 {
+ 		fmt.Fprintf(stderr, "km: 遗留会话清扫未完成（exit=%d, %s）；不影响本次执行\n", swExit, strings.TrimSpace(swErrStr))
+diff --git a/internal/session/scripts.go b/internal/session/scripts.go
+index 874d257..e96aece 100644
+--- a/internal/session/scripts.go
++++ b/internal/session/scripts.go
+@@ -37,7 +37,7 @@ CODE=$?
+ # 逃逸出本进程组的守护化子进程不在保证范围（见 ADR-004）。
+ group_busy() {
+   for p in /proc/[0-9]*; do
+-    read -r pid comm st ppid pg rest < "$p/stat" 2>/dev/null || continue
++    read -r pid comm st ppid pg rest 2>/dev/null < "$p/stat" || continue
+     [ "$st" = "Z" ] && continue
+     [ "$pg" = "$TPID" ] && return 0
+   done
+@@ -77,7 +77,7 @@ const kmCtlSh = `#!/bin/sh
+ # 属于记录在案的逃逸者。仅用 bash 的 PGID 会漏掉其他作业组。
+ sess_busy() {
+   for p in /proc/[0-9]*; do
+-    read -r pid comm st ppid pgrp sess rest < "$p/stat" 2>/dev/null || continue
++    read -r pid comm st ppid pgrp sess rest 2>/dev/null < "$p/stat" || continue
+     [ "$st" = "Z" ] && continue
+     [ "$sess" = "$TPID" ] && return 0
+   done
+@@ -86,7 +86,7 @@ sess_busy() {
+ # 按 SID 域清理：TERM 全部成员 → 有界轮询 → KILL 兜底。
+ sess_kill() {
+   for p in /proc/[0-9]*; do
+-    read -r pid comm st ppid pgrp sess rest < "$p/stat" 2>/dev/null || continue
++    read -r pid comm st ppid pgrp sess rest 2>/dev/null < "$p/stat" || continue
+     [ "$st" = "Z" ] && continue
+     [ "$sess" = "$TPID" ] && kill -TERM "$pid" 2>/dev/null
+   done
+@@ -94,7 +94,7 @@ sess_kill() {
+   while sess_busy && [ $i -lt 50 ]; do sleep 0.1; i=$((i+1)); done
+   sess_busy || return 0
+   for p in /proc/[0-9]*; do
+-    read -r pid comm st ppid pgrp sess rest < "$p/stat" 2>/dev/null || continue
++    read -r pid comm st ppid pgrp sess rest 2>/dev/null < "$p/stat" || continue
+     [ "$st" = "Z" ] && continue
+     [ "$sess" = "$TPID" ] && kill -KILL "$pid" 2>/dev/null
+   done
+@@ -174,7 +174,7 @@ exec bash --noprofile --norc -i
+ const kmObserveSh = `#!/bin/sh
+ PATTERN="$1"
+ for p in /proc/[0-9]*; do
+-  read -r pid comm state ppid pgrp rest < "$p/stat" 2>/dev/null || continue
++  read -r pid comm state ppid pgrp rest 2>/dev/null < "$p/stat" || continue
+   case "$PATTERN" in
+     all) printf '%s %s %s %s\n' "$pid" "$state" "$pgrp" "${comm#*(}" ;;
+     pgid:*) [ "$pgrp" = "${PATTERN#pgid:}" ] && printf '%s %s %s %s\n' "$pid" "$state" "$pgrp" "${comm#*(}" ;;

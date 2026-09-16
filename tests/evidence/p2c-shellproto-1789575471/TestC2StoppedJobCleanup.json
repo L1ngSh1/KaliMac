@@ -1,0 +1,57 @@
+{
+ "ok": true,
+ "steps": [
+  {
+   "step": 0,
+   "op": "expect",
+   "ok": true,
+   "matched": true,
+   "buffer_tail": "\u001b[?2004hKM_SHELL> "
+  },
+  {
+   "step": 1,
+   "op": "send",
+   "ok": true,
+   "sent": "sleep 273\r"
+  },
+  {
+   "step": 2,
+   "op": "settle",
+   "ok": true
+  },
+  {
+   "step": 3,
+   "op": "sendb",
+   "ok": true
+  },
+  {
+   "step": 4,
+   "op": "expect",
+   "ok": true,
+   "matched": true,
+   "buffer_tail": "\u001b[?2004hKM_SHELL> sleep 273\r\n\u001b[?2004l\r^Z\r\n[1]+  Stopped                    sleep 273\r\n\u001b[?2004hKM_SHELL> "
+  },
+  {
+   "step": 5,
+   "op": "send",
+   "ok": true,
+   "sent": "exit\r"
+  },
+  {
+   "step": 6,
+   "op": "settle",
+   "ok": true
+  },
+  {
+   "step": 7,
+   "op": "send",
+   "ok": true,
+   "sent": "exit 0\r"
+  }
+ ],
+ "exit_code": 0,
+ "exit_sig": null,
+ "termios_equal": true,
+ "signals_sent": [],
+ "error": null
+}

@@ -156,7 +156,7 @@ cd "$DEMO"                   # 或你实际的项目目录；新终端请填真�
 | `KM_RUNTIME_MISSING` / `KM_RUNTIME_OFFLINE` | 检查 Docker CLI、Docker Desktop 是否运行及引擎是否可达 |
 | `KM_NOT_TTY` | 在真正的 Mac 终端直接运行 shell；脚本改用 `run --` |
 | `KM_PROJECT_BUSY` | 同项目另一个 km 任务或 shell 正在运行；等待结束，或在原终端中断任务 / 退出 shell |
-| `KM_SESSION_ACTIVE` | 容器仍有登记的旧会话；先核对任务，确认要结束后按错误输出的显式 cancel 指引处理，保持 Docker 引擎与项目一致 |
+| `KM_SESSION_ACTIVE` | 容器仍有登记的旧会话；先核对任务，确认要结束后用 `km sessions` 查看会话，再 `km cancel <id>` 显式清理（id 会话完整复制），保持 Docker 引擎与项目一致 |
 | `KM_SESSION_UNKNOWN` | 会话查询失败或结果异常；检查 Docker 与 doctor 输出，不要通过删除登记目录绕过检查 |
 | `KM_IMAGE_DRIFT` / `KM_RUNTIME_MISMATCH` / `KM_CONTAINER_CONFLICT` | 镜像、引擎或容器身份变化；保留配置和状态，先核对变动原因 |
 
@@ -166,7 +166,8 @@ cd "$DEMO"                   # 或你实际的项目目录；新终端请填真�
 
 仍然成立的行为约定：
 
-- 宿主进程被强杀（SIGKILL/关终端）时，容器内的 shell 可能继续运行；后续命令会被 `KM_SESSION_ACTIVE` 保护性阻断——它不是应该删除的“缓存”，按提示用 `docker exec <容器> /tmp/km-bin/km-ctl cancel <会话ID>` 显式清理即可恢复。
+- 宿主进程被强杀（SIGKILL/关终端）时，容器内的 shell 可能继续运行；后续命令会被 `KM_SESSION_ACTIVE` 保护性阻断——它不是应该删除的“缓存”。恢复入口：**`km sessions` 查看会话，`km cancel <id>` 显式取消**（`<id>` 从 sessions 输出完整复制；取消只作用于当前项目，已结束的会话会得到幂等说明）。旧的 `docker exec <容器> /tmp/km-bin/km-ctl cancel <会话ID>` 保留为高级排障手段，普通恢复不再需要。
+- 被 `km cancel` 外部取消的运行中任务，其客户端退出码为工具真实状态（TERM=143）；Ctrl-C 的 130 语义不变。
 - 主动 `setsid … &` 脱离会话的进程不属于 km 的清理范围，会一直存活（可观测、可手动清理）。
 - `km shell` 每次启动会向容器安装/刷新一次会话脚本，热调用比裸 `docker exec` 慢约 160ms（2026-09 基线：km p50 203–207ms vs exec 45ms，见 tests/perf/evidence/ 与 CHANGELOG）。
 - `init` 后、首次 `run`/`shell` 之前运行 `doctor`，会话检查会显示一条预期中的警告「会话脚本未安装」（此时容器内还没有会话脚本可查）；首次 `run` 或 `shell` 之后该检查自动变为 OK。

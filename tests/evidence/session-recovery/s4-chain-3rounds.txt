@@ -1,0 +1,9 @@
+=== RUN   TestSessionRecoveryChain
+--- PASS: TestSessionRecoveryChain (5.83s)
+=== RUN   TestSessionRecoveryChain
+--- PASS: TestSessionRecoveryChain (4.25s)
+=== RUN   TestSessionRecoveryChain
+--- PASS: TestSessionRecoveryChain (4.29s)
+PASS
+ok  	kalimac/tests/integration	15.572s
+rc=0
