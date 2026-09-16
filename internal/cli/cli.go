@@ -13,7 +13,7 @@ import (
 )
 
 // Version is the km build version reported by --version.
-const Version = "0.3.0-p2"
+const Version = "0.4.0-p3"
 
 // Exit codes per the CLI contract: 0 success, 1 environment failure,
 // 2 usage error or unimplemented command.

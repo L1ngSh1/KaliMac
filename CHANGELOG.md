@@ -3,7 +3,7 @@
 版本约定：`主.次.修-阶段`（如 `0.3.0-p2`）；版本常量在 `internal/cli/cli.go` 的 `Version`。
 历史轮次的详细验证记录见 [docs/verification.md](docs/verification.md)。
 
-## 未发布（会话恢复轮：`km sessions` / `km cancel <id>`；候选版本号、tag 与发布命令为待审步骤，尚未执行）
+## 0.4.0-p3（候选；tag 与发布命令仍为待审步骤）
 
 ### 新增
 

@@ -1,0 +1,17 @@
+打包完成 → /Users/y4n9/Workspace/Projects/My-github-projects/KaliMac/dist
+version: 0.4.0-p3
+code_rev: 8418949950b2c3c6c8a5a04bdca8f180ff188144
+built_at: 2026-09-17T01:12:27+0800
+builder_go: go version go1.26.6 darwin/arm64
+host: Darwin/arm64
+toolchain: CGO_ENABLED=0 go build -trimpath ./cmd/km
+image_ref: kali-mac-min:0.2
+image_content_id: sha256:bd829afded6ed952168fbe01fe15418f083cf86678cf1c5b1a35b2924b71bb03
+platforms:
+  - darwin/arm64（宿主架构：本机实测）
+  - darwin/amd64（交叉编译：未在真实硬件测试）
+
+26f2c389a3e1d004ed1a8a22838b17b38ce7ab59c5e843f9c88600c4d228f29a  km-0.4.0-p3-darwin-amd64
+38836ed8e7591f3d4410ed268b6cd8871dcb5ee414f2a886001116257536078b  km-0.4.0-p3-darwin-arm64
+km-0.4.0-p3-darwin-amd64: OK
+km-0.4.0-p3-darwin-arm64: OK
