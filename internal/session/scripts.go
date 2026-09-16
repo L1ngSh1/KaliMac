@@ -37,7 +37,7 @@ CODE=$?
 # 逃逸出本进程组的守护化子进程不在保证范围（见 ADR-004）。
 group_busy() {
   for p in /proc/[0-9]*; do
-    read -r pid comm st ppid pg rest < "$p/stat" 2>/dev/null || continue
+    read -r pid comm st ppid pg rest 2>/dev/null < "$p/stat" || continue
     [ "$st" = "Z" ] && continue
     [ "$pg" = "$TPID" ] && return 0
   done
@@ -77,7 +77,7 @@ const kmCtlSh = `#!/bin/sh
 # 属于记录在案的逃逸者。仅用 bash 的 PGID 会漏掉其他作业组。
 sess_busy() {
   for p in /proc/[0-9]*; do
-    read -r pid comm st ppid pgrp sess rest < "$p/stat" 2>/dev/null || continue
+    read -r pid comm st ppid pgrp sess rest 2>/dev/null < "$p/stat" || continue
     [ "$st" = "Z" ] && continue
     [ "$sess" = "$TPID" ] && return 0
   done
@@ -86,7 +86,7 @@ sess_busy() {
 # 按 SID 域清理：TERM 全部成员 → 有界轮询 → KILL 兜底。
 sess_kill() {
   for p in /proc/[0-9]*; do
-    read -r pid comm st ppid pgrp sess rest < "$p/stat" 2>/dev/null || continue
+    read -r pid comm st ppid pgrp sess rest 2>/dev/null < "$p/stat" || continue
     [ "$st" = "Z" ] && continue
     [ "$sess" = "$TPID" ] && kill -TERM "$pid" 2>/dev/null
   done
@@ -94,7 +94,7 @@ sess_kill() {
   while sess_busy && [ $i -lt 50 ]; do sleep 0.1; i=$((i+1)); done
   sess_busy || return 0
   for p in /proc/[0-9]*; do
-    read -r pid comm st ppid pgrp sess rest < "$p/stat" 2>/dev/null || continue
+    read -r pid comm st ppid pgrp sess rest 2>/dev/null < "$p/stat" || continue
     [ "$st" = "Z" ] && continue
     [ "$sess" = "$TPID" ] && kill -KILL "$pid" 2>/dev/null
   done
@@ -174,7 +174,7 @@ exec bash --noprofile --norc -i
 const kmObserveSh = `#!/bin/sh
 PATTERN="$1"
 for p in /proc/[0-9]*; do
-  read -r pid comm state ppid pgrp rest < "$p/stat" 2>/dev/null || continue
+  read -r pid comm state ppid pgrp rest 2>/dev/null < "$p/stat" || continue
   case "$PATTERN" in
     all) printf '%s %s %s %s\n' "$pid" "$state" "$pgrp" "${comm#*(}" ;;
     pgid:*) [ "$pgrp" = "${PATTERN#pgid:}" ] && printf '%s %s %s %s\n' "$pid" "$state" "$pgrp" "${comm#*(}" ;;

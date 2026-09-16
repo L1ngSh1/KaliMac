@@ -27,6 +27,7 @@ const (
 var managementCommands = map[string]bool{
 	"help": true, "version": true, "init": true, "shell": true,
 	"doctor": true, "stop": true, "run": true,
+	"sessions": true, "cancel": true,
 }
 
 // newDocker is the injection point for tests: swapping it lets tests assert
@@ -61,6 +62,10 @@ func Run(ctx context.Context, argv []string, stdout, stderr io.Writer) int {
 		return runStopCommand(ctx, argv[1:], stdout, stderr, newDocker())
 	case "shell":
 		return runShellCommand(ctx, argv[1:], stdout, stderr, newDocker())
+	case "sessions":
+		return runSessionsCommand(ctx, argv[1:], stdout, stderr, newDocker())
+	case "cancel":
+		return runCancelCommand(ctx, argv[1:], stdout, stderr, newDocker())
 	}
 	if strings.HasPrefix(argv[0], "-") {
 		return usageError(stderr, "未知选项 %q；管理命令见 km --help", argv[0])
@@ -103,6 +108,8 @@ func PrintHelp(w io.Writer) {
   km run -- TOOL [ARG...]     同上，长形式，用于与 km 管理命令重名的工具
   km shell                    交互 bash（真实终端接管；Ctrl-C/Ctrl-D/作业控制）
   km stop                     停止当前项目容器，数据保留（幂等）
+  km sessions                 查看当前项目的会话（只读）
+  km cancel <id>              显式取消当前项目的指定会话（完整 ID 见 km sessions）
 
 说明:
   项目文件留在 Mac；工具输出与退出状态回到原终端。

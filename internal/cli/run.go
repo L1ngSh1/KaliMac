@@ -41,31 +41,44 @@ func loadProjectStack(dir string) (root string, cfg *project.Config, st *project
 	return root, cfg, st, nil
 }
 
+// verifyStackForQuery 是只读/定向恢复命令（sessions/cancel）的门禁：
+// endpoint 解析与固定、引擎匹配、容器存在与归属（完整 ID/名称/标签/挂载）。
+// 有意不检查镜像内容身份：镜像漂移不应阻止只读查询与定向清理
+// （KM_IMAGE_DRIFT 仍会阻断下一次 run/init，doctor 报告渠道不变）。
+// 返回 inspect 结果供调用方使用容器状态。
+func verifyStackForQuery(ctx context.Context, dk *runtime.Docker, root string, st *project.State) (runtime.EndpointInfo, runtime.InspectResult, error) {
+	ep, err := resolveEngine(ctx, dk)
+	if err != nil {
+		return ep, runtime.InspectResult{}, err
+	}
+	if err := verifyProjectEngine(st, ep.Endpoint); err != nil {
+		return ep, runtime.InspectResult{}, err
+	}
+	if st.Container.ID == "" {
+		return ep, runtime.InspectResult{}, &runtime.Error{Code: runtime.CodeStateInvalid,
+			Msg: "本机状态缺少容器 ID（旧版状态）；请重新 init 重建本机身份，不按名称接管"}
+	}
+	res, exists, err := dk.InspectContainer(ctx, st.Container.ID)
+	if err != nil {
+		return ep, runtime.InspectResult{}, err
+	}
+	if !exists {
+		return ep, runtime.InspectResult{}, &runtime.Error{Code: runtime.CodeNotFound,
+			Msg: fmt.Sprintf("记录的容器（ID %s…）不存在（可能被外部删除）；运行 km init 恢复", shortID(st.Container.ID))}
+	}
+	if err := verifyContainerIdentity(st, res, root); err != nil {
+		return ep, runtime.InspectResult{}, err
+	}
+	return ep, res, nil
+}
+
 // verifyStackForMutation performs every read-only identity check that must
 // pass before a mutating or executing command touches the container:
 // local engine, recorded engine match, full container identity and image
 // content identity. 返回解析并固定的 endpoint（R4）。
 func verifyStackForMutation(ctx context.Context, dk *runtime.Docker, root string, cfg *project.Config, st *project.State) (runtime.EndpointInfo, error) {
-	ep, err := resolveEngine(ctx, dk)
+	ep, res, err := verifyStackForQuery(ctx, dk, root, st)
 	if err != nil {
-		return ep, err
-	}
-	if err := verifyProjectEngine(st, ep.Endpoint); err != nil {
-		return ep, err
-	}
-	if st.Container.ID == "" {
-		return ep, &runtime.Error{Code: runtime.CodeStateInvalid,
-			Msg: "本机状态缺少容器 ID（旧版状态）；请重新 init 重建本机身份，不按名称接管"}
-	}
-	res, exists, err := dk.InspectContainer(ctx, st.Container.ID)
-	if err != nil {
-		return ep, err
-	}
-	if !exists {
-		return ep, &runtime.Error{Code: runtime.CodeNotFound,
-			Msg: fmt.Sprintf("记录的容器（ID %s…）不存在（可能被外部删除）；运行 km init 恢复", shortID(st.Container.ID))}
-	}
-	if err := verifyContainerIdentity(st, res, root); err != nil {
 		return ep, err
 	}
 	cur, ok, err := dk.ImageID(ctx, cfg.Image)

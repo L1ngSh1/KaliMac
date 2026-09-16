@@ -47,7 +47,7 @@ func verifyNoActiveSession(ctx context.Context, ctl *session.DockerController, c
 	}
 	if len(active) > 0 {
 		return &runtime.Error{Code: runtime.CodeSessionActive,
-			Msg: fmt.Sprintf("容器内存在活跃会话 %v（疑似宿主中断遗留，任务可能仍在运行）；确认后执行 docker exec %s /tmp/km-bin/km-ctl cancel %s 显式清理，再重试", active, shortID(containerID), active[0])}
+			Msg: fmt.Sprintf("容器内存在活跃会话 %v（疑似宿主中断遗留，任务可能仍在运行）；运行 km sessions 查看详情，确认后 km cancel <会话ID> 显式清理，再重试", active)}
 	}
 	if _, swErrStr, swExit, swErr := ctl.Sweep(ctx, containerID); swErr != nil || swExit != 0 {
 		fmt.Fprintf(stderr, "km: 遗留会话清扫未完成（exit=%d, %s）；不影响本次执行\n", swExit, strings.TrimSpace(swErrStr))
