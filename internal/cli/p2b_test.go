@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	goruntime "runtime"
 	"strings"
 	"testing"
 
@@ -71,8 +72,8 @@ func dockerResponder(t *testing.T, containers map[string]string, hooks map[strin
 		case args[1] == "context" && args[2] == "inspect":
 			return sdEndpoint, 0
 		case args[1] == "image" && args[2] == "inspect" && strings.Contains(strings.Join(args, " "), "{{.Os}}/{{.Architecture}}"):
-			// fake 宿主镜像架构固定 arm64（平台兑现测试的对照基准）
-			return "linux/arm64", 0
+			// fake 宿主镜像架构 = host-native（与 init 写入的声明一致，平台无关）
+			return "linux/" + goruntime.GOARCH, 0
 		case args[1] == "image" && args[2] == "inspect":
 			ref := args[len(args)-1]
 			if ref == "missing:1" && hooks["pull"] == 0 {

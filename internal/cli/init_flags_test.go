@@ -5,6 +5,7 @@ package cli
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	goruntime "runtime"
@@ -120,7 +121,8 @@ func TestInitFlagsPlatformNewProject(t *testing.T) {
 func TestInitFlagsConflictOnExistingConfig(t *testing.T) {
 	hooks := map[string]int{}
 	dir := t.TempDir()
-	writeConfigFile(t, dir, `{"schema_version":1,"image":"img:1","platform":"linux/arm64"}`)
+	hostPlat := "linux/" + goruntime.GOARCH
+	writeConfigFile(t, dir, fmt.Sprintf(`{"schema_version":1,"image":"img:1","platform":%q}`, hostPlat))
 	d := mkDocker(dockerResponder(t, map[string]string{}, hooks))
 
 	// --image 不一致 → 冲突，不创建、不覆盖
@@ -142,7 +144,7 @@ func TestInitFlagsConflictOnExistingConfig(t *testing.T) {
 		t.Fatalf("platform 冲突: code=%d err=%q", code, errb)
 	}
 	// 一致 → 放行（复用/创建按配置继续）
-	code, _, errb = runInitArgs(t, d, dir, "--image", "img:1", "--platform", "linux/arm64")
+	code, _, errb = runInitArgs(t, d, dir, "--image", "img:1", "--platform", hostPlat)
 	if code != ExitOK {
 		t.Fatalf("一致参数应放行: code=%d err=%q", code, errb)
 	}
@@ -212,9 +214,14 @@ func TestInitFlagsTakeoverMessageIncludesImageAndPlatform(t *testing.T) {
 // 反例2（P1）：配置声明平台被修改后，init 不得复用平台不一致的旧容器并报成功。
 // fake 的镜像架构固定为 arm64；声明 linux/amd64 → 复用前核验必须拒绝。
 func TestInitFlagsPlatformChangeRequiresRealMigration(t *testing.T) {
+	// 声明平台 = host-native 之外的那个，保证任何 runner 上都与 fake 实际架构冲突
+	other := "linux/amd64"
+	if goruntime.GOARCH == "amd64" {
+		other = "linux/arm64"
+	}
 	hooks := map[string]int{}
 	dir := t.TempDir()
-	writeConfigFile(t, dir, `{"schema_version":1,"image":"img:1","platform":"linux/amd64"}`)
+	writeConfigFile(t, dir, fmt.Sprintf(`{"schema_version":1,"image":"img:1","platform":%q}`, other))
 	containers := map[string]string{}
 	respond := func(args []string) (string, int) {
 		joined := strings.Join(args, " ")
@@ -229,15 +236,15 @@ func TestInitFlagsPlatformChangeRequiresRealMigration(t *testing.T) {
 		t.Fatalf("初建: %s", errb)
 	}
 	// 第二阶段（审查反例核心）：容器未变，再次 init → 复用路径核验实际平台
-	// arm64 ≠ 声明 amd64 → 拒绝复用、不重建（提示真实迁移流程）
+	// 声明平台 ≠ 实际 → 拒绝复用、不重建（提示真实迁移流程）
 	st, err := project.LoadState(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
 	containers[st.Container.ID] = inspectLine(st.Container.ID, st.Container.Name, "running", st.ProjectID, sdImageID, resolveDir(t, dir))
 	hooks["create"] = 0
-	code, _, errb := runInitArgs(t, d, dir, "--platform", "linux/amd64")
-	if code != ExitEnv || !strings.Contains(errb, "KM_CONTAINER_CONFLICT") || !strings.Contains(errb, "linux/amd64") {
+	code, _, errb := runInitArgs(t, d, dir, "--platform", other)
+	if code != ExitEnv || !strings.Contains(errb, "KM_CONTAINER_CONFLICT") || !strings.Contains(errb, other) {
 		t.Fatalf("平台不一致的复用应拒绝: code=%d err=%q", code, errb)
 	}
 	if hooks["create"] != 0 {
