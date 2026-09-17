@@ -1,0 +1,12 @@
+已安装 km 0.4.0-p3 → /tmp/km-r2.R6CMsy/prefix/opt/km-r2
+km 0.4.0-p3
+km init: 环境就绪（project=pcebeb9b965 container=ca5530d47db8 image=kali-mac-min:0.2 镜像身份=sha256:bd829 平台=linux/arm64 精选工具镜像）
+状态:   running_idle
+/tmp/km_r2_acceptance.sh: line 19: 91811 Killed: 9               "$KMB" run -- /bin/sh -c 'sleep 60' > /dev/null 2>&1
+blocked-rc=1
+已取消并确认收尾: s912232a5bc34cab6
+cancel-rc=0
+R2_RECOVERED
+recover-rc=0
+卸载完成
+removed ca5530d47db8567c0f15e8cf49429a5a477b3384fba22622a4e2e90aab1c12aa

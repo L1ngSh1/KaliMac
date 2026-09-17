@@ -257,12 +257,17 @@ func checkContainerOwnership(r *reporter, ctx context.Context, dk *runtime.Docke
 func reportContainerSessions(r *reporter, ctx context.Context, dk *runtime.Docker, containerID string) {
 	var ctl *session.DockerController = newSessionController(dk.EndpointOverride)
 	out, errStr, exitCode, err := ctl.Sessions(ctx, containerID)
+	// 脚本缺失只认双证据（km-ctl 路径 + no such file）；权限/runtime 故障按
+	// 检查失败处理，不得降级为「未安装」。
+	scriptMissing := sessionScriptMissing(out + errStr)
 	active, stale, parseOK := session.ParseSessions(out)
 	switch {
+	case err != nil && !scriptMissing:
+		r.item("警告", "会话检查失败: %v", err)
+	case scriptMissing:
+		r.item("警告", "会话脚本未安装（init 后首次 run/shell 时安装；此前无法检查容器内会话）")
 	case err != nil:
 		r.item("警告", "会话检查失败: %v", err)
-	case exitCode == 126 || exitCode == 127:
-		r.item("警告", "会话脚本未安装（init 后首次 run/shell 时安装；此前无法检查容器内会话）")
 	case exitCode != 0 || !parseOK:
 		r.item("警告", "会话检查失败（exit=%d，stderr: %s；输出不可解析）", exitCode, strings.TrimSpace(errStr))
 	case len(active) == 0 && len(stale) == 0:

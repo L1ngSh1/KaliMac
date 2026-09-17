@@ -341,6 +341,16 @@ func (d *Docker) PullImage(ctx context.Context, ref, platform string) error {
 	return err
 }
 
+// ImageOSArch 查询镜像/引用的操作系统与架构（如 linux/arm64）。归属核验外的
+// 只读查询；init 复用前用它兑现平台声明的一致性。
+func (d *Docker) ImageOSArch(ctx context.Context, ref string) (string, error) {
+	out, err := d.run(ctx, "image", "inspect", "--format", "{{.Os}}/{{.Architecture}}", ref)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(out), nil
+}
+
 // RemoveContainer removes a container by full ID (init rollback only;
 // km never removes project containers elsewhere).
 func (d *Docker) RemoveContainer(ctx context.Context, fullID string) error {

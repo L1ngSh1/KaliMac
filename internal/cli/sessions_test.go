@@ -89,16 +89,41 @@ func TestSessionsListsActiveAndStale(t *testing.T) {
 }
 
 // 脚本未安装（init 后首次 run/shell 前）：明确定义的非失败情形，退出 0。
-// 实测两种退出码：126（OCI 无法启动进程）与 127（shell 找不到命令）。
+// 判定必须双证据：km-ctl 路径 + no such file；裸退出码不算。
 func TestSessionsScriptMissing(t *testing.T) {
 	root := setupProject(t, validConfig, stateJSON(fakeContainerID, fakeImageID, localEndpoint))
 	t.Chdir(root)
-	for _, code127 := range []int{126, 127} {
-		dk := sessFake(t, root, "", code127, nil, nil)
-		c, out, _ := runSessions(t, root, dk)
-		if c != ExitOK || !strings.Contains(out, "会话脚本未安装") {
-			t.Fatalf("exit=%d: code=%d out=%q", code127, c, out)
-		}
+	sig := "OCI runtime exec failed: exec: \"/tmp/km-bin/km-ctl\": stat /tmp/km-bin/km-ctl: no such file or directory"
+	for _, tc := range []struct {
+		name string
+		out  string
+		errS string
+		exit int
+	}{
+		{"exit126-stdout-sig", sig, "", 126},
+		{"exit127-stderr-sig", "", sig, 127},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// 直接构造控制器注入（需携带 stderr 双证据文本）
+			old := newSessionController
+			newSessionController = func(endpoint string) *session.DockerController {
+				return &session.DockerController{RunFn: func(_ context.Context, _ []byte, _ []string) (string, string, int, error) {
+					return tc.out, tc.errS, tc.exit, nil
+				}}
+			}
+			t.Cleanup(func() { newSessionController = old })
+			dk2 := &runtime.Docker{Exec: doctorFake(healthyContainerOut(project.CanonicalPath(root)))}
+			c, out, errb := runSessions(t, root, dk2)
+			if c != ExitOK || !strings.Contains(out, "会话脚本未安装") {
+				t.Fatalf("%s: code=%d out=%q err=%q", tc.name, c, out, errb)
+			}
+		})
+	}
+	// 权限失败（脚本存在但不可执行）：真实执行失败 → KM_SESSION_UNKNOWN
+	dkPerm := sessFake(t, root, "OCI runtime exec failed: exec: \"/tmp/km-bin/km-ctl\": permission denied", 126, nil, nil)
+	code, out, errb := runSessions(t, root, dkPerm)
+	if code != ExitEnv || !strings.Contains(errb, "KM_SESSION_UNKNOWN") || strings.Contains(out, "会话脚本未安装") {
+		t.Fatalf("权限失败应 unknown: code=%d out=%q err=%q", code, out, errb)
 	}
 }
 
@@ -213,18 +238,46 @@ func TestCancelUnconfirmedExit4Fails(t *testing.T) {
 // 审查收口：查询不可执行的信息状态（脚本未安装/容器未运行）下，cancel 说明
 // 原因并成功返回——与「查询成功但 ID 不存在」的 KM_SESSION_UNKNOWN 严格区分。
 func TestCancelInfoStatesExitZero(t *testing.T) {
-	// 脚本未安装（sessions 返回 127）
+	// 脚本未安装（sessions 双证据文本 + 127/126）：信息退出 0
 	root := setupProject(t, validConfig, stateJSON(fakeContainerID, fakeImageID, localEndpoint))
 	t.Chdir(root)
-	dk127 := sessFake(t, root, "", 127, nil, nil)
-	code, out, errb := runCancel(t, root, dk127, sessA)
-	if code != ExitOK || !strings.Contains(out, "会话脚本未安装") || errb != "" {
-		t.Fatalf("127 应信息退出0: code=%d out=%q err=%q", code, out, errb)
+	sig := "OCI runtime exec failed: exec: \"/tmp/km-bin/km-ctl\": stat /tmp/km-bin/km-ctl: no such file or directory"
+	for _, tc := range []struct {
+		name string
+		out  string
+		errS string
+		exit int
+	}{
+		{"exit126", sig, "", 126},
+		{"exit127-stderr-sig", "", sig, 127},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			old := newSessionController
+			newSessionController = func(endpoint string) *session.DockerController {
+				return &session.DockerController{RunFn: func(_ context.Context, _ []byte, _ []string) (string, string, int, error) {
+					return tc.out, tc.errS, tc.exit, nil
+				}}
+			}
+			t.Cleanup(func() { newSessionController = old })
+			dk := &runtime.Docker{Exec: doctorFake(healthyContainerOut(project.CanonicalPath(root)))}
+			code, out, errb := runCancel(t, root, dk, sessA)
+			if code != ExitOK || !strings.Contains(out, "会话脚本未安装") || errb != "" {
+				t.Fatalf("%s 应信息退出0: code=%d out=%q err=%q", tc.name, code, out, errb)
+			}
+		})
+	}
+	// 裸 127 无证据文本 → 按 tightened 合同报 unknown（脚本可能只是不可执行）
+	{
+		dk127 := sessFake(t, root, "", 127, nil, nil)
+		code2, out2, errb2 := runCancel(t, root, dk127, sessA)
+		if code2 != ExitEnv || !strings.Contains(errb2, "KM_SESSION_UNKNOWN") {
+			t.Fatalf("裸 127 应 unknown: code=%d out=%q err=%q", code2, out2, errb2)
+		}
 	}
 	// 容器未运行（inspect state=exited）
 	exitedRoot := project.CanonicalPath(root)
 	exited := &runtime.Docker{Exec: doctorFake(containerLine(fakeContainerID, "km-"+fakeProjectID, "exited", fakeProjectID, fakeImageID, exitedRoot))}
-	code, out, errb = runCancel(t, exitedRoot, exited, sessA)
+	code, out, errb := runCancel(t, exitedRoot, exited, sessA)
 	if code != ExitOK || !strings.Contains(out, "容器未在运行") || errb != "" {
 		t.Fatalf("容器停止应信息退出0: code=%d out=%q err=%q", code, out, errb)
 	}

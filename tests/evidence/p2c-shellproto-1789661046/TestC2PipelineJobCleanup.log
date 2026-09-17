@@ -1,0 +1,8 @@
+[?2004hKM_SHELL> sleep 271 | sleep 272 &
+[?2004l[1] 34
+[?2004hKM_SHELL> exit
+[?2004lexit
+
+[1mWhat's next:[0m
+    Try Docker Debug for seamless, persistent debugging tools in any container or image → [36mdocker debug 33b32e08cb054aa3371800d0edcd0f7508c5a025dadac6b6bfbea4a71b69f38a[0m
+    Learn more at https://docs.docker.com/go/debug-cli/

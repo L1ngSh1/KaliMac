@@ -144,15 +144,19 @@ func collectSessions(ctx context.Context, stdout, stderr io.Writer, dk *runtime.
 	}
 	ctl := newSessionController(ep.Endpoint)
 	sOut, sErrStr, sExit, serr := ctl.Sessions(ctx, st.Container.ID)
-	switch {
-	case serr != nil:
+	// 脚本缺失判定只认双证据（km-ctl 路径 + no such file）；权限、格式、
+	// runtime 故障一律走 unknown，绝不当作「无会话」。
+	missing := sessionScriptMissing(sOut + sErrStr)
+	if serr != nil && !missing {
 		return listing, "", nil, "", envError(stderr, &runtime.Error{Code: runtime.CodeSessionUnknown,
 			Msg: "容器内会话状态查询失败，无法确认会话状态", Err: serr})
-	case sExit == 126 || sExit == 127:
+	}
+	if missing {
 		return listing, st.Container.ID, ctl,
 			"会话脚本未安装（init 后首次 run/shell 时安装）：当前项目不存在通过 km 登记的会话",
 			ExitOK
-	case sExit != 0:
+	}
+	if sExit != 0 {
 		return listing, "", nil, "", envError(stderr, &runtime.Error{Code: runtime.CodeSessionUnknown,
 			Msg: fmt.Sprintf("容器内会话状态查询退出码 %d（stderr: %s）", sExit, strings.TrimSpace(sErrStr))})
 	}

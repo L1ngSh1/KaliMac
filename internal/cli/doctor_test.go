@@ -573,13 +573,18 @@ func TestDoctorContainerNameMismatch(t *testing.T) {
 
 // runDoctorWithSessions 以指定 km-ctl sessions 应答跑一遍 doctor（健康栈）。
 func runDoctorWithSessions(t *testing.T, root string, exitCode int, sessOut string) string {
+	return runDoctorWithSessionsErr(t, root, exitCode, sessOut, "")
+}
+
+// errS 非 nil 时作为 stderr 传回（km-ctl 执行失败的双证据判定用）。
+func runDoctorWithSessionsErr(t *testing.T, root string, exitCode int, sessOut, sessErr string) string {
 	t.Helper()
 	t.Setenv("DOCKER_HOST", "")
 	t.Setenv("DOCKER_CONTEXT", "")
 	old := newSessionController
 	newSessionController = func(endpoint string) *session.DockerController {
 		return &session.DockerController{RunFn: func(_ context.Context, _ []byte, _ []string) (string, string, int, error) {
-			return sessOut, "", exitCode, nil
+			return sessOut, sessErr, exitCode, nil
 		}}
 	}
 	t.Cleanup(func() { newSessionController = old })
@@ -601,13 +606,35 @@ func TestDoctorSessionCheckFailureCounted(t *testing.T) {
 	}
 }
 
-// 脚本未安装：实测 exit 126（OCI 无法启动）与 127 两种形态，均预期状态、计入警告。
+// 脚本未安装：双证据（km-ctl 路径 + no such file）+ 退出码 126/127 形态，
+// 预期状态、计入警告。
 func TestDoctorSessionScriptNotInstalled(t *testing.T) {
 	root := setupProject(t, validConfig, stateJSON(fakeContainerID, fakeImageID, localEndpoint))
-	for _, code := range []int{126, 127} {
-		out := runDoctorWithSessions(t, root, code, "")
-		if !strings.Contains(out, "会话脚本未安装") || !strings.Contains(out, "1 警告") {
-			t.Fatalf("exit=%d 应报告脚本未安装并计入警告:\n%s", code, out)
-		}
+	sig := "OCI runtime exec failed: exec: \"/tmp/km-bin/km-ctl\": stat /tmp/km-bin/km-ctl: no such file or directory"
+	for _, tc := range []struct {
+		name string
+		code int
+		out  string
+		errS string
+	}{
+		{"exit126-with-sig", 126, "", sig},
+		{"exit127-with-sig", 127, sig, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			out := runDoctorWithSessionsErr(t, root, tc.code, tc.out, tc.errS)
+			if !strings.Contains(out, "会话脚本未安装") || !strings.Contains(out, "1 警告") {
+				t.Fatalf("%s 应报告脚本未安装并计入警告:\n%s", tc.name, out)
+			}
+		})
+	}
+}
+
+// 权限失败（路径存在但不可执行）：真实执行失败 → 检查失败警告，不得报未安装。
+func TestDoctorSessionPermDeniedIsFailure(t *testing.T) {
+	root := setupProject(t, validConfig, stateJSON(fakeContainerID, fakeImageID, localEndpoint))
+	out := runDoctorWithSessionsErr(t, root, 126,
+		"OCI runtime exec failed: exec: \"/tmp/km-bin/km-ctl\": permission denied", "")
+	if !strings.Contains(out, "会话检查失败") || strings.Contains(out, "会话脚本未安装") {
+		t.Fatalf("权限失败应报检查失败而非未安装:\n%s", out)
 	}
 }

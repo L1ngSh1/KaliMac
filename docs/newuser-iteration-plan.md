@@ -55,7 +55,8 @@ platform 声明缺失拒绝 `--platform`、声明冲突与一致、旧配置复�
 | `uninitialized` | wd 向上无 .km.json（家目录硬边界同 FindConfig） | 0 |
 | `config_incomplete` | 有 .km.json、无 .km/state.json | 0 |
 | `container_missing` | 记录容器 ID 不存在（被外部删除） | 0（提示 km init 恢复） |
-| `container_stopped` | 容器存在且 state != running | 0 |
+| `container_stopped` | 容器 created/exited | 0 |
+| `container_paused` | 容器 paused（任务仍驻留；不推断会话为空；恢复用 docker unpause） | 0 |
 | `running_idle` | running 且无 ACTIVE 会话（STALE 单列说明） | 0 |
 | `running_session_active` | 有 ACTIVE 会话（**中性表述**，不称异常遗留——可能是正在使用的 shell） | 0 |
 | `identity_conflict` | 引擎漂移/容器身份不符/同名重建 | 1 |
@@ -75,6 +76,18 @@ platform 声明缺失拒绝 `--platform`、声明冲突与一致、旧配置复�
   避免 HEAD SHA 暗示产物来自干净提交。
 - 任意 cwd 可调用（REPO 自定位，回归断言）。
 - 验收：伪造过期 bin/km（输出假版本）→ 打包仍标注当前源码版本与正确产物名。
+
+## 二轮审查收口（2026-09-17，5 项全部修复）
+
+1. P1 权限/泛化执行失败误报信息态 → 双证据收紧（sessionScriptMissing 重写；移除裸退出码信任）；
+   反例 TestStatusPermDeniedIsUnknown 修复前 FAIL→修复后 PASS。
+2. P1 平台声明改变后仍复用旧容器 → 复用/接管路径核验实际镜像架构
+   （runtime.ImageOSArch + init.verifyActualPlatform）；不一致 KM_CONTAINER_CONFLICT
+   拒绝、不重建；反例单测 + 真实集成（改配置→init 拒绝→容器原状）双覆盖。
+3. P2 同名二次查询失败被忽略 → err2 单独处理返回 unknown 保留诊断。
+4. P2 paused 误当 stopped → container_paused 独立状态（不推断会话为空），合同枚举同步。
+5. P2 CI 假二进制场景未真实建立 → mkdir -p + 分步写入 + 断言假二进制输出后才开始打包
+   （本地干净 bin 场景模拟通过）。
 
 ## 执行结果（2026-09-17 收口）
 

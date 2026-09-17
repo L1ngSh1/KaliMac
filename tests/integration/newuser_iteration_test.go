@@ -133,3 +133,48 @@ func TestNewUserLegacyConfigCompatReal(t *testing.T) {
 		t.Fatalf("拒绝后环境应保留: %s", out)
 	}
 }
+
+// 反例2 集成版（审查 P1）：配置声明平台修改后，init 必须拒绝复用平台不一致的
+// 旧容器（不静默复用也不自动重建），且容器保持原状。
+func TestNewUserPlatformChangeRejectedReal(t *testing.T) {
+	dir := newP2BProject(t)
+	if _, errb, code := kmRun(t, dir, nil, "init"); code != 0 {
+		t.Fatalf("init: %s", errb)
+	}
+	registerProjectCleanup(t, dir)
+	id := projectContainerID(t, dir)
+
+	// 修改配置声明平台（模拟用户编辑 .km.json）
+	cfgPath := filepath.Join(dir, ".km.json")
+	if err := os.WriteFile(cfgPath, []byte(`{"schema_version":1,"image":"kali-mac-min:0.2","platform":"linux/amd64"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, errb, code := kmRun(t, dir, nil, "init", "--platform", "linux/amd64"); code != 1 || !strings.Contains(errb, "KM_CONTAINER_CONFLICT") {
+		t.Fatalf("平台不一致的复用应拒绝: code=%d err=%s", code, errb)
+	}
+	// 容器未变：同 ID 仍运行
+	if got := containerState(t, id); got != "running" {
+		t.Fatalf("容器应保持原状: %s", got)
+	}
+}
+
+// 反例4 集成版（审查 P2）：paused 容器 → status 报 container_paused（独立状态），
+// 不报 stopped、不推断无会话。
+func TestNewUserStatusPausedReal(t *testing.T) {
+	dir := newP2BProject(t)
+	if _, errb, code := kmRun(t, dir, nil, "init"); code != 0 {
+		t.Fatalf("init: %s", errb)
+	}
+	id := registerProjectCleanup(t, dir)
+	if _, _, c := kmRun(t, dir, nil, "run", "--", "/bin/true"); c != 0 {
+		t.Fatal("run 失败")
+	}
+	if out, err := exec.Command("docker", "pause", id).CombinedOutput(); err != nil {
+		t.Fatalf("pause: %v %s", err, out)
+	}
+	t.Cleanup(func() { exec.Command("docker", "unpause", id).Run() })
+	out, _, code := kmRun(t, dir, nil, "status")
+	if code != 0 || !strings.Contains(out, "container_paused") || strings.Contains(out, "container_stopped") {
+		t.Fatalf("paused 状态: code=%d out=%q", code, out)
+	}
+}

@@ -160,8 +160,9 @@ func TestStatusQueryFailureIsUnknown(t *testing.T) {
 	if code3 != ExitOK || !strings.Contains(out3, "running_idle") || strings.Contains(out3, "unknown") {
 		t.Fatalf("OCI/stdout 形态应信息态: code=%d out=%q", code3, out3)
 	}
-	// exit 126 = 脚本未安装的信息态：running_idle + 说明（非 unknown）
-	d2 := statusDocker(t, containers, "", 126)
+	// exit 126 + 双证据文本 = 脚本未安装的信息态：running_idle + 说明（非 unknown）
+	sig := "OCI runtime exec failed: exec: \"/tmp/km-bin/km-ctl\": stat /tmp/km-bin/km-ctl: no such file or directory"
+	d2 := statusDocker(t, containers, sig, 126)
 	code, out, _ := runStatus(t, dir, d2)
 	if code != ExitOK || !strings.Contains(out, "running_idle") || !strings.Contains(out, "会话脚本尚未安装") {
 		t.Fatalf("126 信息态: code=%d out=%q", code, out)
@@ -268,5 +269,66 @@ func TestStatusUsageErrors(t *testing.T) {
 	d := statusDocker(t, containers, "", 0)
 	if code, _, errb := runStatus(t, dir, d, "positional"); code != ExitUsage || !strings.Contains(errb, "KM_USAGE") {
 		t.Fatalf("位置参数应 usage: code=%d err=%q", code, errb)
+	}
+}
+
+// ===== 审查反例固化（修复前应失败、修复后通过）=====
+
+// 反例1（P1）：km-ctl 因权限问题执行失败（exit 126 + permission denied）——
+// 脚本存在但不可执行，属于真实执行失败，必须 unknown 非零，不得报空闲。
+func TestStatusPermDeniedIsUnknown(t *testing.T) {
+	dir, containers, _ := statusRunningFixture(t)
+	perm := "OCI runtime exec failed: exec failed: unable to start container process: exec: \"/tmp/km-bin/km-ctl\": permission denied\r\n"
+	d := statusDocker(t, containers, perm, 126)
+	code, out, _ := runStatus(t, dir, d)
+	if code != ExitEnv || !strings.Contains(out, statusUnknown) {
+		t.Fatalf("权限失败应 unknown: code=%d out=%q", code, out)
+	}
+	if strings.Contains(out, "running_idle") || strings.Contains(out, "脚本未安装") || strings.Contains(out, "尚未安装") {
+		t.Fatalf("权限失败不得报为脚本未安装/空闲: %q", out)
+	}
+}
+
+// 反例3（P2）：记录 ID 消失后，按名称的二次查询自身失败 → unknown（保留诊断），
+// 不得在查询失败时断言 container_missing。
+func TestStatusNameQueryFailureIsUnknown(t *testing.T) {
+	hooks := map[string]int{}
+	dir := t.TempDir()
+	containers := map[string]string{}
+	d := mkDocker(dockerResponder(t, containers, hooks))
+	runInitArgs(t, d, dir)
+	st, _ := project.LoadState(dir)
+	// 记录 ID 消失；同名容器查询模拟 daemon 故障（不可分类为 NotFound）
+	respond := func(args []string) (string, int) {
+		joined := strings.Join(args, " ")
+		if strings.Contains(joined, st.Container.ID) {
+			return "Error response from daemon: No such container: " + st.Container.ID, 1
+		}
+		if strings.Contains(joined, st.Container.Name) {
+			return "Error response from daemon: bizzarro daemon failure", 1
+		}
+		return dockerResponder(t, containers, hooks)(args)
+	}
+	code, out, _ := runStatus(t, dir, mkDocker(respond))
+	if code != ExitEnv || !strings.Contains(out, statusUnknown) ||
+		!strings.Contains(out, "同名容器查询失败") || !strings.Contains(out, "KM_RUNTIME_OFFLINE") {
+		t.Fatalf("同名查询失败应 unknown 且保留失败环节诊断: code=%d out=%q", code, out)
+	}
+	if strings.Contains(out, "container_missing") {
+		t.Fatalf("查询失败不得判为 container_missing: %q", out)
+	}
+}
+
+// 反例4（P2）：paused 容器——任务仍在（挂起），不得报 container_stopped/推断无会话。
+func TestStatusPausedIsItsOwnState(t *testing.T) {
+	dir, containers, _ := statusRunningFixture(t)
+	st, _ := project.LoadState(dir)
+	containers[st.Container.ID] = inspectLine(st.Container.ID, st.Container.Name, "paused", st.ProjectID, sdImageID, resolveDir(t, dir))
+	code, out, _ := runStatus(t, dir, statusDocker(t, containers, "", 0))
+	if code != ExitOK || !strings.Contains(out, "container_paused") {
+		t.Fatalf("paused 应为独立状态: code=%d out=%q", code, out)
+	}
+	if strings.Contains(out, "container_stopped") {
+		t.Fatalf("paused 不得报为已停止: %q", out)
 	}
 }

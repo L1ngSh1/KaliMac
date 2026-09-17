@@ -209,6 +209,42 @@ func TestInitFlagsTakeoverMessageIncludesImageAndPlatform(t *testing.T) {
 }
 
 // 冲突消息包含「编辑 .km.json」指引（合同文案）。
+// 反例2（P1）：配置声明平台被修改后，init 不得复用平台不一致的旧容器并报成功。
+// fake 的镜像架构固定为 arm64；声明 linux/amd64 → 复用前核验必须拒绝。
+func TestInitFlagsPlatformChangeRequiresRealMigration(t *testing.T) {
+	hooks := map[string]int{}
+	dir := t.TempDir()
+	writeConfigFile(t, dir, `{"schema_version":1,"image":"img:1","platform":"linux/amd64"}`)
+	containers := map[string]string{}
+	respond := func(args []string) (string, int) {
+		joined := strings.Join(args, " ")
+		if strings.Contains(joined, "{{.Os}}/{{.Architecture}}") {
+			return "linux/arm64", 0
+		}
+		return dockerResponder(t, containers, hooks)(args)
+	}
+	d := mkDocker(respond)
+	// 第一阶段：初建（fake 接受声明平台的创建参数）
+	if code, _, errb := runInitArgs(t, d, dir, "--platform", "linux/amd64"); code != ExitOK {
+		t.Fatalf("初建: %s", errb)
+	}
+	// 第二阶段（审查反例核心）：容器未变，再次 init → 复用路径核验实际平台
+	// arm64 ≠ 声明 amd64 → 拒绝复用、不重建（提示真实迁移流程）
+	st, err := project.LoadState(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	containers[st.Container.ID] = inspectLine(st.Container.ID, st.Container.Name, "running", st.ProjectID, sdImageID, resolveDir(t, dir))
+	hooks["create"] = 0
+	code, _, errb := runInitArgs(t, d, dir, "--platform", "linux/amd64")
+	if code != ExitEnv || !strings.Contains(errb, "KM_CONTAINER_CONFLICT") || !strings.Contains(errb, "linux/amd64") {
+		t.Fatalf("平台不一致的复用应拒绝: code=%d err=%q", code, errb)
+	}
+	if hooks["create"] != 0 {
+		t.Fatal("平台不一致时不得重建容器")
+	}
+}
+
 func TestInitFlagsConflictMessageGuidance(t *testing.T) {
 	dir := t.TempDir()
 	writeConfigFile(t, dir, `{"schema_version":1,"image":"img:1","platform":"linux/arm64"}`)

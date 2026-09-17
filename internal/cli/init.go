@@ -273,6 +273,11 @@ func runInitCommand(ctx context.Context, rest []string, stdout, stderr io.Writer
 				if verr := verifyContainerIdentity(st, res, wd); verr != nil {
 					return envError(stderr, verr)
 				}
+				// 平台兑现（审查 P1）：声明平台必须与现有容器实际平台一致，
+				// 不一致明确拒绝——不静默复用，也不自动重建。
+				if verr := verifyActualPlatform(ctx, dk, cfg, res.Image); verr != nil {
+					return envError(stderr, verr)
+				}
 				if res.State != "running" {
 					if err := dk.StartContainer(ctx, st.Container.ID); err != nil {
 						return envError(stderr, err)
@@ -360,6 +365,24 @@ func createContainerFor(ctx context.Context, dk *runtime.Docker, stdout, stderr 
 		st.ProjectID, shortID(fullID), cfg.Image, shortID(imageID),
 		platformDisplay(cfg), curatedImageHint(cfg.Image))
 	return ExitOK
+}
+
+// verifyActualPlatform：配置显式声明平台时，核验现有镜像/容器的实际平台一致；
+// 不一致明确拒绝（不自动重建）。未声明（旧配置）不检查——保持 native 历史行为。
+func verifyActualPlatform(ctx context.Context, dk *runtime.Docker, cfg *project.Config, imageRef string) error {
+	plat := createPlatform(cfg)
+	if plat == "" || imageRef == "" {
+		return nil
+	}
+	got, err := dk.ImageOSArch(ctx, imageRef)
+	if err != nil {
+		return err
+	}
+	if got != plat {
+		return &runtime.Error{Code: runtime.CodeContainerConflict,
+			Msg: fmt.Sprintf("配置声明平台 %s 与现有容器实际平台 %s 不一致；不自动重建。请按文档流程迁移（km stop 后删除容器再 init，或恢复原配置）", plat, got)}
+	}
+	return nil
 }
 
 // platformDisplay：声明平台原样展示；未声明显式标注（旧配置不伪造声明）。

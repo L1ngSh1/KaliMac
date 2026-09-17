@@ -26,6 +26,7 @@ const (
 	statusConfigIncomplete = "config_incomplete"
 	statusContainerMissing = "container_missing"
 	statusContainerStopped = "container_stopped"
+	statusContainerPaused  = "container_paused"
 	statusRunningIdle      = "running_idle"
 	statusRunningActive    = "running_session_active"
 	statusIdentityConflict = "identity_conflict"
@@ -174,7 +175,12 @@ func collectStatus(ctx context.Context, dk *runtime.Docker) projectStatus {
 		// 记录 ID 消失 ≠ 一定可恢复：同名容器可能已被他项目重建（同名重建），
 		// 此时建议「km init 恢复」必然撞 KM_CONTAINER_CONFLICT——按合同归类为
 		// 身份冲突并阻止误导性建议。
-		if byName, exists2, err2 := dk.InspectContainer(ctx, st.Container.Name); err2 == nil && exists2 {
+		byName, exists2, err2 := dk.InspectContainer(ctx, st.Container.Name)
+		if err2 != nil {
+			return statusFail(statusUnknown, runtime.CodeRuntimeOffline,
+				fmt.Sprintf("记录的容器不存在，且同名容器查询失败: %v", err2))
+		}
+		if exists2 {
 			return statusFail(statusIdentityConflict, runtime.CodeContainerConflict,
 				fmt.Sprintf("记录的容器不存在，同名容器 %s 已被重建（project=%q，挂载 %q）；不接管。运行 km doctor 复核",
 					st.Container.Name, byName.ProjectID, byName.MountSource))
@@ -188,17 +194,30 @@ func collectStatus(ctx context.Context, dk *runtime.Docker) projectStatus {
 	}
 	ps.Container = &statusContainer{State: res.State, Name: res.Name, ImageSHA: res.Image}
 
-	if res.State != "running" {
+	switch res.State {
+	case "running":
+		// 继续会话查询
+	case "paused":
+		// 暂停 ≠ 停止：任务仍驻留内存，会话状态不可查询也不得推断为空
+		ps.State = statusContainerPaused
+		ps.Advice = "容器已暂停：任务仍在（挂起）；docker unpause 恢复后 km status 可查看会话"
+		return ps
+	case "created", "exited":
 		ps.State = statusContainerStopped
 		ps.Sessions = &statusSessions{}
 		ps.Advice = "容器已停止（数据保留）；下次 km run/shell 自动启动，km stop 幂等"
 		return ps
+	default:
+		return statusFail(statusUnknown, runtime.CodeStateInvalid,
+			fmt.Sprintf("容器处于未支持状态 %q；请 km doctor 复核", res.State))
 	}
 
 	ctl := newSessionController(ep.Endpoint)
 	sOut, sErrStr, sExit, serr2 := ctl.Sessions(ctx, st.Container.ID)
-	switch {
-	case serr2 != nil:
+	// 脚本缺失判定只认双证据（km-ctl 路径 + no such file）；
+	// 权限、格式、runtime 故障一律走 unknown，绝不当作「无会话/空闲」。
+	missing := sessionScriptMissing(sOut + sErrStr)
+	if serr2 != nil && !missing {
 		state := statusUnknown
 		code := runtime.CodeSessionUnknown
 		var rerr *runtime.Error
@@ -206,29 +225,23 @@ func collectStatus(ctx context.Context, dk *runtime.Docker) projectStatus {
 			code = rerr.Code
 		}
 		return statusFail(state, code, "会话状态查询失败: "+serr2.Error())
-	case sExit != 0 && sExit != 126 && sExit != 127:
+	}
+	if missing {
+		ps.State = statusRunningIdle
+		ps.Sessions = &statusSessions{}
+		ps.Advice = "容器运行中；会话脚本尚未安装（首次 run/shell 时安装）"
+		return ps
+	}
+	if sExit != 0 {
 		return statusFail(statusUnknown, runtime.CodeSessionUnknown,
 			fmt.Sprintf("会话状态查询退出码 %d（stderr: %s）", sExit, strings.TrimSpace(sErrStr)))
 	}
 	active, stale, parseOK := session.ParseSessions(sOut)
 	if !parseOK {
-		// 某些 docker 版本把 OCI exec 失败写到 stdout 且退出码不可靠——
-		// km-ctl 缺失（脚本从未安装）必须识别为信息态，不得报 unknown。
-		combined := sOut + sErrStr
-		if sessionScriptMissing(combined) {
-			ps.State = statusRunningIdle
-			ps.Advice = "容器运行中；会话脚本尚未安装（首次 run/shell 时安装）"
-			return ps
-		}
 		return statusFail(statusUnknown, runtime.CodeSessionUnknown,
 			fmt.Sprintf("会话状态输出异常（%q）", sOut))
 	}
 	ps.Sessions = &statusSessions{Active: active, Stale: stale}
-	if sExit == 126 || sExit == 127 {
-		ps.State = statusRunningIdle
-		ps.Advice = "容器运行中；会话脚本尚未安装（首次 run/shell 时安装）"
-		return ps
-	}
 	if len(active) > 0 {
 		ps.State = statusRunningActive
 		ps.Advice = "有会话在使用中（可能是交互 shell 或运行中任务）；km sessions 查看详情，确认后 km cancel <id> 可显式结束"
@@ -243,13 +256,13 @@ func collectStatus(ctx context.Context, dk *runtime.Docker) projectStatus {
 	return ps
 }
 
-// sessionScriptMissing 判断 km-ctl 查询的输出是否表明脚本从未安装
-// （OCI exec 失败 + 指向 km-ctl 路径的 no such file）。
+// sessionScriptMissing 判断 km-ctl 查询的输出是否表明脚本从未安装。
+// 判定必须双证据：输出指向 km-ctl 路径，且明确是「文件不存在」。
+// 裸 126/127 退出码与泛化的 OCI/权限/格式错误都不算——脚本存在但不可执行、
+// runtime 故障等属于真实执行失败，必须报 unknown（脚本不可查询 ≠ 没有活跃任务）。
 func sessionScriptMissing(out string) bool {
 	return strings.Contains(out, session.CtlScriptPath) &&
-		(strings.Contains(out, "no such file") ||
-			strings.Contains(out, "OCI runtime exec failed") ||
-			strings.Contains(out, "executable file not found"))
+		strings.Contains(out, "no such file")
 }
 
 func renderStatusHuman(ps projectStatus, w io.Writer) {

@@ -1,0 +1,16 @@
+== 二轮收口回归 ==
+gofmt-dirty: 0
+vet: PASS
+ok  	kalimac/internal/cli	0.269s
+ok  	kalimac/internal/project	0.148s
+ok  	kalimac/internal/residue	0.117s
+ok  	kalimac/internal/runtime	0.423s
+ok  	kalimac/internal/session	0.269s
+ok  	kalimac/internal/cli	1.415s
+ok  	kalimac/internal/project	1.320s
+ok  	kalimac/internal/residue	1.278s
+ok  	kalimac/internal/runtime	1.586s
+ok  	kalimac/internal/session	1.459s
+build: PASS
+== 全量集成 ==
+ok  	kalimac/tests/integration	222.579s

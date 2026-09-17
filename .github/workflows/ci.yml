@@ -35,7 +35,11 @@ jobs:
       - name: 打包一致性冒烟（版本源=当前源码；过期 bin/km 与任意 cwd 无影响）
         run: |
           want="$(go run ./cmd/km --version | awk '{print $2}')"
-          printf '#!/bin/sh\necho "km 9.9.9-stale"\n' > bin/km && chmod +x bin/km
+          mkdir -p bin
+          printf '#!/bin/sh\necho "km 9.9.9-stale"\n' > bin/km
+          chmod +x bin/km
+          got="$("$GITHUB_WORKSPACE/bin/km" --version)"
+          test "$got" = "km 9.9.9-stale"   # 假二进制场景必须真实建立
           cd /tmp
           bash "$GITHUB_WORKSPACE/scripts/package.sh" > pkg.out
           grep -q "^version: $want$" pkg.out

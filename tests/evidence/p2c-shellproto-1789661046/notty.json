@@ -1,0 +1,9 @@
+{
+ "ok": true,
+ "steps": [],
+ "exit_code": 2,
+ "exit_sig": null,
+ "termios_equal": true,
+ "signals_sent": [],
+ "error": null
+}
