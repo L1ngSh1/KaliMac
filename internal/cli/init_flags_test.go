@@ -122,6 +122,10 @@ func TestInitFlagsConflictOnExistingConfig(t *testing.T) {
 	hooks := map[string]int{}
 	dir := t.TempDir()
 	hostPlat := "linux/" + goruntime.GOARCH
+	otherPlat := "linux/amd64"
+	if goruntime.GOARCH == "amd64" {
+		otherPlat = "linux/arm64"
+	}
 	writeConfigFile(t, dir, fmt.Sprintf(`{"schema_version":1,"image":"img:1","platform":%q}`, hostPlat))
 	d := mkDocker(dockerResponder(t, map[string]string{}, hooks))
 
@@ -139,7 +143,7 @@ func TestInitFlagsConflictOnExistingConfig(t *testing.T) {
 	}
 
 	// --platform 不一致 → 冲突
-	code, _, errb = runInitArgs(t, d, dir, "--platform", "linux/amd64")
+	code, _, errb = runInitArgs(t, d, dir, "--platform", otherPlat)
 	if code != ExitEnv || !strings.Contains(errb, "KM_CONFIG_INVALID") {
 		t.Fatalf("platform 冲突: code=%d err=%q", code, errb)
 	}
@@ -232,7 +236,7 @@ func TestInitFlagsPlatformChangeRequiresRealMigration(t *testing.T) {
 	}
 	d := mkDocker(respond)
 	// 第一阶段：初建（fake 接受声明平台的创建参数）
-	if code, _, errb := runInitArgs(t, d, dir, "--platform", "linux/amd64"); code != ExitOK {
+	if code, _, errb := runInitArgs(t, d, dir, "--platform", other); code != ExitOK {
 		t.Fatalf("初建: %s", errb)
 	}
 	// 第二阶段（审查反例核心）：容器未变，再次 init → 复用路径核验实际平台
