@@ -230,7 +230,7 @@ func TestInitFlagsPlatformChangeRequiresRealMigration(t *testing.T) {
 	respond := func(args []string) (string, int) {
 		joined := strings.Join(args, " ")
 		if strings.Contains(joined, "{{.Os}}/{{.Architecture}}") {
-			return "linux/arm64", 0
+			return "linux/" + goruntime.GOARCH, 0
 		}
 		return dockerResponder(t, containers, hooks)(args)
 	}

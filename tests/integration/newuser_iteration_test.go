@@ -5,9 +5,11 @@ package integration
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	goruntime "runtime"
 	"strings"
 	"testing"
 )
@@ -144,12 +146,17 @@ func TestNewUserPlatformChangeRejectedReal(t *testing.T) {
 	registerProjectCleanup(t, dir)
 	id := projectContainerID(t, dir)
 
-	// 修改配置声明平台（模拟用户编辑 .km.json）
+	// 修改配置声明平台（模拟用户编辑 .km.json）：声明取本机架构之外的平台，
+	// 保证与实际镜像架构（本机构建）必然不一致
+	otherPlat := "linux/amd64"
+	if goruntime.GOARCH == "amd64" {
+		otherPlat = "linux/arm64"
+	}
 	cfgPath := filepath.Join(dir, ".km.json")
-	if err := os.WriteFile(cfgPath, []byte(`{"schema_version":1,"image":"kali-mac-min:0.2","platform":"linux/amd64"}`), 0o644); err != nil {
+	if err := os.WriteFile(cfgPath, []byte(fmt.Sprintf(`{"schema_version":1,"image":"kali-mac-min:0.2","platform":%q}`, otherPlat)), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, errb, code := kmRun(t, dir, nil, "init", "--platform", "linux/amd64"); code != 1 || !strings.Contains(errb, "KM_CONTAINER_CONFLICT") {
+	if _, errb, code := kmRun(t, dir, nil, "init", "--platform", otherPlat); code != 1 || !strings.Contains(errb, "KM_CONTAINER_CONFLICT") {
 		t.Fatalf("平台不一致的复用应拒绝: code=%d err=%s", code, errb)
 	}
 	// 容器未变：同 ID 仍运行
