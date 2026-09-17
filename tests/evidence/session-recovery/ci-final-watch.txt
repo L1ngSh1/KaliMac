@@ -1,0 +1,247 @@
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* master ci · 35248282140
+Triggered via push less than a minute ago
+
+JOBS
+* verify (ID 105293939900)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Run actions/setup-go@v5
+  ✓ gofmt 检查
+  ✓ go vet
+  ✓ 单测
+  * 单测（race）
+  * build
+  * 打包一致性冒烟（版本源=当前源码；过期 bin/km 与任意 cwd 无影响）
+  * Post Run actions/setup-go@v5
+  * Post Run actions/checkout@v4
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* master ci · 35248282140
+Triggered via push less than a minute ago
+
+JOBS
+✓ verify in 45s (ID 105293939900)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Run actions/setup-go@v5
+  ✓ gofmt 检查
+  ✓ go vet
+  ✓ 单测
+  ✓ 单测（race）
+  ✓ build
+  ✓ 打包一致性冒烟（版本源=当前源码；过期 bin/km 与任意 cwd 无影响）
+  ✓ Post Run actions/setup-go@v5
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+* integration (ID 105294217028)
+
+ANNOTATIONS
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-go@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+verify: .github#2
+
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* master ci · 35248282140
+Triggered via push about 1 minute ago
+
+JOBS
+✓ verify in 45s (ID 105293939900)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Run actions/setup-go@v5
+  ✓ gofmt 检查
+  ✓ go vet
+  ✓ 单测
+  ✓ 单测（race）
+  ✓ build
+  ✓ 打包一致性冒烟（版本源=当前源码；过期 bin/km 与任意 cwd 无影响）
+  ✓ Post Run actions/setup-go@v5
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+* integration (ID 105294217028)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Run actions/setup-go@v5
+  ✓ Docker 引擎预检（不可达必须失败）
+  ✓ 预拉取官方基础/工具镜像（CI 不经国内镜像站）
+  ✓ 构建最小镜像（官方基础镜像 + 官方 apt CDN）
+  * 集成套件
+  * Post Run actions/setup-go@v5
+  * Post Run actions/checkout@v4
+
+ANNOTATIONS
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-go@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+verify: .github#2
+
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* master ci · 35248282140
+Triggered via push about 1 minute ago
+
+JOBS
+✓ verify in 45s (ID 105293939900)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Run actions/setup-go@v5
+  ✓ gofmt 检查
+  ✓ go vet
+  ✓ 单测
+  ✓ 单测（race）
+  ✓ build
+  ✓ 打包一致性冒烟（版本源=当前源码；过期 bin/km 与任意 cwd 无影响）
+  ✓ Post Run actions/setup-go@v5
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+* integration (ID 105294217028)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Run actions/setup-go@v5
+  ✓ Docker 引擎预检（不可达必须失败）
+  ✓ 预拉取官方基础/工具镜像（CI 不经国内镜像站）
+  ✓ 构建最小镜像（官方基础镜像 + 官方 apt CDN）
+  * 集成套件
+  * Post Run actions/setup-go@v5
+  * Post Run actions/checkout@v4
+
+ANNOTATIONS
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-go@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+verify: .github#2
+
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* master ci · 35248282140
+Triggered via push about 2 minutes ago
+
+JOBS
+✓ verify in 45s (ID 105293939900)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Run actions/setup-go@v5
+  ✓ gofmt 检查
+  ✓ go vet
+  ✓ 单测
+  ✓ 单测（race）
+  ✓ build
+  ✓ 打包一致性冒烟（版本源=当前源码；过期 bin/km 与任意 cwd 无影响）
+  ✓ Post Run actions/setup-go@v5
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+* integration (ID 105294217028)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Run actions/setup-go@v5
+  ✓ Docker 引擎预检（不可达必须失败）
+  ✓ 预拉取官方基础/工具镜像（CI 不经国内镜像站）
+  ✓ 构建最小镜像（官方基础镜像 + 官方 apt CDN）
+  * 集成套件
+  * Post Run actions/setup-go@v5
+  * Post Run actions/checkout@v4
+
+ANNOTATIONS
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-go@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+verify: .github#2
+
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* master ci · 35248282140
+Triggered via push about 2 minutes ago
+
+JOBS
+✓ verify in 45s (ID 105293939900)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Run actions/setup-go@v5
+  ✓ gofmt 检查
+  ✓ go vet
+  ✓ 单测
+  ✓ 单测（race）
+  ✓ build
+  ✓ 打包一致性冒烟（版本源=当前源码；过期 bin/km 与任意 cwd 无影响）
+  ✓ Post Run actions/setup-go@v5
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+* integration (ID 105294217028)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Run actions/setup-go@v5
+  ✓ Docker 引擎预检（不可达必须失败）
+  ✓ 预拉取官方基础/工具镜像（CI 不经国内镜像站）
+  ✓ 构建最小镜像（官方基础镜像 + 官方 apt CDN）
+  * 集成套件
+  * Post Run actions/setup-go@v5
+  * Post Run actions/checkout@v4
+
+ANNOTATIONS
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-go@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+verify: .github#2
+
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* master ci · 35248282140
+Triggered via push about 3 minutes ago
+
+JOBS
+✓ verify in 45s (ID 105293939900)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Run actions/setup-go@v5
+  ✓ gofmt 检查
+  ✓ go vet
+  ✓ 单测
+  ✓ 单测（race）
+  ✓ build
+  ✓ 打包一致性冒烟（版本源=当前源码；过期 bin/km 与任意 cwd 无影响）
+  ✓ Post Run actions/setup-go@v5
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+* integration (ID 105294217028)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Run actions/setup-go@v5
+  ✓ Docker 引擎预检（不可达必须失败）
+  ✓ 预拉取官方基础/工具镜像（CI 不经国内镜像站）
+  ✓ 构建最小镜像（官方基础镜像 + 官方 apt CDN）
+  * 集成套件
+  * Post Run actions/setup-go@v5
+  * Post Run actions/checkout@v4
+
+ANNOTATIONS
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-go@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+verify: .github#2
+
+✓ master ci · 35248282140
+Triggered via push about 4 minutes ago
+
+JOBS
+✓ verify in 45s (ID 105293939900)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Run actions/setup-go@v5
+  ✓ gofmt 检查
+  ✓ go vet
+  ✓ 单测
+  ✓ 单测（race）
+  ✓ build
+  ✓ 打包一致性冒烟（版本源=当前源码；过期 bin/km 与任意 cwd 无影响）
+  ✓ Post Run actions/setup-go@v5
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+✓ integration in 3m2s (ID 105294217028)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Run actions/setup-go@v5
+  ✓ Docker 引擎预检（不可达必须失败）
+  ✓ 预拉取官方基础/工具镜像（CI 不经国内镜像站）
+  ✓ 构建最小镜像（官方基础镜像 + 官方 apt CDN）
+  ✓ 集成套件
+  ✓ Post Run actions/setup-go@v5
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+
+ANNOTATIONS
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-go@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+verify: .github#2
+
+watch-rc=0
