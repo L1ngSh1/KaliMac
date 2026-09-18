@@ -242,6 +242,17 @@ func (c *DockerController) Sweep(ctx context.Context, container string) (stdout,
 	return stdout, stderr, exitCode, err
 }
 
+// ExecCapture 在容器内执行一条短命令并捕获输出——管理类有界调用
+// （默认 10s 管理超时），供 tools 等只读探测使用。退出码 >= 0 时 err 为 nil
+// （协议级非零由调用方解释）；无法启动/引擎故障等真实故障 err 非 nil。
+// 与 Sessions 同样经固定 endpoint 注入（R4）与 RunFn 测试注入。
+func (c *DockerController) ExecCapture(ctx context.Context, container string, cmdline []string) (stdout, stderr string, exitCode int, err error) {
+	ectx, cancel := context.WithTimeout(ctx, runtime.DefaultManagementTimeout)
+	defer cancel()
+	args := append([]string{"exec", container}, cmdline...)
+	return c.rawRun(ectx, nil, args...)
+}
+
 // ParseSessions 严格解析 km-ctl sessions 的 stdout。
 // 每个非空行必须是 "ACTIVE <id>" 或 "STALE <id>"；出现任何其他内容、
 // 空 id 或混入诊断文本都判为解析失败（ok=false），由调用方阻断。

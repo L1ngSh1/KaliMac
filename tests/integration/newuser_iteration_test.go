@@ -185,3 +185,90 @@ func TestNewUserStatusPausedReal(t *testing.T) {
 		t.Fatalf("paused 状态: code=%d out=%q", code, out)
 	}
 }
+
+// km tools 真实集成：精选镜像六项全 AVAILABLE；只读性；长任务持锁时仍可查询。
+func TestNewUserToolsReal(t *testing.T) {
+	dir := newP2BProject(t)
+	if _, errb, code := kmRun(t, dir, nil, "init", "--image", "kali-mac-min:0.2"); code != 0 {
+		t.Fatalf("init: %s", errb)
+	}
+	registerProjectCleanup(t, dir)
+	if _, _, c := kmRun(t, dir, nil, "run", "--", "/bin/true"); c != 0 {
+		t.Fatal("首次 run（安装脚本）失败")
+	}
+
+	out, errb, code := kmRun(t, dir, nil, "tools")
+	if code != 0 {
+		t.Fatalf("tools: code=%d out=%q err=%q", code, out, errb)
+	}
+	for _, tl := range []string{"python3", "curl", "jq", "file", "openssl", "nmap"} {
+		if !strings.Contains(out, "AVAILABLE "+tl) {
+			t.Fatalf("精选镜像应含 %s:\n%s", tl, out)
+		}
+	}
+	if !strings.Contains(out, "/usr/bin/") && !strings.Contains(out, "/usr/local/bin/") {
+		t.Fatalf("AVAILABLE 应附解析路径:\n%s", out)
+	}
+
+	// 并发：长任务运行中 tools 仍可用（不持执行锁）
+	cmd := kmRunAsync(t, dir, "run", "--", "/bin/sh", "-c", "sleep 30")
+	waitSessionDir(t, projectContainerID(t, dir))
+	out2, _, code2 := kmRun(t, dir, nil, "tools")
+	if code2 != 0 || !strings.Contains(out2, "AVAILABLE python3") {
+		t.Fatalf("并发 tools: code=%d out=%q", code2, out2)
+	}
+	cmd.Process.Signal(os.Interrupt)
+	cmd.Wait()
+
+	// 只读性：.km 前后逐字节一致
+	snap := func() map[string]string {
+		m := map[string]string{}
+		err := filepath.Walk(dir, func(p string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if !info.IsDir() {
+				b, _ := os.ReadFile(p)
+				m[p] = string(b)
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatalf("快照失败: %v", err)
+		}
+		return m
+	}
+	before := snap()
+	if _, _, c := kmRun(t, dir, nil, "tools"); c != 0 {
+		t.Fatal("tools 失败")
+	}
+	after := snap()
+	for p, c := range before {
+		if after[p] != c {
+			t.Fatalf("只读性破坏: %s", p)
+		}
+	}
+}
+
+// 停止容器 → tools 明示状态退出 1；不自动启动。
+func TestNewUserToolsStoppedReal(t *testing.T) {
+	dir := newP2BProject(t)
+	if _, errb, code := kmRun(t, dir, nil, "init"); code != 0 {
+		t.Fatalf("init: %s", errb)
+	}
+	registerProjectCleanup(t, dir)
+	if _, _, c := kmRun(t, dir, nil, "run", "--", "/bin/true"); c != 0 {
+		t.Fatal("run 失败")
+	}
+	if _, errb, c := kmRun(t, dir, nil, "stop"); c != 0 {
+		t.Fatalf("stop: %s", errb)
+	}
+	id := projectContainerID(t, dir)
+	_, errb, code := kmRun(t, dir, nil, "tools")
+	if code != 1 || !strings.Contains(errb, "已停止") {
+		t.Fatalf("停止状态: code=%d err=%q", code, errb)
+	}
+	if got := containerState(t, id); got != "exited" {
+		t.Fatalf("tools 不得启动容器: %s", got)
+	}
+}

@@ -88,6 +88,20 @@ docker exec <完整容器ID> /bin/sh -c '<固定循环: 对每个 $1..$n 执行 
 固定清单且不重复。违反任一 → UNKNOWN（`KM_SESSION_UNKNOWN` 复用或新增
 `KM_TOOLS_PROTOCOL`，实现时二选一并写入 cli-contract）。退出码语义照行为合同表。
 
+## 执行结果（2026-09-18）
+
+- 状态：**passed**（第一版范围全部完成；非目标未实现）。
+- 实现：`internal/session/prod.go` ExecCapture（有界 capture exec）、
+  `internal/cli/tools.go`（固定清单/探测协议/严格解析/UNKNOWN 分类）、cli.go 分发
+  与帮助、新增稳定码 `KM_TOOLS_PROTOCOL`。
+- 单测 9 项（tools_test.go）：全可用/部分缺失（指引断言）/探测失败（权限 126）→
+  unknown 且 stdout 无 MISSING、协议异常四形态（KM_TOOLS_PROTOCOL）、引擎故障、
+  停止/暂停零 exec、未初始化、usage、身份冲突零探测。
+- 真实集成（TestNewUserToolsReal/Stopped）：精选镜像六项 AVAILABLE + 并发持锁可用
+  + 只读逐字节对照 + 停止容器 exit 1 且不自动启动。
+- 反例先行证据：naive 分类（探测失败→全 MISSING）下 ProbeFailure/ProtocolViolations
+  如期失败，修正后全绿。
+
 ## 10. 反例测试清单（先写，修复前必须失败）
 
 1. exec 非零/garbage 输出/超时 → UNKNOWN，stdout 无任何 MISSING 字样（负向断言）。

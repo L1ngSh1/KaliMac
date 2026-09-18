@@ -1,0 +1,13 @@
+已安装 km 0.4.0-p3 → /tmp/km-tools2.UZnBxI/prefix/opt/km-tools2
+km 0.4.0-p3
+km tools（仅覆盖精选清单，非容器全部软件；AVAILABLE=PATH 可定位，不保证版本或执行结果）
+  AVAILABLE python3   /usr/bin/python3
+  AVAILABLE curl      /usr/bin/curl
+  AVAILABLE jq        /usr/bin/jq
+  AVAILABLE file      /usr/bin/file
+  AVAILABLE openssl   /usr/bin/openssl
+  AVAILABLE nmap      /usr/bin/nmap
+六项精选工具全部可用。
+tools-rc=0
+卸载完成
+removed 5fe97e53cde184be32c6edf9dd0fef889ed721269c6c8ec575d3808f2eacec3f

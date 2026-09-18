@@ -105,6 +105,12 @@ exit
 
 `exit` 后才回到 Mac 终端。不要把后面的 Mac 命令提前一起粘贴进容器。
 
+想知道容器里有哪些常用工具？回到 Mac 终端运行 `"$KM" tools`：它列出精选六项
+（python3、curl、jq、file、openssl、nmap）的 AVAILABLE（含路径）或 MISSING。清单只是
+精选集合，不代表容器全部软件；AVAILABLE 表示可从 PATH 定位，不保证版本或执行结果。
+缺失时的可持续做法是维护镜像 Dockerfile（`images/kali`）并重建；在容器里临时安装
+不会随容器删除保留，不构成可复现配置。
+
 | 操作 | 含义 |
 |---|---|
 | `Ctrl-C` | 中断当前前台命令，通常仍留在 shell 中 |
