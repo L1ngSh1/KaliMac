@@ -17,13 +17,9 @@ import (
 	"io"
 	"os"
 	"strings"
-	"time"
 
 	"kalimac/internal/runtime"
 )
-
-// toolsProbeBudget 是一次批量探测的整体超时（含 docker exec 启动开销）。
-const toolsProbeBudget = 10 * time.Second
 
 // toolsChecklist 是第一版固定精选清单（编译期常量；不做自定义清单）。
 var toolsChecklist = []string{"python3", "curl", "jq", "file", "openssl", "nmap"}
@@ -52,9 +48,15 @@ func parseToolsOutput(out string, checklist []string) ([]toolEntry, bool) {
 	}
 	seen := map[string]bool{}
 	var entries []toolEntry
-	lines := strings.Split(strings.TrimRight(out, "\n"), "\n")
+	// TrimSuffix 只去最后一个换行：结尾多余空行属协议异常（恰好 N 行）
+	lines := strings.Split(strings.TrimSuffix(out, "\n"), "\n")
 	if len(lines) != len(checklist) {
 		return nil, false
+	}
+	for _, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			return nil, false
+		}
 	}
 	for _, line := range lines {
 		name, rest, found := strings.Cut(line, "=")
@@ -108,15 +110,13 @@ func runToolsCommand(ctx context.Context, rest []string, stdout, stderr io.Write
 		fmt.Fprintf(stderr, "km tools: 容器已停止，工具可用性未检查；下次 km run/shell 会自动启动\n")
 		return ExitEnv
 	default:
-		return envError(stderr, &runtime.Error{Code: runtime.CodeToolsProtocol,
-			Msg: fmt.Sprintf("容器处于未支持状态 %q，工具可用性未知", res.State)})
+		return envError(stderr, &runtime.Error{Code: runtime.CodeStateInvalid,
+			Msg: fmt.Sprintf("容器处于未支持状态 %q，工具可用性未知；请 km doctor 复核", res.State)})
 	}
 
 	ctl := newSessionController(ep.Endpoint)
 	argv := append([]string{"/bin/sh", "-c", toolsProbeScript, "sh"}, toolsChecklist...)
-	probeCtx, cancel := context.WithTimeout(ctx, toolsProbeBudget)
-	defer cancel()
-	sOut, sErrStr, sExit, perr := ctl.ExecCapture(probeCtx, st.Container.ID, argv)
+	sOut, sErrStr, sExit, perr := ctl.ExecCapture(ctx, st.Container.ID, argv)
 	combined := sOut + sErrStr
 	if perr != nil || sExit != 0 {
 		// 真实执行失败（引擎/权限/超时等）：UNKNOWN + 保留诊断，绝不当作 MISSING

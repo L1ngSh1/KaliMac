@@ -243,10 +243,21 @@ func TestNewUserToolsReal(t *testing.T) {
 		t.Fatal("tools 失败")
 	}
 	after := snap()
+	// 双向 diff：文件集合与内容都不得变化（新增也不允许）
 	for p, c := range before {
 		if after[p] != c {
-			t.Fatalf("只读性破坏: %s", p)
+			t.Fatalf("只读性破坏(修改/删除): %s", p)
 		}
+	}
+	for p := range after {
+		if _, existed := before[p]; !existed {
+			t.Fatalf("只读性破坏(新增文件): %s", p)
+		}
+	}
+	// 容器状态保持 running
+	id := projectContainerID(t, dir)
+	if got := containerState(t, id); got != "running" {
+		t.Fatalf("容器状态变化: %s", got)
 	}
 }
 

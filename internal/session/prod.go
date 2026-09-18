@@ -141,6 +141,10 @@ func (c *DockerController) rawRunExec(ctx context.Context, stdin []byte, args []
 	if errors.As(rerr, &ee) {
 		re.ExitCode = ee.ExitCode()
 	}
+	if re.ExitCode < 0 && errors.Is(rerr, context.DeadlineExceeded) {
+		// 管理类有界调用的超时：按合同返回 KM_TIMEOUT（而非误报 OFFLINE）
+		return stdout, stderr, -1, &runtime.Error{Code: runtime.CodeTimeout, Msg: "docker 命令超时"}
+	}
 	if re.ExitCode >= 0 {
 		// docker 自身给出的非零退出码：调用方按协议解释（如 km-ctl 3/4）。
 		return stdout, stderr, re.ExitCode, nil

@@ -43,7 +43,7 @@ func toolsFake(t *testing.T, root string, probeOut string, probeExit int, probeE
 	old := newSessionController
 	newSessionController = func(endpoint string) *session.DockerController {
 		return &session.DockerController{RunFn: func(_ context.Context, _ []byte, args []string) (string, string, int, error) {
-			if len(args) >= 4 && args[1] == "exec" {
+			if len(args) >= 1 && args[0] == "exec" {
 				execCalls++
 			}
 			return probeOut, "", probeExit, probeErr
@@ -206,12 +206,15 @@ func TestToolsUninitialized(t *testing.T) {
 	}
 }
 
-// 用法：额外参数 → KM_USAGE 退出 2。
+// 用法：额外参数 → KM_USAGE 退出 2，且零 docker 调用。
 func TestToolsUsage(t *testing.T) {
 	dir := toolsRunningFixture(t)
-	d, _ := toolsFake(t, dir, "", 0, nil)
+	d, calls := toolsFake(t, dir, "", 0, nil)
 	if code, _, errb := runTools(t, dir, d, "--json"); code != ExitUsage || !strings.Contains(errb, "KM_USAGE") {
 		t.Fatalf("code=%d err=%q", code, errb)
+	}
+	if *calls != 0 {
+		t.Fatalf("用法错误不得发起调用: %d", *calls)
 	}
 }
 
