@@ -69,6 +69,62 @@ func TestVersionOutput(t *testing.T) {
 	}
 }
 
+func TestManagementCommandHelpZeroExternalCalls(t *testing.T) {
+	t.Chdir(t.TempDir())
+	fe := forbidDocker(t)
+	commands := []string{"init", "status", "doctor", "tools", "run", "shell", "stop", "sessions", "cancel", "version"}
+	for _, command := range commands {
+		code1, out1, err1 := run(t, command, "--help")
+		code2, out2, err2 := run(t, "help", command)
+		if code1 != ExitOK || code2 != ExitOK || out1 != out2 || out1 == "" || err1 != "" || err2 != "" {
+			t.Fatalf("%s help 不一致: direct=(%d,%q,%q) help=(%d,%q,%q)", command, code1, out1, err1, code2, out2, err2)
+		}
+	}
+	if len(fe.Calls) != 0 {
+		t.Fatalf("帮助不得调用外部命令: %+v", fe.Calls)
+	}
+}
+
+func TestToolHelpStillPassesThrough(t *testing.T) {
+	t.Chdir(t.TempDir())
+	fe := forbidDocker(t)
+	code, _, errb := run(t, "python3", "--help")
+	if code != ExitEnv || !strings.Contains(errb, runtime.CodeProjectMissing) {
+		t.Fatalf("工具 --help 应走工具路径: code=%d err=%q", code, errb)
+	}
+	if len(fe.Calls) != 0 {
+		t.Fatalf("未初始化项目应在 Docker 前失败: %+v", fe.Calls)
+	}
+}
+
+func TestHelpUsageErrors(t *testing.T) {
+	t.Chdir(t.TempDir())
+	forbidDocker(t)
+	for _, argv := range [][]string{{"help", "unknown"}, {"help", "init", "extra"}, {"--help", "extra"}} {
+		code, _, errb := run(t, argv...)
+		if code != ExitUsage || !strings.Contains(errb, runtime.CodeUsage) {
+			t.Fatalf("%v 应为 usage exit 2: code=%d err=%q", argv, code, errb)
+		}
+	}
+}
+
+func TestVersionVerboseIdentity(t *testing.T) {
+	t.Chdir(t.TempDir())
+	fe := forbidDocker(t)
+	oldCommit, oldWorktree, oldTarget := BuildCommit, BuildWorktree, BuildTarget
+	BuildCommit, BuildWorktree, BuildTarget = "abc123", "clean", "darwin/arm64"
+	t.Cleanup(func() { BuildCommit, BuildWorktree, BuildTarget = oldCommit, oldWorktree, oldTarget })
+	code, out, errb := run(t, "version", "--verbose")
+	if code != ExitOK || errb != "" || !strings.Contains(out, "version: "+Version) ||
+		!strings.Contains(out, "commit: abc123") || !strings.Contains(out, "worktree: clean") ||
+		!strings.Contains(out, "target: darwin/arm64") {
+		t.Fatalf("详细版本身份错误: code=%d out=%q err=%q", code, out, errb)
+	}
+	if len(fe.Calls) != 0 {
+		t.Fatalf("版本不得调用外部命令: %+v", fe.Calls)
+	}
+}
+
 func TestUnknownOptionUsageError(t *testing.T) {
 	t.Chdir(t.TempDir())
 	code, _, errOut := run(t, "--frobnicate")

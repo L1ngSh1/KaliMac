@@ -7,13 +7,20 @@ import (
 	"fmt"
 	"io"
 	"os"
+	goruntime "runtime"
 	"strings"
 
 	"kalimac/internal/runtime"
 )
 
-// Version is the km build version reported by --version.
-const Version = "0.4.0-p3"
+// Build identity defaults are useful for source builds; release packaging
+// overrides them with -ldflags. Keep the short version output stable.
+var (
+	Version       = "0.4.0-p3"
+	BuildCommit   = "unknown"
+	BuildWorktree = "unknown"
+	BuildTarget   = ""
+)
 
 // Exit codes per the CLI contract: 0 success, 1 environment failure,
 // 2 usage error or unimplemented command.
@@ -46,29 +53,62 @@ func Run(ctx context.Context, argv []string, stdout, stderr io.Writer) int {
 		return ExitOK
 	}
 	switch argv[0] {
-	case "--help", "-h", "help":
+	case "--help", "-h":
+		if len(argv) != 1 {
+			return usageError(stderr, "%s 不接受参数", argv[0])
+		}
 		PrintHelp(stdout)
 		return ExitOK
-	case "--version", "version":
-		PrintVersion(stdout)
-		return ExitOK
+	case "help":
+		return runHelpCommand(argv[1:], stdout, stderr)
+	case "--version":
+		return runVersionCommand(argv[1:], stdout, stderr)
+	case "version":
+		return runVersionCommand(argv[1:], stdout, stderr)
 	case "doctor":
+		if commandHelp(argv[0], argv[1:], stdout) {
+			return ExitOK
+		}
 		return runDoctorCommand(ctx, argv[1:], stdout, stderr, newDocker())
 	case "run":
+		if commandHelp(argv[0], argv[1:], stdout) {
+			return ExitOK
+		}
 		return runLongForm(ctx, argv[1:], stdout, stderr)
 	case "init":
+		if commandHelp(argv[0], argv[1:], stdout) {
+			return ExitOK
+		}
 		return runInitCommand(ctx, argv[1:], stdout, stderr, newDocker())
 	case "stop":
+		if commandHelp(argv[0], argv[1:], stdout) {
+			return ExitOK
+		}
 		return runStopCommand(ctx, argv[1:], stdout, stderr, newDocker())
 	case "shell":
+		if commandHelp(argv[0], argv[1:], stdout) {
+			return ExitOK
+		}
 		return runShellCommand(ctx, argv[1:], stdout, stderr, newDocker())
 	case "sessions":
+		if commandHelp(argv[0], argv[1:], stdout) {
+			return ExitOK
+		}
 		return runSessionsCommand(ctx, argv[1:], stdout, stderr, newDocker())
 	case "cancel":
+		if commandHelp(argv[0], argv[1:], stdout) {
+			return ExitOK
+		}
 		return runCancelCommand(ctx, argv[1:], stdout, stderr, newDocker())
 	case "status":
+		if commandHelp(argv[0], argv[1:], stdout) {
+			return ExitOK
+		}
 		return runStatusCommand(ctx, argv[1:], stdout, stderr, newDocker())
 	case "tools":
+		if commandHelp(argv[0], argv[1:], stdout) {
+			return ExitOK
+		}
 		return runToolsCommand(ctx, argv[1:], stdout, stderr, newDocker())
 	}
 	if strings.HasPrefix(argv[0], "-") {
@@ -76,6 +116,27 @@ func Run(ctx context.Context, argv []string, stdout, stderr io.Writer) int {
 	}
 	// short form tool invocation: the whole argv belongs to the tool
 	return runToolCommand(ctx, argv[0], argv[1:], os.Stdin, stdout, stderr, newDocker())
+}
+
+func runHelpCommand(rest []string, stdout, stderr io.Writer) int {
+	if len(rest) == 0 {
+		PrintHelp(stdout)
+		return ExitOK
+	}
+	if len(rest) != 1 {
+		return usageError(stderr, "km help 只接受一个管理命令名")
+	}
+	if !PrintCommandHelp(stdout, rest[0]) {
+		return usageError(stderr, "未知管理命令 %q", rest[0])
+	}
+	return ExitOK
+}
+
+func commandHelp(command string, rest []string, stdout io.Writer) bool {
+	if len(rest) != 1 || (rest[0] != "--help" && rest[0] != "-h") {
+		return false
+	}
+	return PrintCommandHelp(stdout, command)
 }
 
 // runLongForm parses `km run -- TOOL ARG...`. The `--` separator is required
@@ -126,4 +187,29 @@ func PrintHelp(w io.Writer) {
 // PrintVersion writes the version line. It must not touch Docker.
 func PrintVersion(w io.Writer) {
 	fmt.Fprintf(w, "km %s\n", Version)
+}
+
+func runVersionCommand(rest []string, stdout, stderr io.Writer) int {
+	switch {
+	case len(rest) == 0:
+		PrintVersion(stdout)
+		return ExitOK
+	case len(rest) == 1 && rest[0] == "--verbose":
+		PrintVersionVerbose(stdout)
+		return ExitOK
+	case len(rest) == 1 && (rest[0] == "--help" || rest[0] == "-h"):
+		PrintCommandHelp(stdout, "version")
+		return ExitOK
+	default:
+		return usageError(stderr, "km version 仅支持 --verbose")
+	}
+}
+
+// PrintVersionVerbose emits inspectable source/build identity without Docker.
+func PrintVersionVerbose(w io.Writer) {
+	target := BuildTarget
+	if target == "" {
+		target = goruntime.GOOS + "/" + goruntime.GOARCH
+	}
+	fmt.Fprintf(w, "version: %s\ncommit: %s\nworktree: %s\ntarget: %s\n", Version, BuildCommit, BuildWorktree, target)
 }

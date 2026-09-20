@@ -123,6 +123,9 @@ func collectStatus(ctx context.Context, dk *runtime.Docker) projectStatus {
 		ps.Advice = "当前目录不属于任何 km 项目；运行 km init 初始化（可选 --image 指定镜像）"
 		return ps
 	}
+	// 与 init/run/doctor 使用同一规范路径；macOS 上 /tmp 与
+	// /private/tmp 等价，不能因此把正确挂载误判为身份冲突。
+	root = project.CanonicalPath(root)
 	cfg, cerr := project.LoadConfig(root + string(os.PathSeparator) + project.ConfigFileName)
 	if cerr != nil {
 		return statusFail(statusUnknown, runtime.CodeConfigInvalid, "配置读取失败: "+cerr.Error())

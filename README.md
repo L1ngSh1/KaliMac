@@ -18,13 +18,13 @@ Mac 上精简、可靠的 Kali CLI 入口：在终端输入 `km 工具 参数`�
 make build                     # 产出 ./bin/km
 KM="$PWD/bin/km"               # 固定绝对路径（进入其他目录后 ./bin/km 不再可达）
 "$KM" --version                # 不依赖 Docker
+"$KM" version --verbose        # 提交、工作区标记与目标架构
 
 # （推荐）构建本地精选镜像并让项目使用它
 docker build -t kali-mac-min:0.2 images/kali
 
 cd /path/to/你的项目
-echo '{"schema_version":1,"image":"kali-mac-min:0.2"}' > .km.json
-"$KM" init                     # 建立项目环境（幂等；未写 .km.json 时使用默认镜像）
+"$KM" init --image kali-mac-min:0.2  # 建立项目环境并写入配置（幂等）
 echo 'print("hi")' > t.py
 "$KM" run -- python3 t.py      # 或 "$KM" python3 t.py
 "$KM" shell                    # 交互 bash（真实终端接管；Ctrl-C/作业控制可用）
@@ -42,10 +42,13 @@ make build
 DESTDIR=/tmp/stage PREFIX=/opt/km-test scripts/install.sh   # 临时目录试装
 PREFIX=$HOME/.local scripts/install.sh                      # 用户级安装
 PREFIX=$HOME/.local scripts/uninstall.sh                    # 卸载（只删清单内文件）
-scripts/package.sh                                          # 双架构产物 + SHA256SUMS → dist/
+scripts/package.sh                                          # 分架构安装包 + SHA256SUMS → dist/
 ```
 
 安装为清单式（`$PREFIX/share/km/manifest.txt`），卸载只删除清单内文件，不改 PATH 与 shell 配置。
+发布包解压后可直接运行包内 `install.sh`；它只安装同目录的已验收二进制，并把构建身份保存为
+`$PREFIX/share/km/BUILD-INFO`。打包过程不查询 Docker；若需关联已核验镜像内容 ID，显式设置
+`KM_IMAGE_CONTENT_ID=sha256:… scripts/package.sh`。
 平台边界：**darwin/arm64 为实测平台**（本机全量验证）；darwin/amd64 为交叉编译产物，未在真实硬件
 做过端到端测试；Linux 未测试（CI integration 作业首跑后另记）。镜像构建与来源见 `images/kali/`
 与 `tests/evidence/kali-mac-min-0.2/build-evidence.txt`。候选版本号、tag 与发布命令均为待审步骤，

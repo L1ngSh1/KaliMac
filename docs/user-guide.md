@@ -20,10 +20,13 @@ Mac 终端输入 km python3 …  →  容器执行 python3 → 输出回到 Mac 
 
 先启动 Docker Desktop。
 
-**路径 A（拿到安装包/仓库的新用户）**：用附带的 `scripts/install.sh` 从产物安装（或直接把 `km` 二进制放到任意目录），跳到第 3 节，全程不需要开发仓库：
+**路径 A（拿到安装包的新用户）**：解压对应架构的压缩包，在解压目录安装；不需要开发仓库：
 
 ```bash
-DESTDIR=/tmp/stage PREFIX=/opt/km scripts/install.sh   # 或 PREFIX=$HOME/.local
+PREFIX="$HOME/.local" ./install.sh
+export PATH="$HOME/.local/bin:$PATH"
+KM="$HOME/.local/bin/km"
+"$KM" version --verbose
 ```
 
 **路径 B（在开发仓库内）**：从仓库根目录执行：
@@ -56,14 +59,13 @@ docker build -t kali-mac-min:0.2 images/kali
 mkdir -p "$HOME/Workspace"
 DEMO=$(mktemp -d "$HOME/Workspace/km-demo.XXXXXX")
 cd "$DEMO"
-printf '{"schema_version":1,"image":"kali-mac-min:0.2"}\n' > .km.json
-"$KM" init
+"$KM" init --image kali-mac-min:0.2
 "$KM" doctor
 ```
 
 这里创建的是全新练习目录，配置不会覆盖你的现有项目。记下 `echo "$DEMO"` 显示的位置，下次回到这里即可继续用。
 
-`init` 会建立项目配置、本机状态和容器；同一个项目重复执行会复用已有环境。这里显式选择精选镜像；省略配置时默认使用的 Kali 基础镜像不等于精选工具镜像。
+`init` 会建立项目配置、本机状态和容器；同一个项目重复执行会复用已有环境。这里通过参数选择精选镜像，不需要手写 JSON；省略参数时默认使用的 Kali 基础镜像不等于精选工具镜像。
 
 ### 跑一条命令
 
