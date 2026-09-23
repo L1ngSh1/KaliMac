@@ -141,6 +141,10 @@ func (c *DockerController) rawRunExec(ctx context.Context, stdin []byte, args []
 	if errors.As(rerr, &ee) {
 		re.ExitCode = ee.ExitCode()
 	}
+	if re.ExitCode < 0 && errors.Is(rerr, context.DeadlineExceeded) {
+		// 管理类有界调用的超时：按合同返回 KM_TIMEOUT（而非误报 OFFLINE）
+		return stdout, stderr, -1, &runtime.Error{Code: runtime.CodeTimeout, Msg: "docker 命令超时"}
+	}
 	if re.ExitCode >= 0 {
 		// docker 自身给出的非零退出码：调用方按协议解释（如 km-ctl 3/4）。
 		return stdout, stderr, re.ExitCode, nil
@@ -240,6 +244,17 @@ func (c *DockerController) Sweep(ctx context.Context, container string) (stdout,
 	defer cancel()
 	stdout, stderr, exitCode, err = c.rawRun(sctx, nil, "exec", container, CtlScriptPath, "sweep")
 	return stdout, stderr, exitCode, err
+}
+
+// ExecCapture 在容器内执行一条短命令并捕获输出——管理类有界调用
+// （默认 10s 管理超时），供 tools 等只读探测使用。退出码 >= 0 时 err 为 nil
+// （协议级非零由调用方解释）；无法启动/引擎故障等真实故障 err 非 nil。
+// 与 Sessions 同样经固定 endpoint 注入（R4）与 RunFn 测试注入。
+func (c *DockerController) ExecCapture(ctx context.Context, container string, cmdline []string) (stdout, stderr string, exitCode int, err error) {
+	ectx, cancel := context.WithTimeout(ctx, runtime.DefaultManagementTimeout)
+	defer cancel()
+	args := append([]string{"exec", container}, cmdline...)
+	return c.rawRun(ectx, nil, args...)
 }
 
 // ParseSessions 严格解析 km-ctl sessions 的 stdout。

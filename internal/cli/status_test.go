@@ -116,6 +116,27 @@ func TestStatusRunningIdleAndActive(t *testing.T) {
 	}
 }
 
+func TestStatusCanonicalizesSymlinkProjectRoot(t *testing.T) {
+	realRoot, containers, _ := statusRunningFixture(t)
+	aliasParent := t.TempDir()
+	alias := filepath.Join(aliasParent, "project-link")
+	if err := os.Symlink(realRoot, alias); err != nil {
+		t.Fatal(err)
+	}
+	// os.Getwd may preserve a logical PWD when it identifies the same inode;
+	// this reproduces /tmp -> /private/tmp without relying on host layout.
+	t.Setenv("PWD", alias)
+	d := statusDocker(t, containers, "", 0)
+	code, out, errb := runStatus(t, alias, d, "--json")
+	if code != ExitOK || errb != "" || !strings.Contains(out, `"state": "running_idle"`) {
+		t.Fatalf("等价符号链接路径不应触发身份冲突: code=%d out=%q err=%q", code, out, errb)
+	}
+	ps := statusJSON(t, out)
+	if ps.Project == nil || ps.Project.Root != project.CanonicalPath(realRoot) {
+		t.Fatalf("项目根应规范化: %+v", ps.Project)
+	}
+}
+
 // 查询失败/输出异常 → unknown 退出 1，绝不显示为无会话。
 func TestStatusQueryFailureIsUnknown(t *testing.T) {
 	dir, containers, _ := statusRunningFixture(t)

@@ -8,6 +8,8 @@
 |---|---|---|
 | `km` / `km --help` | 已实现 | 简短帮助；零 Docker 依赖、零副作用（单测断言外部调用次数为 0） |
 | `km --version` | 已实现 | 版本行；零 Docker 依赖 |
+| `km version --verbose` | 已实现 | 版本、提交、工作区标记、目标架构；零 Docker 依赖 |
+| `km CMD --help` / `km help CMD` | 已实现 | 同一份管理命令帮助，exit 0；工具名后的 `--help` 仍透传 |
 | `km doctor` | 已实现 | 只读检查（含容器内活跃/遗留会话报告）。流程：①平台；②项目配置与本机状态（纯客户端文件）；③仅用客户端命令解析有效 endpoint（DOCKER_HOST > DOCKER_CONTEXT > 当前 context inspect），非本地 endpoint 判 `KM_ENDPOINT_REMOTE` 并跳过一切引擎查询；本地则把该 endpoint 固定（DOCKER_HOST 注入）给本次所有后续调用并查引擎版本；④比较 `.km/state.json` 记录的 endpoint，漂移判 `KM_RUNTIME_MISMATCH` 并跳过容器/镜像检查；⑤容器归属按记录的完整容器 ID 检查（名称、`km.project` 标签、`/workspace` 挂载源、容器实际镜像内容全部比对），同名重建判冲突不接管；⑥镜像标签内容与项目记录比对，漂移报警告。环境问题作为检查结果输出（stdout），doctor 自身完成即返回 0 |
 | `km init` | 已实现（非交互最小可用版） | 幂等：身份一致时复用；缺失镜像显式拉取（有界）；容器按记录完整 ID 校验/启动/重建；状态与配置原子写入；失败只回滚本次创建的资源；检测父项目（KM_PROJECT_NESTED） |
 | `km TOOL ARG...` | 已实现（非交互） | 会话内核执行（ADR-004）：argv 逐元素、三流流式、cwd 映射（符号链接逃逸拒绝）、退出码原样（取消 130）；停止的容器自动恢复；引擎/容器/镜像身份不符显式报错不静默重建；同项目串行（KM_PROJECT_BUSY），遗留锁清理不等于容器任务结束 |
@@ -15,11 +17,12 @@
 | `km shell` | 已实现（C2） | 交互 bash：Docker CLI 接管真实终端（raw mode/恢复/尺寸归客户端）；会话登记进 /tmp/km-sessions（与工具会话互斥，崩溃遗留阻断后续任务）；stdin/stdout 非终端 → KM_NOT_TTY（exit 1，进入前失败）；外部 SIGTERM/SIGHUP → 恢复终端并退出 143；键盘 Ctrl-C/Ctrl-D/作业控制直达 bash；退出码原样透传 |
 | `km stop` | 已实现 | 只停止当前项目已验证身份的容器；不删除容器/文件/镜像；幂等；执行中返回 KM_PROJECT_BUSY |
 | `km sessions` | 已实现（会话恢复） | 只读列出当前项目容器内会话：stdout 为 `ACTIVE <id>` / `STALE <id>` 行（完整 ID 可复制），辅助提示走 stderr；无会话输出「当前项目无会话」退出 0；脚本未安装（127）说明为预期状态退出 0；容器未运行时说明登记将随下次执行清扫退出 0（不启动容器）；查询失败/输出异常 → `KM_SESSION_UNKNOWN` 退出 1。门禁=只读归属校验（endpoint 固定 + 引擎匹配 + 容器 ID/名称/标签/挂载），**不含镜像内容检查**（镜像漂移不阻止恢复）；不取项目执行锁，不安装脚本、不清扫、不改变任何运行状态 |
+| `km tools` | 已实现（工具发现） | 只读探测精选六项（python3/curl/jq/file/openssl/nmap）在当前项目容器内是否可从 PATH 定位：`AVAILABLE <name> <路径>` 或 `MISSING <name>`，允许部分缺失（exit 0）。清单为编译期固定集合（argv 传入固定脚本，无 shell 拼接），不枚举容器全部软件；AVAILABLE 不保证版本/执行结果。门禁=verifyStackForQuery（endpoint 固定+引擎匹配+容器归属，不含镜像检查）；不取执行锁、不装脚本、不清扫、不启动容器。容器非 running（停止/暂停/其他）→ 明示状态与未检查原因退出 1；探测执行失败/超时 → 稳定码非零并保留诊断；输出协议异常（行数/未知工具/重复）→ `KM_TOOLS_PROTOCOL`。三种情形都绝不把失败输出为 MISSING |
 | `km cancel <id>` | 已实现（会话恢复） | 显式取消当前项目的指定会话并核验终态。完整 ID 精确匹配（`s`+16 hex，非法 → KM_USAGE 退出 2）；先列会话确认归属，列表中不存在的 ID → `KM_SESSION_UNKNOWN` 退出 1（不宣称成功，不操作其他项目）；活跃会话取消成功 → 「已取消并确认收尾」退出 0；已结束/已被清扫 → 幂等消息（「已结束，登记已清除」/「会话已不存在」）退出 0；km-ctl 退出码 4 或查询/取消失败 → `KM_SESSION_UNKNOWN` 退出 1 并保留诊断。不停止容器、不取执行锁；被外部取消的客户端退出码为工具真实状态（TERM=143 原样透传）；主动 setsid 脱离的进程不在保证范围（ADR-004） |
 
 ## 解析规则
 
-- 第一段匹配管理命令（help/version/init/shell/doctor/stop/run/sessions/cancel）→ km 解析；其余一律视为工具调用，工具名之后的所有 argv 原样属于工具。
+- 第一段匹配管理命令（help/version/init/shell/doctor/stop/run/sessions/cancel/status/tools）→ km 解析；其余一律视为工具调用，工具名之后的所有 argv 原样属于工具。
 - `--help`/`--version` 在任何管理命令名之前识别；未知 `-` 开头首参 → `KM_USAGE` 退出 2。
 - `km run` 必须带 `--`；`--` 后第一段是工具名，即使它叫 `stop`/`run` 也属于工具。
 - 工具 argv 永远逐元素传递（argv 数组），km 不拼接 shell 字符串；用户要 shell 语义需显式 `sh -c '...'`。
@@ -32,7 +35,7 @@
 
 ## 错误标识
 
-`KM_PROJECT_NESTED`（嵌套 init；init 全程持项目锁，同项目并发/任务执行中返回 KM_PROJECT_BUSY）、`KM_PROJECT_BUSY`（同项目执行中）、`KM_IMAGE_DRIFT`（镜像标签内容与项目记录不一致）、`KM_SESSION_ACTIVE`（容器内仍有活跃会话，宿主疑似中断遗留；阻断新任务并指向 `km sessions` / `km cancel <id>` 恢复入口）、`KM_SESSION_UNKNOWN`（会话状态查询失败/输出异常/取消未确认/指定 ID 不在当前项目会话列表中；绝不把未知或失败报成成功）、`KM_RUNTIME_MISSING`（无 docker CLI / 容器内命令缺失 / context 无 endpoint）、`KM_RUNTIME_OFFLINE`（引擎不可达）、`KM_ENDPOINT_REMOTE`（远程 endpoint，拒绝且不发引擎查询）、`KM_PROJECT_MISSING`、`KM_CONFIG_INVALID`、`KM_STATE_INVALID`、`KM_CONTAINER_CONFLICT`（ID/名称/标签/挂载/镜像内容任一不符或同名重建，不接管）、`KM_RUNTIME_MISMATCH`（状态记录的引擎与当前有效 endpoint 漂移，跳过容器/镜像检查）、`KM_TIMEOUT`（管理查询超时）、`KM_CANCELED`（km 收到取消，子进程已终止）、`KM_USAGE`。
+`KM_PROJECT_NESTED`（嵌套 init；init 全程持项目锁，同项目并发/任务执行中返回 KM_PROJECT_BUSY）、`KM_PROJECT_BUSY`（同项目执行中）、`KM_IMAGE_DRIFT`（镜像标签内容与项目记录不一致）、`KM_SESSION_ACTIVE`（容器内仍有活跃会话，宿主疑似中断遗留；阻断新任务并指向 `km sessions` / `km cancel <id>` 恢复入口）、`KM_SESSION_UNKNOWN`（会话状态查询失败/输出异常/取消未确认/指定 ID 不在当前项目会话列表中；绝不把未知或失败报成成功）、`KM_RESOURCE_UNKNOWN`（有副作用的创建或清理结果无法核实；不得报告资源不存在或清理成功）、`KM_TOOLS_PROTOCOL`（km tools 探测输出不符合协议：行数/工具名/重复/路径形态异常，或容器处于未支持状态；不把协议异常输出为 MISSING）、`KM_RUNTIME_MISSING`（无 docker CLI / 容器内命令缺失 / context 无 endpoint）、`KM_RUNTIME_OFFLINE`（引擎不可达）、`KM_ENDPOINT_REMOTE`（远程 endpoint，拒绝且不发引擎查询）、`KM_PROJECT_MISSING`、`KM_CONFIG_INVALID`、`KM_STATE_INVALID`、`KM_CONTAINER_CONFLICT`（ID/名称/标签/挂载/镜像内容任一不符或同名重建，不接管）、`KM_RUNTIME_MISMATCH`（状态记录的引擎与当前有效 endpoint 漂移，跳过容器/镜像检查）、`KM_TIMEOUT`（管理查询超时）、`KM_CANCELED`（km 收到取消，子进程已终止）、`KM_USAGE`。
 
 ## 超时
 

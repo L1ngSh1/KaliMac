@@ -32,20 +32,42 @@ jobs:
         run: go test -race -count=1 ./...
       - name: build
         run: go build ./...
-      - name: 打包一致性冒烟（版本源=当前源码；过期 bin/km 与任意 cwd 无影响）
+      - name: 打包一致性冒烟（压缩包、校验和与构建身份）
+        shell: bash
         run: |
+          set -euo pipefail
           want="$(go run ./cmd/km --version | awk '{print $2}')"
+          rev="$(git rev-parse HEAD)"
           mkdir -p bin
           printf '#!/bin/sh\necho "km 9.9.9-stale"\n' > bin/km
           chmod +x bin/km
-          got="$("$GITHUB_WORKSPACE/bin/km" --version)"
-          test "$got" = "km 9.9.9-stale"   # 假二进制场景必须真实建立
-          cd /tmp
+          test "$("$GITHUB_WORKSPACE/bin/km" --version)" = "km 9.9.9-stale"
+
+          # 从非仓库目录打包；包内必须是源码构建产物，而不是旧 bin/km。
+          cd "$RUNNER_TEMP"
           bash "$GITHUB_WORKSPACE/scripts/package.sh" > pkg.out
-          grep -q "^version: $want$" pkg.out
-          grep -q "^worktree: " pkg.out
-          test -f "$GITHUB_WORKSPACE/dist/km-$want-darwin-amd64"
-          test -f "$GITHUB_WORKSPACE/dist/km-$want-darwin-arm64"
+          dist="$GITHUB_WORKSPACE/dist"
+          (cd "$dist" && shasum -a 256 -c SHA256SUMS)
+          for arch in arm64 amd64; do
+            archive="$dist/km-$want-darwin-$arch.tar.gz"
+            test -s "$archive"
+            mkdir -p "unpacked-$arch"
+            tar -xzf "$archive" -C "unpacked-$arch"
+            pkg="unpacked-$arch/km-$want-darwin-$arch"
+            test -x "$pkg/km"
+            test -x "$pkg/install.sh"
+            test -x "$pkg/uninstall.sh"
+            test -f "$pkg/QUICKSTART.md"
+            test -f "$pkg/images/kali/Dockerfile"
+            grep -qx "version: $want" "$pkg/version-metadata.txt"
+            grep -qx "code_rev: $rev" "$pkg/version-metadata.txt"
+            grep -qx 'worktree: clean' "$pkg/version-metadata.txt"
+            grep -qx "target: darwin/$arch" "$pkg/version-metadata.txt"
+            go version -m "$pkg/km" > "build-$arch.txt"
+            grep -Fq 'GOOS=darwin' "build-$arch.txt"
+            grep -Fq "GOARCH=$arch" "build-$arch.txt"
+            echo "verified $archive ($rev, darwin/$arch)"
+          done
 
   integration:
     runs-on: ubuntu-latest

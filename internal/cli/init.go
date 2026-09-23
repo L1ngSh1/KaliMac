@@ -349,22 +349,82 @@ func createContainerFor(ctx context.Context, dk *runtime.Docker, stdout, stderr 
 		Name: name, ProjectID: st.ProjectID, Image: cfg.Image, ProjectDir: root,
 		Platform: createPlatform(cfg),
 	})
-	if err != nil {
-		return envError(stderr, err)
+	createFailed := err != nil
+	var recoveredResult runtime.InspectResult
+	if createFailed {
+		// `docker run` is side-effecting: a timeout or client-side failure does
+		// not prove that the daemon did not create the container.  Reconcile by
+		// the preallocated unique name under an independent, bounded context;
+		// never issue a second create from this invocation.
+		res, recovered, rerr := recoverCreateResult(dk, name, st.ProjectID, root, imageID, err)
+		if rerr != nil {
+			return envError(stderr, rerr)
+		}
+		if !recovered {
+			return envError(stderr, err)
+		}
+		recoveredResult = res
+		fullID = res.ID
+		fmt.Fprintf(stderr, "km: 创建命令失败后核实到已创建容器，正在登记（project=%s container=%s）…\n",
+			st.ProjectID, shortID(fullID))
 	}
 	st.Container.ID = fullID
 	st.Container.Name = name
 	st.Container.ImageID = imageID
 	st.Runtime.Endpoint = endpoint
 	if err := project.SaveState(root, st); err != nil {
-		// 状态写入失败：回滚本次创建的容器，保留原环境
-		_ = dk.RemoveContainer(context.Background(), fullID)
+		// 状态写入失败：用独立预算回滚；失败时必须报告“未确认”，
+		// 不能把清理命令已发送等价为资源已经消失。
+		rctx, cancel := context.WithTimeout(context.Background(), runtime.DefaultManagementTimeout)
+		rerr := dk.RemoveContainer(rctx, fullID)
+		cancel()
+		if rerr != nil {
+			return envError(stderr, &runtime.Error{Code: runtime.CodeResourceUnknown,
+				Msg: fmt.Sprintf("状态写入失败，且容器回滚未确认（project=%s name=%s container=%s）；请修复状态目录后运行 km init 核实",
+					st.ProjectID, name, fullID), Err: fmt.Errorf("保存状态: %v；回滚: %w", err, rerr)})
+		}
 		return envError(stderr, &runtime.Error{Code: runtime.CodeStateInvalid, Msg: "状态写入失败，已回滚本次创建的容器", Err: err})
+	}
+	if createFailed {
+		// recovered 仅在 daemon 已创建但原 docker run 报错时为真。
+		// 状态先落盘，保证后续失败仍可按完整 ID 恢复。
+		if recoveredResult.State != "running" {
+			rctx, cancel := context.WithTimeout(context.Background(), runtime.DefaultManagementTimeout)
+			serr := dk.StartContainer(rctx, fullID)
+			cancel()
+			if serr != nil {
+				return envError(stderr, &runtime.Error{Code: runtime.CodeResourceUnknown,
+					Msg: fmt.Sprintf("容器已登记但启动状态未确认（container=%s）；请运行 km init 恢复", fullID), Err: serr})
+			}
+		}
 	}
 	fmt.Fprintf(stdout, "km init: 环境就绪（project=%s container=%s image=%s 镜像身份=%s 平台=%s %s）\n",
 		st.ProjectID, shortID(fullID), cfg.Image, shortID(imageID),
 		platformDisplay(cfg), curatedImageHint(cfg.Image))
 	return ExitOK
+}
+
+// recoverCreateResult reconciles an indeterminate docker run result without
+// retrying the side-effecting create.  A matching exact name, ownership label,
+// workspace mount and image content ID is required before adoption.
+func recoverCreateResult(dk *runtime.Docker, name, projectID, root, imageID string, createErr error) (runtime.InspectResult, bool, error) {
+	rctx, cancel := context.WithTimeout(context.Background(), runtime.DefaultManagementTimeout)
+	defer cancel()
+	res, exists, err := dk.InspectContainer(rctx, name)
+	if err != nil {
+		return runtime.InspectResult{}, false, &runtime.Error{Code: runtime.CodeResourceUnknown,
+			Msg: fmt.Sprintf("容器创建结果未知（project=%s name=%s）；创建失败后核验也失败，请勿直接重复创建，运行 km init 重新核实", projectID, name),
+			Err: fmt.Errorf("创建: %v；核验: %w", createErr, err)}
+	}
+	if !exists {
+		return runtime.InspectResult{}, false, nil
+	}
+	if res.Name != name || res.ProjectID != projectID || filepath.Clean(res.MountSource) != filepath.Clean(root) || res.Image != imageID {
+		return runtime.InspectResult{}, false, &runtime.Error{Code: runtime.CodeContainerConflict,
+			Msg: fmt.Sprintf("创建失败后发现同名容器但身份不匹配（name=%q project=%q mount=%q image=%q），不接管",
+				res.Name, res.ProjectID, res.MountSource, res.Image)}
+	}
+	return res, true, nil
 }
 
 // verifyActualPlatform：配置显式声明平台时，核验现有镜像/容器的实际平台一致；

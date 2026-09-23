@@ -271,6 +271,160 @@ func TestInitNameConflictRejected(t *testing.T) {
 	}
 }
 
+// docker run 是有副作用操作：客户端报错不代表 daemon 没有完成创建。
+// 反例要求按唯一名称核实并登记完整 ID，且同一次 init 不得再次 create。
+func TestInitCreateFailureRecoversCreatedContainer(t *testing.T) {
+	hooks := map[string]int{}
+	containers := map[string]string{}
+	dir := t.TempDir()
+	root := resolveDir(t, dir)
+	base := dockerResponder(t, containers, hooks)
+	d := mkDocker(func(args []string) (string, int) {
+		if args[1] == "run" && args[2] == "-d" {
+			hooks["create"]++
+			var name, projectID string
+			for i := range args {
+				if args[i] == "--name" {
+					name = args[i+1]
+				}
+				if args[i] == "--label" && strings.HasPrefix(args[i+1], runtime.ProjectLabel+"=") {
+					projectID = strings.TrimPrefix(args[i+1], runtime.ProjectLabel+"=")
+				}
+			}
+			containers[name] = inspectLine(sdContID, name, "running", projectID, sdImageID, root)
+			return "client timed out after daemon accepted create", 1
+		}
+		return base(args)
+	})
+
+	code, out, errb := runInit(t, d, dir)
+	if code != ExitOK || !strings.Contains(out, "环境就绪") || !strings.Contains(errb, "核实到已创建容器") {
+		t.Fatalf("应核实并登记已创建资源: code=%d out=%q err=%q", code, out, errb)
+	}
+	if hooks["create"] != 1 {
+		t.Fatalf("不确定创建不得自动重试: create=%d", hooks["create"])
+	}
+	st, err := project.LoadState(dir)
+	if err != nil || st.Container.ID != sdContID {
+		t.Fatalf("应登记完整容器 ID: state=%+v err=%v", st, err)
+	}
+}
+
+// 创建失败后的核验也失败时，状态只能是 unknown，不能报告不存在或成功。
+func TestInitCreateFailureAndVerificationFailureIsUnknown(t *testing.T) {
+	hooks := map[string]int{}
+	inspectCount := 0
+	dir := t.TempDir()
+	base := dockerResponder(t, map[string]string{}, hooks)
+	d := mkDocker(func(args []string) (string, int) {
+		if args[1] == "container" && args[2] == "inspect" {
+			inspectCount++
+			if inspectCount == 1 { // 创建前：名称明确不存在
+				return "Error response from daemon: No such container", 1
+			}
+			return "Cannot connect to the Docker daemon", 1
+		}
+		if args[1] == "run" && args[2] == "-d" {
+			hooks["create"]++
+			return "client timed out", 1
+		}
+		return base(args)
+	})
+
+	code, _, errb := runInit(t, d, dir)
+	if code != ExitEnv || !strings.Contains(errb, runtime.CodeResourceUnknown) ||
+		!strings.Contains(errb, "创建结果未知") || strings.Contains(errb, "零残留") {
+		t.Fatalf("创建与核验双失败必须报告 unknown: code=%d err=%q", code, errb)
+	}
+	if hooks["create"] != 1 || project.StateExists(dir) {
+		t.Fatalf("不得重试或伪造状态: create=%d state=%v", hooks["create"], project.StateExists(dir))
+	}
+}
+
+// 创建报错后出现同名但身份不符的资源时必须拒绝接管。
+func TestInitCreateFailureRecoveryRejectsIdentityMismatch(t *testing.T) {
+	hooks := map[string]int{}
+	containers := map[string]string{}
+	dir := t.TempDir()
+	base := dockerResponder(t, containers, hooks)
+	d := mkDocker(func(args []string) (string, int) {
+		if args[1] == "run" && args[2] == "-d" {
+			hooks["create"]++
+			var name string
+			for i := range args {
+				if args[i] == "--name" {
+					name = args[i+1]
+				}
+			}
+			containers[name] = inspectLine(sdContID, name, "running", "pOTHER", sdImageID, resolveDir(t, dir))
+			return "client timed out", 1
+		}
+		return base(args)
+	})
+
+	code, _, errb := runInit(t, d, dir)
+	if code != ExitEnv || !strings.Contains(errb, runtime.CodeContainerConflict) || project.StateExists(dir) {
+		t.Fatalf("身份不符不得接管: code=%d err=%q state=%v", code, errb, project.StateExists(dir))
+	}
+	if hooks["create"] != 1 {
+		t.Fatalf("不得重试 create: %d", hooks["create"])
+	}
+}
+
+func stateWriteFailureFixture(t *testing.T, removeCode int) (int, string, map[string]int) {
+	t.Helper()
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, project.StateDirName)
+	if err := os.MkdirAll(filepath.Join(stateDir, "state.json"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	hooks := map[string]int{}
+	d := mkDocker(func(args []string) (string, int) {
+		switch {
+		case args[1] == "container" && args[2] == "inspect":
+			return "Error response from daemon: No such container", 1
+		case args[1] == "run" && args[2] == "-d":
+			hooks["create"]++
+			return sdContID, 0
+		case args[1] == "rm" && args[2] == "-f":
+			hooks["remove"]++
+			if removeCode != 0 {
+				return "Cannot connect to the Docker daemon", removeCode
+			}
+			return sdContID, 0
+		default:
+			t.Fatalf("未预期调用 %v", args)
+			return "", 1
+		}
+	})
+	st := &project.State{StateVersion: project.SupportedStateVersion, ProjectID: "p1a2b3c4d5"}
+	cfg := &project.Config{SchemaVersion: project.SupportedSchemaVersion, Image: "img:1"}
+	var out, errb bytes.Buffer
+	code := createContainerFor(context.Background(), d, &out, &errb, dir, cfg, st, sdEndpoint, sdImageID)
+	return code, errb.String(), hooks
+}
+
+func TestInitStateWriteFailureConfirmsRollback(t *testing.T) {
+	code, errb, hooks := stateWriteFailureFixture(t, 0)
+	if code != ExitEnv || !strings.Contains(errb, runtime.CodeStateInvalid) || !strings.Contains(errb, "已回滚") {
+		t.Fatalf("回滚成功应明确报告: code=%d err=%q", code, errb)
+	}
+	if hooks["create"] != 1 || hooks["remove"] != 1 {
+		t.Fatalf("create/remove 次数错误: %+v", hooks)
+	}
+}
+
+func TestInitStateWriteFailureAndRollbackFailureIsUnknown(t *testing.T) {
+	code, errb, hooks := stateWriteFailureFixture(t, 1)
+	if code != ExitEnv || !strings.Contains(errb, runtime.CodeResourceUnknown) ||
+		!strings.Contains(errb, "回滚未确认") || !strings.Contains(errb, sdContID) {
+		t.Fatalf("回滚失败必须报告 unknown 与完整 ID: code=%d err=%q", code, errb)
+	}
+	if hooks["create"] != 1 || hooks["remove"] != 1 {
+		t.Fatalf("create/remove 次数错误: %+v", hooks)
+	}
+}
+
 func TestInitParentProjectRejected(t *testing.T) {
 	parent := t.TempDir()
 	if err := os.WriteFile(filepath.Join(parent, project.ConfigFileName), []byte(validImgConfig()), 0o644); err != nil {

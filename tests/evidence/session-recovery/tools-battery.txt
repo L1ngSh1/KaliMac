@@ -1,0 +1,18 @@
+== km tools 全量回归 ==
+gofmt-dirty: 0
+vet: PASS
+?   	kalimac/cmd/shellproto	[no test files]
+ok  	kalimac/internal/cli	4.230s
+ok  	kalimac/internal/project	3.668s
+ok  	kalimac/internal/residue	2.895s
+ok  	kalimac/internal/runtime	3.313s
+ok  	kalimac/internal/session	3.728s
+?   	kalimac/cmd/shellproto	[no test files]
+ok  	kalimac/internal/cli	2.473s
+ok  	kalimac/internal/project	1.555s
+ok  	kalimac/internal/residue	1.670s
+ok  	kalimac/internal/runtime	1.753s
+ok  	kalimac/internal/session	2.263s
+build: PASS
+== 全量集成 ==
+ok  	kalimac/tests/integration	270.651s

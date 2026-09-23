@@ -24,6 +24,8 @@ const (
 	CodeSessionActive     = "KM_SESSION_ACTIVE"
 	CodeNotTTY            = "KM_NOT_TTY"
 	CodeSessionUnknown    = "KM_SESSION_UNKNOWN"
+	CodeToolsProtocol     = "KM_TOOLS_PROTOCOL"
+	CodeResourceUnknown   = "KM_RESOURCE_UNKNOWN"
 	CodeTimeout           = "KM_TIMEOUT"
 	CodeCanceled          = "KM_CANCELED"
 	CodeRuntimeMismatch   = "KM_RUNTIME_MISMATCH"

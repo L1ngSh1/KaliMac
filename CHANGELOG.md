@@ -7,6 +7,11 @@
 
 ### 新增
 
+- `km tools`：只读查看精选六项工具（python3、curl、jq、file、openssl、nmap）在当前
+  项目容器内的可用性（AVAILABLE 附解析路径 / MISSING）；清单不枚举容器全部软件，
+  AVAILABLE 不保证版本或执行结果；缺失时给出维护镜像 Dockerfile 的指引（临时安装
+  不构成可复现配置）。执行失败/协议异常 → `KM_TOOLS_PROTOCOL` 等稳定码非零退出，
+  绝不把失败当作 MISSING；容器停止/暂停时明示未检查原因；不取执行锁、不改任何状态。
 - `km sessions`：只读列出当前项目的容器内会话（`ACTIVE <id>` / `STALE <id>`，完整 ID
   可复制）；无会话、脚本未安装、容器未运行均有明确定义的非失败输出；查询失败/输出
   异常 → `KM_SESSION_UNKNOWN` 非零退出。

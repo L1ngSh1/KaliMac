@@ -11,10 +11,17 @@
 # $PREFIX/share/km/manifest.txt（相对 PREFIX 的路径），卸载（scripts/uninstall.sh）
 # 只删除清单内文件。默认不触碰 PATH 与 shell 配置。
 set -euo pipefail
-REPO="$(cd "$(dirname "$0")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO="$(cd "$SCRIPT_DIR/.." && pwd)"
 PREFIX="${PREFIX:-/usr/local}"
 DESTDIR="${DESTDIR:-}"
-BIN_SRC="${KM_BIN:-$REPO/bin/km}"
+if [ -n "${KM_BIN:-}" ]; then
+  BIN_SRC="$KM_BIN"
+elif [ -x "$SCRIPT_DIR/km" ]; then
+  BIN_SRC="$SCRIPT_DIR/km"
+else
+  BIN_SRC="$REPO/bin/km"
+fi
 [ -x "$BIN_SRC" ] || { echo "FATAL: 先 make build（缺 $BIN_SRC）" >&2; exit 2; }
 
 ROOT="$DESTDIR$PREFIX"
@@ -25,7 +32,12 @@ mkdir -p "$BINDIR" "$SHAREDIR"
 install -m 0755 "$BIN_SRC" "$BINDIR/km"
 VERSION="$("$BINDIR/km" --version)"
 printf '%s\n' "$VERSION" > "$SHAREDIR/VERSION"
-printf 'bin/km\nshare/km/VERSION\n' > "$SHAREDIR/manifest.txt"
+if [ -f "$SCRIPT_DIR/version-metadata.txt" ]; then
+  install -m 0644 "$SCRIPT_DIR/version-metadata.txt" "$SHAREDIR/BUILD-INFO"
+else
+  "$BINDIR/km" version --verbose > "$SHAREDIR/BUILD-INFO"
+fi
+printf 'bin/km\nshare/km/VERSION\nshare/km/BUILD-INFO\n' > "$SHAREDIR/manifest.txt"
 
 echo "已安装 $VERSION → $ROOT"
 echo "  清单: $SHAREDIR/manifest.txt（卸载只删除清单内文件）"
