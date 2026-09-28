@@ -29,6 +29,12 @@ const (
 	CodeTimeout           = "KM_TIMEOUT"
 	CodeCanceled          = "KM_CANCELED"
 	CodeRuntimeMismatch   = "KM_RUNTIME_MISMATCH"
+
+	// 环境切换事务（docs/adr-environment-transactions.md §1）：集中定义，
+	// 与既有码同处登记进 docs/cli-contract.md。
+	CodeTransactionPending = "KM_TRANSACTION_PENDING"
+	CodeNoPrevious         = "KM_NO_PREVIOUS"
+	CodePlatformMismatch   = "KM_PLATFORM_MISMATCH"
 )
 
 // Error is a km infrastructure error carrying a stable KM_* code.

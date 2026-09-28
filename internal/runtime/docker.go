@@ -219,6 +219,15 @@ func ContainerName(projectID string) string { return "km-" + projectID }
 // ProjectLabel is the label key km stamps on the containers it owns.
 const ProjectLabel = "km.project"
 
+// Additional label keys for environment-switch transactions: every resource
+// of one operation carries the same op id so a lost create response can be
+// reconciled by label even when the client never saw the container ID.
+const (
+	OpLabel   = "km.op"   // value: envtxn op id ("e"+16hex)
+	GenLabel  = "km.gen"  // value: generation number of a candidate container
+	RoleLabel = "km.role" // value: "candidate" | "probe"
+)
+
 // FindContainersByLabel lists containers carrying the given label=value.
 func (d *Docker) FindContainersByLabel(ctx context.Context, label, value string) ([]ContainerSummary, error) {
 	out, err := d.run(ctx, "ps", "-a",
@@ -279,13 +288,21 @@ func (d *Docker) ImageID(ctx context.Context, ref string) (string, bool, error) 
 
 // ContainerCreateOpts describes the km-managed container to create.
 type ContainerCreateOpts struct {
-	Name       string // km-<project-id>
+	Name       string // km-<project-id> or km-<project-id>-g<N>
 	ProjectID  string // stamped into the km.project label
 	Image      string
 	ProjectDir string // host path bound to /workspace
 	// Platform 兑现配置声明（如 linux/arm64）；空 = 不传 --platform（native，
 	// 旧配置未声明平台时的历史行为）。
 	Platform string
+	// ExtraLabels are appended verbatim as --label k=v entries.
+	ExtraLabels []string
+	// WorkspaceReadOnly binds /workspace read-only (probe containers only;
+	// project containers always use the real read-write mount).
+	WorkspaceReadOnly bool
+	// Cmd overrides the container command; nil selects the project default
+	// (`sleep infinity`).
+	Cmd []string
 }
 
 // CreateContainer creates the project container with --init (reaping PID1)
@@ -296,12 +313,24 @@ func (d *Docker) CreateContainer(ctx context.Context, o ContainerCreateOpts) (st
 		"--name", o.Name,
 		"--label", ProjectLabel + "=" + o.ProjectID,
 		"--label", "km.owner=km",
-		"--label", "km.schema=1",
-		"-v", o.ProjectDir + ":/workspace"}
+		"--label", "km.schema=1"}
+	for _, l := range o.ExtraLabels {
+		args = append(args, "--label", l)
+	}
+	mount := o.ProjectDir + ":/workspace"
+	if o.WorkspaceReadOnly {
+		mount += ":ro"
+	}
+	args = append(args, "-v", mount)
 	if o.Platform != "" {
 		args = append(args, "--platform", o.Platform)
 	}
-	args = append(args, o.Image, "sleep", "infinity")
+	args = append(args, o.Image)
+	if len(o.Cmd) > 0 {
+		args = append(args, o.Cmd...)
+	} else {
+		args = append(args, "sleep", "infinity")
+	}
 	out, err := d.run(ctx, args...)
 	if err != nil {
 		return "", err

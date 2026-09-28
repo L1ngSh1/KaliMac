@@ -28,10 +28,30 @@ type State struct {
 		Endpoint string `json:"endpoint"`
 	} `json:"runtime"`
 	CreatedAt string `json:"created_at"`
+
+	// Env 存在当且仅当该项目已采纳环境切换功能（state_version 2）。
+	// v1 文件不携带该块；旧构建只认 v1，因此 v2 状态本身就是旧二进制的
+	// 明确拒绝门槛（见 docs/adr-environment-transactions.md §3）。
+	Env *EnvState `json:"env,omitempty"`
 }
 
-// SupportedStateVersion is the only state format this build reads.
+// EnvState is the env extension in state_version 2: the adopted-record
+// format version and the current generation number (0 = 原始代).
+type EnvState struct {
+	EnvVersion int `json:"env_version"`
+	Generation int `json:"generation"`
+}
+
+// SupportedStateVersion is the legacy state format every build reads.
 const SupportedStateVersion = 1
+
+// SupportedStateVersionEnv is the state format that carries the env block.
+// Projects adopt it permanently on their first environment switch; older
+// binaries reject it outright instead of misusing mid-transaction state.
+const SupportedStateVersionEnv = 2
+
+// EnvRecordVersion is the only env-block format this build reads.
+const EnvRecordVersion = 1
 
 // StateError marks a damaged or incompatible local state file.
 type StateError struct{ Msg string }
@@ -66,8 +86,22 @@ func LoadState(root string) (*State, error) {
 	if err := json.Unmarshal(raw, &st); err != nil {
 		return nil, &StateError{Msg: "不是合法 JSON: " + err.Error()}
 	}
-	if st.StateVersion != SupportedStateVersion {
-		return nil, &StateError{Msg: fmt.Sprintf("不支持的状态版本 %d", st.StateVersion)}
+	if st.StateVersion == SupportedStateVersion {
+		if st.Env != nil {
+			return nil, &StateError{Msg: "state_version 1 不应包含 env 块"}
+		}
+	} else if st.StateVersion == SupportedStateVersionEnv {
+		if st.Env == nil {
+			return nil, &StateError{Msg: "state_version 2 缺少 env 块"}
+		}
+		if st.Env.EnvVersion != EnvRecordVersion {
+			return nil, &StateError{Msg: fmt.Sprintf("不支持的 env 记录版本 %d（本构建支持 %d）", st.Env.EnvVersion, EnvRecordVersion)}
+		}
+		if st.Env.Generation < 0 {
+			return nil, &StateError{Msg: "env.generation 非法（负数）"}
+		}
+	} else {
+		return nil, &StateError{Msg: fmt.Sprintf("不支持的状态版本 %d（本构建支持 %d；若由旧版 km 写入，请升级 km 后重试）", st.StateVersion, SupportedStateVersionEnv)}
 	}
 	if len(st.ProjectID) < 3 {
 		return nil, &StateError{Msg: "project_id 缺失或过短"}
