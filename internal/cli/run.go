@@ -92,7 +92,7 @@ func verifyStackForMutation(ctx context.Context, dk *runtime.Docker, root string
 	if st.Container.ImageID != "" {
 		if cur != st.Container.ImageID {
 			return ep, &runtime.Error{Code: runtime.CodeImageDrift,
-				Msg: fmt.Sprintf("镜像标签 %s 当前内容 %s… 与项目记录 %s… 不一致；镜像更新须走显式流程（重新 init）", cfg.Image, shortID(cur), shortID(st.Container.ImageID))}
+				Msg: fmt.Sprintf("镜像标签 %s 当前内容 %s… 与项目记录 %s… 不一致；镜像更新须走显式流程（km env switch 或重新 init）", cfg.Image, shortID(cur), shortID(st.Container.ImageID))}
 		}
 		if res.Image != "" && res.Image != st.Container.ImageID {
 			return ep, &runtime.Error{Code: runtime.CodeContainerConflict,
@@ -131,6 +131,11 @@ func runToolCommand(ctx context.Context, tool string, toolArgs []string, stdin i
 	defer lock.Release()
 	if lock.BrokeStale() {
 		fmt.Fprintf(stderr, "km: 清理了遗留锁（持有人进程已退出）；这不代表容器内任务已结束，正在核验容器内会话…\n")
+	}
+
+	// 事务互斥（ADR §5.4）：存在未完成环境事务时普通执行阻断
+	if err := refuseIfEnvTxnPending(root); err != nil {
+		return envError(stderr, err)
 	}
 
 	// 临界区内：容器已停止 → 恢复同一容器

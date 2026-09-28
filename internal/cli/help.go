@@ -90,6 +90,21 @@ var commandHelpText = map[string]string{
 说明:
   详细模式显示版本、源码提交、工作区标记和目标平台；不访问 Docker。
 `,
+	"env": `km env — 项目环境切换 / 单代回退 / 事务恢复
+
+用法:
+  km env switch --image <引用> [--dry-run] [--yes]
+  km env rollback [--dry-run] [--yes]
+  km env recover [--dry-run] [--yes]
+
+说明:
+  switch 切换到本地引擎上已存在的同平台镜像：先只读探测，再创建候选容器、
+  停止并保留旧容器；成功后旧环境进入回退槽位，可用 rollback 单代回退。
+  退出码: 成功/no-op 0；环境拒绝 1；参数或确认错误 2。
+  非交互环境执行变更必须显式 --yes；--dry-run 只读预览、不做任何变更。
+  环境回退不会撤销新环境运行期间对项目文件的改动；容器可写层不迁移。
+  与 env 重名的工具仍可通过 km run -- env ... 调用。
+`,
 }
 
 // PrintCommandHelp writes one management command's help and reports whether

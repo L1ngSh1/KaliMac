@@ -15,6 +15,7 @@ import (
 	"os"
 	"strings"
 
+	"kalimac/internal/envtxn"
 	"kalimac/internal/project"
 	"kalimac/internal/runtime"
 	"kalimac/internal/session"
@@ -30,6 +31,7 @@ const (
 	statusRunningIdle      = "running_idle"
 	statusRunningActive    = "running_session_active"
 	statusIdentityConflict = "identity_conflict"
+	statusEnvTxnPending    = "env_transaction_pending"
 	statusUnknown          = "unknown"
 )
 
@@ -57,11 +59,25 @@ type statusError struct {
 	Msg  string `json:"msg"`
 }
 
+// statusTxnInfo 摘要展示未完成环境事务。
+type statusTxnInfo struct {
+	OpID  string `json:"op_id"`
+	Kind  string `json:"kind"`
+	Stage string `json:"stage"`
+}
+
+// statusEnvInfo 展示环境代际与事务状态；仅 env 功能采纳后出现。
+type statusEnvInfo struct {
+	Generation  int            `json:"generation"`
+	Transaction *statusTxnInfo `json:"transaction,omitempty"`
+}
+
 type projectStatus struct {
 	SchemaVersion int              `json:"schema_version"`
 	State         string           `json:"state"`
 	Project       *statusProject   `json:"project,omitempty"`
 	Container     *statusContainer `json:"container,omitempty"`
+	Env           *statusEnvInfo   `json:"env,omitempty"`
 	Sessions      *statusSessions  `json:"sessions,omitempty"`
 	Advice        string           `json:"advice"`
 	Error         *statusError     `json:"error,omitempty"`
@@ -90,10 +106,26 @@ func runStatusCommand(ctx context.Context, rest []string, stdout, stderr io.Writ
 }
 
 func statusExit(ps projectStatus) int {
-	if ps.State == statusUnknown || ps.State == statusIdentityConflict {
+	if ps.State == statusUnknown || ps.State == statusIdentityConflict || ps.State == statusEnvTxnPending {
 		return ExitEnv
 	}
 	return ExitOK
+}
+
+// checkEnvRecordsReadable 校验 previous/retained 记录可解析（存在即必须健康）；
+// 损坏记录是数据问题，status 只报告不修复。
+func checkEnvRecordsReadable(root string) error {
+	if envtxn.PreviousExists(root) {
+		if _, err := envtxn.LoadPrevious(root); err != nil {
+			return fmt.Errorf("回退槽位记录无法解析（原样保留）: %v", err)
+		}
+	}
+	if _, err := os.Stat(envtxn.RetainedPath(root)); err == nil {
+		if _, err := envtxn.LoadRetained(root); err != nil {
+			return fmt.Errorf("retained 账本无法解析（原样保留）: %v", err)
+		}
+	}
+	return nil
 }
 
 // statusFail 构造 unknown/冲突终态（exit 1）。
@@ -146,6 +178,29 @@ func collectStatus(ctx context.Context, dk *runtime.Docker) projectStatus {
 		return statusFail(statusUnknown, runtime.CodeStateInvalid, "状态文件损坏: "+serr.Error())
 	}
 	ps.Project.ContainerID = st.Container.ID
+	if st.Env != nil {
+		ps.Env = &statusEnvInfo{Generation: st.Env.Generation}
+	}
+
+	// 环境事务互斥（ADR §8）：未完成事务存在时项目处于中间态，
+	// 不得把容器/会话状态渲染为正常；env 记录损坏同样不能当作正常。
+	txn, terr := loadOpenTransaction(root)
+	if terr != nil {
+		return statusFail(statusUnknown, runtime.CodeStateInvalid,
+			"环境事务记录无法解析（.km/env/transaction.json 原样保留）: "+terr.Error())
+	}
+	if txn != nil {
+		if ps.Env == nil {
+			ps.Env = &statusEnvInfo{Generation: 0}
+		}
+		ps.Env.Transaction = &statusTxnInfo{OpID: txn.OpID, Kind: txn.Kind, Stage: txn.Stage}
+		ps.State = statusEnvTxnPending
+		ps.Advice = "存在未完成的环境事务；运行 km env recover --dry-run 查看方案，确认后 km env recover 恢复"
+		return ps
+	}
+	if err := checkEnvRecordsReadable(root); err != nil {
+		return statusFail(statusUnknown, runtime.CodeStateInvalid, err.Error())
+	}
 
 	ep, err := resolveEngine(ctx, dk)
 	if err != nil {
@@ -280,6 +335,17 @@ func renderStatusHuman(ps projectStatus, w io.Writer) {
 	}
 	if ps.Container != nil {
 		fmt.Fprintf(w, "容器:   %s %s（镜像 %s…）\n", ps.Container.State, ps.Container.Name, shortID(ps.Container.ImageSHA))
+	}
+	if ps.Env != nil {
+		genStr := fmt.Sprintf("%d", ps.Env.Generation)
+		if ps.Env.Generation == 0 {
+			genStr = "0（原始代）"
+		}
+		fmt.Fprintf(w, "环境:   第 %s 代\n", genStr)
+		if ps.Env.Transaction != nil {
+			fmt.Fprintf(w, "事务:   未完成（op=%s kind=%s stage=%s）→ km env recover\n",
+				ps.Env.Transaction.OpID, ps.Env.Transaction.Kind, ps.Env.Transaction.Stage)
+		}
 	}
 	if ps.Sessions != nil {
 		fmt.Fprintf(w, "会话:   活跃 %d / 组空遗留 %d\n", len(ps.Sessions.Active), len(ps.Sessions.Stale))

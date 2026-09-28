@@ -35,6 +35,7 @@ var managementCommands = map[string]bool{
 	"help": true, "version": true, "init": true, "shell": true,
 	"doctor": true, "stop": true, "run": true,
 	"sessions": true, "cancel": true, "status": true, "tools": true,
+	"env": true,
 }
 
 // newDocker is the injection point for tests: swapping it lets tests assert
@@ -110,6 +111,11 @@ func Run(ctx context.Context, argv []string, stdout, stderr io.Writer) int {
 			return ExitOK
 		}
 		return runToolsCommand(ctx, argv[1:], stdout, stderr, newDocker())
+	case "env":
+		if commandHelp(argv[0], argv[1:], stdout) {
+			return ExitOK
+		}
+		return runEnvCommand(ctx, argv[1:], stdout, stderr, newDocker())
 	}
 	if strings.HasPrefix(argv[0], "-") {
 		return usageError(stderr, "未知选项 %q；管理命令见 km --help", argv[0])
@@ -177,6 +183,7 @@ func PrintHelp(w io.Writer) {
   km cancel <id>              显式取消当前项目的指定会话（完整 ID 见 km sessions）
   km status [--json]          当前项目状态总览（只读；--json 结构化输出）
   km tools                    精选工具在容器内的可用性（只读；允许部分 MISSING）
+  km env switch|rollback|recover  项目环境切换 / 单代回退 / 事务恢复（见 km help env）
 
 说明:
   项目文件留在 Mac；工具输出与退出状态回到原终端。
