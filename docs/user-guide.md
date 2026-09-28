@@ -161,7 +161,27 @@ cd "$DEMO"                   # 或你实际的项目目录；新终端请填真�
 
 精选镜像不是所有 Kali 工具的全集。先用 `km shell` 后的 `command -v 工具名` 检查。修改镜像、搬动项目目录或切换 Docker 引擎都涉及项目身份，不建议把删除 `.km/` 当成通用修复方法。
 
-## 7. 报错时怎么办？
+## 7. 更换项目镜像：env switch / rollback / recover
+
+`km tools` 报告缺工具时，自己准备一个新镜像（`docker build`/`docker pull` 到本地引擎），然后显式切换：
+
+```bash
+"$KM" env switch --image my-kali:v2 --dry-run   # 只读预览：当前/目标镜像、平台与全部影响
+"$KM" env switch --image my-kali:v2             # 交互终端会要求输入 yes 确认；脚本中须加 --yes
+"$KM" env rollback --dry-run                    # 新环境不合适？先预览回退
+"$KM" env rollback                              # 回到上一代（只保留一代）
+"$KM" env recover --dry-run                     # 中断后恢复未完成事务（少见，按提示使用）
+```
+
+约定：
+
+- 只切换**本地引擎上已存在**的同平台镜像（不自动拉取/构建/装工具）；目标按镜像内容 ID 锁定，构建期标签漂移不会静默换目标；同内容不同标签是明确 no-op。
+- 切换 = 新建候选容器 → 停止并保留旧容器；旧容器的可写层（容器里临时装的东西）不迁移。
+- **环境回退不会撤销新环境运行期间对项目文件的改动**（`/workspace` 就是 Mac 目录）。回退槽位只有一代：成功回退后再次 rollback 会明确提示无可回退记录；被换下的容器保留并登记在 `.km/env/retained.json`（不入 Git；核对完整 ID 后可人工 `docker rm` 清理，`km doctor` 会对账本与实际容器的一致性做核验）。
+- 有未完成任务（`KM_SESSION_ACTIVE`/`KM_SESSION_UNKNOWN`）、身份冲突或平台不一致时拒绝切换；切换被强杀中断后，`run/stop/init/switch/rollback` 都会以 `KM_TRANSACTION_PENDING` 阻断，按提示先 `km env recover --dry-run` 再 `km env recover` 恢复（恢复方向由冻结规则决定，重复调用幂等）。
+- `--dry-run` 永远只读（不取锁、不写状态、不触碰容器）；确认只替代交互输入，不绕过任何检查。
+
+## 8. 报错时怎么办？
 
 先在 Mac 的项目目录运行 `"$KM" doctor`，阅读各检查项；doctor 完成检查时可以返回 0，因此不能只看它的退出码判断环境健康。
 
@@ -175,8 +195,11 @@ cd "$DEMO"                   # 或你实际的项目目录；新终端请填真�
 | `KM_SESSION_ACTIVE` | 容器仍有登记的旧会话；先核对任务，确认要结束后用 `km sessions` 查看会话，再 `km cancel <id>` 显式清理（id 会话完整复制），保持 Docker 引擎与项目一致 |
 | `KM_SESSION_UNKNOWN` | 会话查询失败或结果异常；检查 Docker 与 doctor 输出，不要通过删除登记目录绕过检查 |
 | `KM_IMAGE_DRIFT` / `KM_RUNTIME_MISMATCH` / `KM_CONTAINER_CONFLICT` | 镜像、引擎或容器身份变化；保留配置和状态，先核对变动原因 |
+| `KM_TRANSACTION_PENDING` | 存在未完成的环境事务（可能由强杀中断）；按提示 `km env recover --dry-run` 查看方案后执行恢复 |
+| `KM_NO_PREVIOUS` | 回退槽位为空：只有成功执行过 `km env switch` 才有上一代可回退 |
+| `KM_PLATFORM_MISMATCH` | 目标镜像与当前容器实际平台不一致；本版本不支持跨架构切换 |
 
-## 8. 当前版本的已知问题
+## 9. 当前版本的已知问题
 
 上一轮 review 确认的两个问题已在本版修复并有回归覆盖：后台管道作业退出清理（含停止态、忽略 TERM 的作业，按 SID 域 TERM→KILL 清理）；外部 SIGTERM/SIGHUP 的终端恢复时序（快照改在启动客户端之前获取，恢复完成后才返回 143）。若终端回显异常，仍可输入 `stty sane` 后按回车。
 
@@ -188,7 +211,7 @@ cd "$DEMO"                   # 或你实际的项目目录；新终端请填真�
 - `km shell` 每次启动会向容器安装/刷新一次会话脚本，热调用比裸 `docker exec` 慢约 160ms（2026-09 基线：km p50 203–207ms vs exec 45ms，见 tests/perf/evidence/ 与 CHANGELOG）。
 - `init` 后、首次 `run`/`shell` 之前运行 `doctor`，会话检查会显示一条预期中的警告「会话脚本未安装」（此时容器内还没有会话脚本可查）；首次 `run` 或 `shell` 之后该检查自动变为 OK。
 
-## 9. 现状与下一步
+## 10. 现状与下一步
 
 上一版计划中的开发项（PTY 驱动器修正、终端快照与信号同步、管道/停止态作业清理、detach 结论更正、全量回归与指南实走）均已完成并有回归与验证记录，历史见 [验证记录](verification.md)。
 

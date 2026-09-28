@@ -1,0 +1,74 @@
+{
+ "ok": true,
+ "steps": [
+  {
+   "step": 0,
+   "op": "expect",
+   "ok": true,
+   "matched": true,
+   "buffer_tail": "\u001b[?2004hKM_SHELL> "
+  },
+  {
+   "step": 1,
+   "op": "settle",
+   "ok": true
+  },
+  {
+   "step": 2,
+   "op": "resize",
+   "ok": true
+  },
+  {
+   "step": 3,
+   "op": "settle",
+   "ok": true
+  },
+  {
+   "step": 4,
+   "op": "send",
+   "ok": true,
+   "sent": "stty size\r"
+  },
+  {
+   "step": 5,
+   "op": "expect",
+   "ok": true,
+   "matched": true,
+   "buffer_tail": "\u001b[?2004hKM_SHELL> \r\u001b[K\rKM_SHELL> stty size\r\n\u001b[?2004l\r40 100\r\n\u001b[?2004hKM_SHELL> "
+  },
+  {
+   "step": 6,
+   "op": "resize",
+   "ok": true
+  },
+  {
+   "step": 7,
+   "op": "settle",
+   "ok": true
+  },
+  {
+   "step": 8,
+   "op": "send",
+   "ok": true,
+   "sent": "stty size\r"
+  },
+  {
+   "step": 9,
+   "op": "expect",
+   "ok": true,
+   "matched": true,
+   "buffer_tail": "\u001b[?2004hKM_SHELL> \r\u001b[K\rKM_SHELL> stty size\r\n\u001b[?2004l\r40 100\r\n\u001b[?2004hKM_SHELL> \r\u001b[K\rKM_SHELL> stty size\r\n\u001b[?2004l\r24 80\r\n\u001b[?2004hKM_SHELL> "
+  },
+  {
+   "step": 10,
+   "op": "send",
+   "ok": true,
+   "sent": "exit\r"
+  }
+ ],
+ "exit_code": 0,
+ "exit_sig": null,
+ "termios_equal": true,
+ "signals_sent": [],
+ "error": null
+}

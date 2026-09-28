@@ -1,0 +1,12 @@
+[?2004hKM_SHELL> sleep 273
+[?2004l^Z
+[1]+  Stopped                    sleep 273
+[?2004hKM_SHELL> exit
+[?2004lexit
+There are stopped jobs.
+[?2004hKM_SHELL> exit 0
+[?2004lexit
+
+[1mWhat's next:[0m
+    Try Docker Debug for seamless, persistent debugging tools in any container or image → [36mdocker debug d36c66795bc2b3f030dcea33788448441d2dcb1f495c07c163d019baca54ca56[0m
+    Learn more at https://docs.docker.com/go/debug-cli/

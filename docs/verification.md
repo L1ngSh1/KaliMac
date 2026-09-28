@@ -1,5 +1,66 @@
 # 验证记录
 
+## 第九轮：环境切换与单代回退（2026-09-28，environment-switch 计划）
+
+计划与冻结合同：docs/environment-switch-plan.md + docs/adr-environment-transactions.md（P0 冻结）。
+进度与需求映射：docs/environment-switch-progress.md。
+证据：tests/evidence/environment-switch/1790579945/。本轮未提交/未推送（计划约定）。
+
+### 交付
+
+- `km env switch --image <ref> [--dry-run] [--yes]` / `km env rollback [--dry-run] [--yes]` /
+  `km env recover [--dry-run] [--yes]`；`env` 为管理命令，重名工具仍可 `km run -- env …`。
+- 事务层 `internal/envtxn`（transaction/previous/retained，env_version 严格校验、原子写、
+  哈希备份）；state_version 2（env 块）作为旧二进制明确拒绝门槛，v1 项目完全兼容（不批量迁移）。
+- 冻结的恢复表：COMMIT_INTENT 前失败收敛前态、之后收敛新态；recover 幂等；
+  资源身份无法确认时停止写操作并保留事务；外部修改 config/state 拒绝覆盖。
+- run/init/stop 取锁后事务阻断（KM_TRANSACTION_PENDING）；sessions/cancel 不受影响。
+- status 新增 `env_transaction_pending` 状态与当前代展示；doctor 新增环境记录节
+  （事务/槽位/retained 健康 + 账本恒等式只读核验）。
+- 新增稳定码：KM_TRANSACTION_PENDING / KM_NO_PREVIOUS / KM_PLATFORM_MISMATCH（已入 cli-contract.md）。
+
+### 验证（本机 darwin/arm64 实测；Docker Engine 29.6.1 本轮启动）
+
+- `gofmt -l .`：本轮改动文件干净（docs/review-p2-20260906/ 为先于本轮存在的未跟踪备份，
+  其中 1 文件本就未格式化，按计划原样保留未触碰）。
+- `go vet ./...`、`go vet -tags=integration ./...`：PASS。
+- `go test -count=1 ./...`、`go test -race -count=1 ./...`、`go build ./...`：PASS。
+- `go test -tags=integration -count=1 -timeout 15m -v ./tests/integration/`：
+  **67 RUN / 62 PASS / 0 FAIL / 0 SKIP（161.997s）**，含本轮新增真实集成：
+  TestEnvSwitchRealHappyRollback（dry-run 零写入 → A→B 实际执行 marker 证明 → 旧容器停止
+  保留 → 回退 → marker 证明回到 A → 文件改动不回滚 → 槽位消费 → 二次回退拒绝 → 账本恒等式
+  实际容器=当前代+retained=2）、TestEnvSwitchRealNoOp、TestEnvSwitchRealMissingImage。
+  零清理标记；引擎复核 `docker ps -a --filter label=km.owner=km` 为 0 个残留。
+- fake 层覆盖（internal/cli/env_*_test.go，24 项）：负向拒绝矩阵（镜像缺失/平台冲突/
+  身份冲突/会话活跃/未知/事务阻断/用法错误，全部断言零容器调用与零文件写入）、
+  全链路 switch/rollback、no-op、槽位轮换、恢复表全阶段（PREPARED→CURRENT_COMMITTED、
+  rollback 前后、资源消失拒绝）、创建响应丢失（op 标签核验）、并发互斥、多项目隔离、
+  损坏记录阻断、非交互 --yes 合同、拒绝确认退出码 1（KM_CANCELED，冻结值）。
+- 旧二进制兼容实测（无需 Docker）：以基线 1d3eaab 构建 km，对 v2 状态夹具
+  `km status`/`km stop` 均在接触 Docker 前拒绝（`.km/state.json: 不支持的状态版本 2`，
+  退出 1）；当前构建对同一夹具正常通过状态解析。证据见 summary.md。
+
+### 独立审查与修复（同轮）
+
+独立审查（重点：测试是否覆盖声称的失败路径）结论 FIX-FIRST，全部修复：
+
+- **P0**：二次及以后 switch 在 COMMIT_INTENT 崩溃时 recover 死锁（槽位轮换窗口未覆盖）。
+  修复：恢复路径完成槽位轮换（同一归属核验）；回归 TestEnvRecoverCrashAtCommitIntentWithSlot。
+- **P1**：取锁后重读 cfg/st（switch/rollback）；retained.json 预检；外部编辑冲突测试
+  （提交前检测 → 拒绝并收敛前态，外部修改保持原样；recover 侧拒绝 + 恢复后收敛）。
+- **P2**：no-op 后置于全部门禁；op 资源删除需名称+镜像内容匹配；switch/rollback 校验
+  容器实际镜像↔记录；recover 确认后事务变化放弃；补 CANDIDATE_VERIFIED、rollback
+  PREPARED、init 事务阻断、sessions 不阻断、阶段写点/SavePrevious IO 注入测试；
+  删除同义反复的 v1-only 兼容测试（以真实 1d3eaab 旧二进制实测为准）。
+- 修复后全量复跑：unit/race/vet(双 tag)/build PASS；集成套件 **62 PASS / 0 FAIL**，
+  env 三测全过，零清理标记，引擎复核 km.owner=km 残留为 0
+  （integration-suite-post-review.log）。
+
+### 边界与未验证
+
+- 强杀恢复以 fake 注入覆盖全阶段，未做真实宿主 kill -9 实验；安装版验收未重跑
+  （package.sh/安装脚本无改动）；Intel 实机未做（amd64 仅 CI 交叉编译）。
+
 ## 第八轮：会话查看与显式恢复（2026-09-16，session-recovery 计划）
 
 计划与行为合同：docs/session-recovery-plan.md（S1 审查结论与 S2 冻结合同在该文件）。

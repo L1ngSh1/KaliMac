@@ -1,0 +1,108 @@
+{
+ "ok": true,
+ "steps": [
+  {
+   "step": 0,
+   "op": "expect",
+   "ok": true,
+   "matched": true,
+   "buffer_tail": "\u001b[?2004hKM_SHELL> "
+  },
+  {
+   "step": 1,
+   "op": "send",
+   "ok": true,
+   "sent": "sleep 30\r"
+  },
+  {
+   "step": 2,
+   "op": "settle",
+   "ok": true
+  },
+  {
+   "step": 3,
+   "op": "sendb",
+   "ok": true
+  },
+  {
+   "step": 4,
+   "op": "expect",
+   "ok": true,
+   "matched": true,
+   "buffer_tail": "\u001b[?2004hKM_SHELL> sleep 30\r\n\u001b[?2004l\r^Z\r\n[1]+  Stopped                    sleep 30\r\n\u001b[?2004hKM_SHELL> "
+  },
+  {
+   "step": 5,
+   "op": "send",
+   "ok": true,
+   "sent": "jobs\r"
+  },
+  {
+   "step": 6,
+   "op": "expect",
+   "ok": true,
+   "matched": true,
+   "buffer_tail": "\u001b[?2004hKM_SHELL> sleep 30\r\n\u001b[?2004l\r^Z\r\n[1]+  Stopped                    sleep 30\r\n\u001b[?2004hKM_SHELL> jobs\r\n\u001b[?2004l\r[1]+  Stopped                    sleep 30\r\n\u001b[?2004hKM_SHELL> "
+  },
+  {
+   "step": 7,
+   "op": "send",
+   "ok": true,
+   "sent": "bg\r"
+  },
+  {
+   "step": 8,
+   "op": "expect",
+   "ok": true,
+   "matched": true,
+   "buffer_tail": "\u001b[?2004hKM_SHELL> sleep 30\r\n\u001b[?2004l\r^Z\r\n[1]+  Stopped                    sleep 30\r\n\u001b[?2004hKM_SHELL> jobs\r\n\u001b[?2004l\r[1]+  Stopped                    sleep 30\r\n\u001b[?2004hKM_SHELL> "
+  },
+  {
+   "step": 9,
+   "op": "send",
+   "ok": true,
+   "sent": "fg\r"
+  },
+  {
+   "step": 10,
+   "op": "settle",
+   "ok": true
+  },
+  {
+   "step": 11,
+   "op": "sendb",
+   "ok": true
+  },
+  {
+   "step": 12,
+   "op": "expect",
+   "ok": true,
+   "matched": true,
+   "buffer_tail": "\u001b[?2004hKM_SHELL> sleep 30\r\n\u001b[?2004l\r^Z\r\n[1]+  Stopped                    sleep 30\r\n\u001b[?2004hKM_SHELL> jobs\r\n\u001b[?2004l\r[1]+  Stopped                    sleep 30\r\n\u001b[?2004hKM_SHELL> bg\r\n\u001b[?2004l\r[1]+ sleep 30 &\r\n\u001b[?2004hKM_SHELL> fg\r\n\u001b[?2004l\rsleep 30\r\n"
+  },
+  {
+   "step": 13,
+   "op": "send",
+   "ok": true,
+   "sent": "echo E=$?\r"
+  },
+  {
+   "step": 14,
+   "op": "expect",
+   "ok": true,
+   "matched": true,
+   "buffer_tail": "                  sleep 30\r\n\u001b[?2004hKM_SHELL> jobs\r\n\u001b[?2004l\r[1]+  Stopped                    sleep 30\r\n\u001b[?2004hKM_SHELL> bg\r\n\u001b[?2004l\r[1]+ sleep 30 &\r\n\u001b[?2004hKM_SHELL> fg\r\n\u001b[?2004l\rsleep 30\r\n^C\r\n\u001b[?2004hKM_SHELL> echo E=$?\r\n\u001b[?2004l\rE=130\r\n\u001b[?2004hKM_SHELL> "
+  },
+  {
+   "step": 15,
+   "op": "send",
+   "ok": true,
+   "sent": "exit\r"
+  }
+ ],
+ "exit_code": 0,
+ "exit_sig": null,
+ "termios_equal": true,
+ "signals_sent": [],
+ "error": null
+}

@@ -1,0 +1,137 @@
+=== RUN   TestEnvSwitchRealHappyRollback
+--- PASS: TestEnvSwitchRealHappyRollback (3.40s)
+=== RUN   TestEnvSwitchRealNoOp
+--- PASS: TestEnvSwitchRealNoOp (0.87s)
+=== RUN   TestEnvSwitchRealMissingImage
+--- PASS: TestEnvSwitchRealMissingImage (0.65s)
+=== RUN   TestP2BResidueCheck
+--- PASS: TestP2BResidueCheck (0.00s)
+=== RUN   TestInitRunStopRestoreLoop
+--- PASS: TestInitRunStopRestoreLoop (1.53s)
+=== RUN   TestRunComplexArgvAndExitCodes
+--- PASS: TestRunComplexArgvAndExitCodes (1.98s)
+=== RUN   TestRunBinaryPipeAndStderr
+--- PASS: TestRunBinaryPipeAndStderr (0.72s)
+=== RUN   TestRunChineseSpacePathsAndSubdirCwd
+--- PASS: TestRunChineseSpacePathsAndSubdirCwd (0.95s)
+=== RUN   TestRunCancelCleansSession
+--- PASS: TestRunCancelCleansSession (2.26s)
+=== RUN   TestRunMultiProjectIsolationAndBusy
+--- PASS: TestRunMultiProjectIsolationAndBusy (2.82s)
+=== RUN   TestRunEngineDriftRejected
+--- PASS: TestRunEngineDriftRejected (0.47s)
+=== RUN   TestRunSameNameConflictRejected
+--- PASS: TestRunSameNameConflictRejected (0.72s)
+=== RUN   TestRunImageIdentityConflictRejected
+--- PASS: TestRunImageIdentityConflictRejected (0.69s)
+=== RUN   TestInitFailureRecovery
+--- PASS: TestInitFailureRecovery (3.02s)
+=== RUN   TestCuratedToolSmoke
+=== RUN   TestCuratedToolSmoke/python3-fixture
+=== RUN   TestCuratedToolSmoke/curl-local-service
+=== RUN   TestCuratedToolSmoke/jq-fixed-json
+=== RUN   TestCuratedToolSmoke/nmap-local-loopback
+=== RUN   TestCuratedToolSmoke/file-text
+--- PASS: TestCuratedToolSmoke (2.83s)
+    --- PASS: TestCuratedToolSmoke/python3-fixture (0.28s)
+    --- PASS: TestCuratedToolSmoke/curl-local-service (0.26s)
+    --- PASS: TestCuratedToolSmoke/jq-fixed-json (0.22s)
+    --- PASS: TestCuratedToolSmoke/nmap-local-loopback (0.27s)
+    --- PASS: TestCuratedToolSmoke/file-text (0.23s)
+=== RUN   TestRunCancelChildIgnoresTERM
+--- PASS: TestRunCancelChildIgnoresTERM (3.02s)
+=== RUN   TestRunNormalExitDrainsLingeringChild
+--- PASS: TestRunNormalExitDrainsLingeringChild (0.85s)
+=== RUN   TestStaleHostLockActiveSessionBlocked
+--- PASS: TestStaleHostLockActiveSessionBlocked (4.58s)
+=== RUN   TestConcurrentInitSingleEnvironment
+--- PASS: TestConcurrentInitSingleEnvironment (0.70s)
+=== RUN   TestNewUserInitFlagsAndStatus
+--- PASS: TestNewUserInitFlagsAndStatus (0.93s)
+=== RUN   TestNewUserLegacyConfigCompatReal
+--- PASS: TestNewUserLegacyConfigCompatReal (0.67s)
+=== RUN   TestNewUserPlatformChangeRejectedReal
+--- PASS: TestNewUserPlatformChangeRejectedReal (0.68s)
+=== RUN   TestNewUserStatusPausedReal
+--- PASS: TestNewUserStatusPausedReal (0.79s)
+=== RUN   TestNewUserToolsReal
+--- PASS: TestNewUserToolsReal (1.46s)
+=== RUN   TestNewUserToolsStoppedReal
+--- PASS: TestNewUserToolsStoppedReal (0.89s)
+=== RUN   TestRealSessionArgvPassthrough
+--- PASS: TestRealSessionArgvPassthrough (0.95s)
+=== RUN   TestRealSessionBinaryRoundtripAndStderr
+--- PASS: TestRealSessionBinaryRoundtripAndStderr (0.49s)
+=== RUN   TestRealSessionExitCodes
+--- PASS: TestRealSessionExitCodes (0.71s)
+=== RUN   TestRealSessionLongTaskNotKilledByMgmtTimeout
+--- PASS: TestRealSessionLongTaskNotKilledByMgmtTimeout (5.58s)
+=== RUN   TestRealSessionCancelNocleanFixture
+--- PASS: TestRealSessionCancelNocleanFixture (1.08s)
+=== RUN   TestRealSessionCancelSelfcleanFixture
+--- PASS: TestRealSessionCancelSelfcleanFixture (0.90s)
+=== RUN   TestRealSessionCancelGrandchild
+--- PASS: TestRealSessionCancelGrandchild (1.07s)
+=== RUN   TestRealSessionRepeatCancelIdempotent
+--- PASS: TestRealSessionRepeatCancelIdempotent (6.18s)
+=== RUN   TestRealSessionStartupCancel
+--- PASS: TestRealSessionStartupCancel (0.42s)
+=== RUN   TestRealSessionMultiProjectIsolation
+--- PASS: TestRealSessionMultiProjectIsolation (3.66s)
+=== RUN   TestRealSessionClientSigkillObservedSeparately
+--- PASS: TestRealSessionClientSigkillObservedSeparately (1.72s)
+=== RUN   TestSessionRecoveryChain
+--- PASS: TestSessionRecoveryChain (4.51s)
+=== RUN   TestSessionCmdsArgsAndUnknown
+--- PASS: TestSessionCmdsArgsAndUnknown (0.89s)
+=== RUN   TestSessionCmdsProjectIsolationAndNoLock
+--- PASS: TestSessionCmdsProjectIsolationAndNoLock (2.00s)
+=== RUN   TestSessionCmdsRepeatAndNaturalExit
+--- PASS: TestSessionCmdsRepeatAndNaturalExit (4.17s)
+=== RUN   TestSessionCancelNoiseRegression
+--- PASS: TestSessionCancelNoiseRegression (5.11s)
+=== RUN   TestC1PromptControlTerminal
+--- PASS: TestC1PromptControlTerminal (1.64s)
+=== RUN   TestC1CtrlCDuringSleepAndAtPrompt
+--- PASS: TestC1CtrlCDuringSleepAndAtPrompt (2.50s)
+=== RUN   TestC1ExitPaths
+--- PASS: TestC1ExitPaths (1.53s)
+=== RUN   TestC1JobControl
+--- PASS: TestC1JobControl (3.09s)
+=== RUN   TestC1WindowSizeFollows
+--- PASS: TestC1WindowSizeFollows (2.97s)
+=== RUN   TestC1BackgroundCleanupAtSessionEnd
+--- PASS: TestC1BackgroundCleanupAtSessionEnd (8.01s)
+=== RUN   TestC1TermiosRestored
+--- PASS: TestC1TermiosRestored (12.80s)
+=== RUN   TestC1ProjectIsolation
+--- PASS: TestC1ProjectIsolation (1.97s)
+=== RUN   TestC1SigkillObservedSeparately
+--- PASS: TestC1SigkillObservedSeparately (1.55s)
+=== RUN   TestC1DetachKeys
+    shell_c1_test.go:434: 结果 A：bash 已退出，会话已清扫，run 直接成功
+--- PASS: TestC1DetachKeys (16.92s)
+=== RUN   TestC1NonTTYFailsEarly
+--- PASS: TestC1NonTTYFailsEarly (0.06s)
+=== RUN   TestC2PipelineJobCleanup
+--- PASS: TestC2PipelineJobCleanup (1.54s)
+=== RUN   TestC2StoppedJobCleanup
+--- PASS: TestC2StoppedJobCleanup (2.66s)
+=== RUN   TestC2ShellExternalSignals
+--- PASS: TestC2ShellExternalSignals (12.44s)
+=== RUN   TestC2ShellStartupFailure
+--- PASS: TestC2ShellStartupFailure (0.72s)
+=== RUN   TestC2ShellInteractiveAndRegistered
+--- PASS: TestC2ShellInteractiveAndRegistered (1.96s)
+=== RUN   TestC2ShellCtrlC
+--- PASS: TestC2ShellCtrlC (2.76s)
+=== RUN   TestC2ShellExitCodePassthrough
+--- PASS: TestC2ShellExitCodePassthrough (0.88s)
+=== RUN   TestC2ShellSessionBlocksAfterHostKill
+--- PASS: TestC2ShellSessionBlocksAfterHostKill (7.05s)
+=== RUN   TestC2ShellRequiresTTY
+--- PASS: TestC2ShellRequiresTTY (0.01s)
+=== RUN   TestC2ShellSigkillBashSurvives
+--- PASS: TestC2ShellSigkillBashSurvives (1.39s)
+PASS
+ok  	kalimac/tests/integration	163.185s
