@@ -263,7 +263,9 @@ func (f *envFake) respond(args []string) ([]byte, []byte, error) {
 				match = c.project == val
 			}
 			if match {
-				fmt.Fprintf(&out, "%s %s %s\n", c.id, c.name, c.state)
+				// 真实 docker ps 默认返回 12 位短 ID（fake 与真实对齐，
+				// 曾暴露 doctor 账本核验的短/全 ID 比对缺陷）
+				fmt.Fprintf(&out, "%s %s %s\n", c.id[:12], c.name, c.state)
 			}
 		}
 		return []byte(out.String()), nil, nil
@@ -279,6 +281,12 @@ func (f *envFake) byRef(ref string) *envContainer {
 	}
 	if id, ok := f.names[ref]; ok {
 		return f.conts[id]
+	}
+	// 真实 docker 接受短 ID 前缀引用
+	for _, c := range f.conts {
+		if strings.HasPrefix(c.id, ref) {
+			return c
+		}
 	}
 	return nil
 }

@@ -372,7 +372,9 @@ func checkEnvRecords(r *reporter, ctx context.Context, dk *runtime.Docker, root 
 		return
 	}
 
-	// 账本恒等式核验（只读）
+	// 账本恒等式核验（只读）。docker ps 返回短 ID（12 hex），与记录的完整 ID
+	// 必须按前缀比对（安装版验收发现的 fake/真实差异：精确比对会把全部容器
+	// 误报为账本外）。
 	if st.Container.ID == "" {
 		return
 	}
@@ -381,27 +383,38 @@ func checkEnvRecords(r *reporter, ctx context.Context, dk *runtime.Docker, root 
 		r.item("警告", "账本核验失败（按项目标签列出容器）: %v", err)
 		return
 	}
-	known := map[string]bool{st.Container.ID: true}
-	if txn != nil {
-		known[txn.Old.ContainerID] = true
-		if txn.New.ContainerID != "" {
-			known[txn.New.ContainerID] = true
+	var knownFull []string
+	addKnown := func(id string) {
+		if id != "" {
+			knownFull = append(knownFull, id)
 		}
+	}
+	addKnown(st.Container.ID)
+	if txn != nil {
+		addKnown(txn.Old.ContainerID)
+		addKnown(txn.New.ContainerID)
 		for _, p := range txn.Probes {
-			known[p.ContainerID] = true
+			addKnown(p.ContainerID)
 		}
 	}
 	if prev != nil {
-		known[prev.ContainerID] = true
+		addKnown(prev.ContainerID)
 	}
 	if ret != nil {
 		for _, e := range ret.Containers {
-			known[e.ContainerID] = true
+			addKnown(e.ContainerID)
 		}
 	}
 	var extra []string
 	for _, s := range sums {
-		if !known[s.ID] {
+		matched := false
+		for _, full := range knownFull {
+			if strings.HasPrefix(full, s.ID) {
+				matched = true
+				break
+			}
+		}
+		if !matched {
 			extra = append(extra, fmt.Sprintf("%s(%s…)", s.Name, shortID(s.ID)))
 		}
 	}
