@@ -1,0 +1,17 @@
+{
+ "ok": true,
+ "steps": [
+  {
+   "step": 0,
+   "op": "expect",
+   "ok": true,
+   "matched": true,
+   "buffer_tail": "KM_NOT_FOUND: 记录的容器（ID ffffffffffff…）不存在（可能被外部删除）；运行 km init 恢复\r\n"
+  }
+ ],
+ "exit_code": 1,
+ "exit_sig": null,
+ "termios_equal": true,
+ "signals_sent": [],
+ "error": null
+}

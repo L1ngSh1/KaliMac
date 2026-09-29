@@ -56,10 +56,33 @@
   env 三测全过，零清理标记，引擎复核 km.owner=km 残留为 0
   （integration-suite-post-review.log）。
 
-### 边界与未验证
+### 验收缺口补齐（同轮追加，2026-09-29）
 
-- 强杀恢复以 fake 注入覆盖全阶段，未做真实宿主 kill -9 实验；安装版验收未重跑
-  （package.sh/安装脚本无改动）；Intel 实机未做（amd64 仅 CI 交叉编译）。
+第一轮交付明确记录两个缺口，均已补齐并有可重复入口：
+
+- **安装版验收（原 NOT-RUN → PASS）**：`tests/acceptance/install_env_switch_acceptance.sh`
+  ——package.sh（仓库外调用、临时 DIST）→ SHA256 → 临时 PREFIX 安装 → 仓库外临时项目
+  以安装产物执行 init/run/dry-run/switch/rollback/recover/doctor → 账本恒等式 → 卸载。
+  **24/24 PASS**，构建身份=HEAD 2baa188、darwin/arm64 本机实测。
+  **发现并修复真实缺陷**：doctor 账本核验按完整 ID 精确比对，被真实 `docker ps` 的
+  12 位短 ID 全部误报"账本外"（fake 返回全 ID 故未暴露）；修复为前缀比对
+  （internal/cli/doctor.go），env fake 的 ps 输出与容器引用对齐真实行为
+  （TestDoctorShowsEnvRecords 锁定回归）。
+- **真实 kill -9 阶段边界实验（原"未执行" → PASS）**：
+  `tests/integration/environment_switch_kill_test.go` —— 独立进程组启动 switch/rollback，
+  按阶段条件（事务出现/OLD_STOPPED/COMMIT_INTENT/CURRENT_COMMITTED/rollback 停止后）
+  对进程组 SIGKILL，断言恢复不变量：recover 幂等收敛、事务清除、文件↔运行时一致、
+  账本恒等式、doctor 无账本外告警、status 正常态。5 场景 PASS（4 场景真实命中
+  SIGKILL；1 场景"提交点"进程在命中前已完整成功，竞态下两种落点不变量均成立）。
+- 修复后全量复跑：unit/race/vet(双 tag)/build PASS；集成套件 **73 RUN / 64 PASS /
+  0 FAIL / 0 SKIP**，引擎复核 km.owner=km 残留 = 0。
+- 证据：tests/evidence/environment-switch/1790579945/{install-acceptance.log,
+  kill9-stage-experiments.log, summary.md}。
+
+### 边界与未验证（更新后）
+
+- Intel 实机未做（amd64 仅 CI 交叉编译）；真实 kill 实验的落点存在观测竞态
+  （不断言精确杀死时刻，以恢复不变量为验收标准）。
 
 ## 第八轮：会话查看与显式恢复（2026-09-16，session-recovery 计划）
 

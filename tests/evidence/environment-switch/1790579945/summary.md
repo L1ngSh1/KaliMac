@@ -33,6 +33,45 @@
 - 复跑：unit/race/vet/build PASS；集成 62 PASS / 0 FAIL 零残留
   （integration-suite-post-review.log）。
 
+## 验收缺口补齐（第二轮）
+
+### 1. 安装版验收（原 NOT-RUN → PASS，24/24）
+
+可重复脚本：tests/acceptance/install_env_switch_acceptance.sh（本轮新增）。
+流程：scripts/package.sh（cwd=仓库外、DIST 指向临时目录）→ SHA256SUMS 校验 →
+解包 → install.sh 安装到临时 PREFIX → 仓库外临时项目中以安装产物执行真实全流程
+（init → run marker=env-a → dry-run → switch --yes → marker=env-b → rollback --yes →
+marker=env-a → recover 无需恢复 → doctor 账本一致）→ 账本恒等式（实际容器=2）→
+uninstall.sh 清单核验。构建身份=HEAD 2baa188，target darwin/arm64（本机实测），
+worktree 如实记录（dirty，因计划约定保留的未跟踪文档）。
+
+**发现并修复一个真实产品缺陷**：真实 `docker ps --format {{.ID}}` 返回 12 位短 ID，
+doctor 账本核验原先按完整 ID 精确比对，把全部容器误报为"账本外"（fake 测试返回
+全 ID 所以未暴露）。修复为前缀比对（internal/cli/doctor.go），env fake 的 ps 输出
+对齐为短 ID、容器引用支持短 ID 前缀（回归由 TestDoctorShowsEnvRecords 锁定）。
+修复后安装版验收 24/24 PASS。
+
+### 2. 真实 kill -9 阶段边界实验（原"未执行" → PASS，5 场景）
+
+可重复实验：tests/integration/environment_switch_kill_test.go（本轮新增，
+真实 Docker）。方法：独立进程组启动 switch/rollback，轮询观测阶段条件（事务
+出现 / stage=OLD_STOPPED / COMMIT_INTENT / CURRENT_COMMITTED / rollback 停止后）
+命中即对进程组 SIGKILL（含 docker 子进程，模拟"操作成功但响应丢失"）。
+
+| 场景 | kill 命中 | 结果 |
+| --- | --- | --- |
+| switch·事务建立窗口 | 是 | PASS |
+| switch·旧容器停止后 | 是 | PASS |
+| switch·提交点 | 否（进程已完整成功，竞态） | PASS（不变量仍成立） |
+| switch·提交完成 | 是 | PASS |
+| rollback·停止后 | 是 | PASS |
+
+不变量断言（每场景）：recover --dry-run/--yes 幂等收敛、事务清除、二次 recover
+"无需恢复"；.km.json 引用 ↔ 运行时实际执行（marker）一致；账本恒等式（实际容器 =
+当前代 + 槽位 + retained）；doctor 无账本外告警；status 为正常态。
+日志：kill9-stage-experiments.log。套件复跑（含新实验）：73 RUN / 64 PASS /
+0 FAIL / 0 SKIP，引擎复核 km.owner=km 残留 = 0。
+
 ## 旧二进制兼容实测（无需 Docker）
 
 用基线提交 1d3eaab 构建 /tmp/km-old-bin（go build ./cmd/km），

@@ -42,7 +42,7 @@
 | 容器状态门禁（仅 running/exited；paused 等独立拒绝） | TestEnvPausedContainerRefused | PASS |
 | 单代回退兑现配置/容器/原运行状态 | TestEnvFullCycleSwitchSwitchRollbackRollback / 集成回退 | PASS |
 | 环境回退不回滚共享文件 | 集成 note.txt 断言 | PASS |
-| 各阶段失败/强杀恢复 | TestEnvRecover*（PREPARED/CANDIDATE_CREATED/OLD_STOPPED/COMMIT_INTENT/CURRENT_COMMITTED、rollback 前/后、资源消失拒绝） | PASS |
+| 各阶段失败/强杀恢复 | TestEnvRecover*（fake 全阶段）+ 真实 kill -9 实验（tests/integration/environment_switch_kill_test.go：switch 4 阶段 + rollback，5 场景 PASS） | PASS |
 | 操作成功但响应丢失 | TestEnvSwitchCreateResponseLost（op 标签核验登记，不二次创建） | PASS |
 | 旧状态 schema 兼容实测 | TestStateV2RejectedByV1OnlyReader + 真实 1d3eaab 旧二进制实测（status/stop 拒绝） | PASS |
 | 资源账本恒等式 | 集成账本断言 + doctor checkEnvRecords | PASS |
@@ -86,12 +86,27 @@ go test -tags=integration -count=1 -timeout 15m -v ./tests/integration/
 全部提交前/后崩溃阶段、响应丢失、身份不可确认保留事务、槽位轮换、拒绝矩阵零变更断言、
 退出码合同、旧二进制实测等。
 
+## 验收缺口补齐（第二轮，2026-09-29）
+
+第一轮交付时明确记录了两个验收缺口，均已补齐：
+
+1. **安装版验收**：新增可重复脚本 `tests/acceptance/install_env_switch_acceptance.sh`
+   （打包 → SHA256 → 安装到临时 PREFIX → 仓库外真实 env 全流程 → 账本恒等式 → 卸载），
+   24/24 PASS。过程中发现并修复真实缺陷：doctor 账本核验按完整 ID 精确比对，
+   被真实 docker 的 12 位短 ID 全部误判为账本外；改为前缀比对，fake 同步对齐真实行为。
+2. **真实 kill -9 实验**：新增 `tests/integration/environment_switch_kill_test.go`
+   （5 场景：switch 事务建立/停止后/提交点/提交完成 + rollback 停止后），对进程组
+   SIGKILL 后断言恢复不变量（recover 幂等收敛、文件↔运行时一致、账本恒等式、
+   doctor 无账本外告警）。4 场景真实命中 SIGKILL，1 场景（提交点）进程在命中前
+   已完整成功——两种落点不变量均成立。套件复跑 73 RUN / 64 PASS / 0 FAIL / 0 SKIP。
+
 ## 剩余问题与边界
 
-1. **安装版验收未重跑**：`scripts/package.sh` 与安装脚本本轮无改动，dist 目录为历史产物；
-   交付前建议按既有流程重跑一次（不在本轮授权范围内打 tag/发布）。
-2. **强杀实验**：恢复表以 fake 故障注入覆盖全部阶段；真实宿主 `kill -9` 的
-   阶段边界实验未执行（机制与 fake 相同：事务记录 + 引擎实态交叉核验）。
+1. **（已补齐）安装版验收**：见"验收缺口补齐"第 1 条；正式发布（tag/发布命令）
+   仍需额外授权。
+2. **（已补齐）真实 kill -9 实验**：见"验收缺口补齐"第 2 条；实验覆盖
+   switch 4 阶段窗口 + rollback 停止后窗口，均以不变量断言（落点存在竞态，
+   不断言精确杀死时刻）。
 3. **Intel 实机**：本机 arm64 实测；amd64 仅交叉编译验证（CI 覆盖），未做 Intel 实机验收。
 7. **真实宿主 kill -9 与安装版验收**：见上（fake 注入覆盖机制；package.sh 无改动未重跑）。
 4. **remote endpoint**：单元测试覆盖拒绝逻辑；未连真实远程引擎。
@@ -99,3 +114,5 @@ go test -tags=integration -count=1 -timeout 15m -v ./tests/integration/
    幂等动作）；拒绝场景会留下惰性脚本文件——已记录为合同唯一例外（ADR §5.7）。
 6. **retained 清理**：账本只增不删（合同如此）；人工清理方法在 ADR §2，
    doctor 会对已消失的 retained 条目给出警告。
+7. **fake/真实差异教训**：本轮安装版验收抓到 fake 用全 ID、真实 docker ps 返回
+   短 ID 造成的 doctor 账本误报——env fake 的 ps 输出已对齐为短 ID，避免复发。
