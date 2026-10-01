@@ -7,6 +7,24 @@
 
 ### 新增
 
+- `km env list`：只读查看当前项目的环境资源总览（角色 CURRENT/PREVIOUS/RETAINED/
+  TRANSACTION/UNTRACKED、完整容器 ID、实际状态、可删除性）；MISSING/UNKNOWN/
+  CONFLICT 严格区分；不取锁、不写任何文件。
+- `km env remove <完整容器ID>`：显式删除一个已停止（exited）的 retained 保留容器。
+  仅接受完整 ID；当前环境/回退目标/事务资源始终受保护；普通 docker rm（无 -f/-v，
+  不自动 stop、不强制删除）；事务化账本收尾（journal 先行、rm 后确认不存在、
+  外科手术式移除条目），中断由 km env recover 收尾（永不重建容器）；失效记录
+  （容器已被外部删除）仅清理账本并明确说明。
+- `km env switch/rollback/recover`：项目环境切换与单代回退（合同冻结于
+  docs/adr-environment-transactions.md）。switch 只接受本地引擎已存在的同平台镜像
+  （不拉取不构建）：只读探测会话依赖 → 按镜像内容 ID 创建候选容器 → 停止并保留旧容器；
+  同内容为明确 no-op；目标引用漂移在提交前拒绝。rollback 单代回退、消费回退槽位、
+  被撤容器计入 retained 账本；引用漂移明确拒绝。recover 按冻结规则恢复未完成事务
+  （提交点前回前态、之后完成新态，幂等）。`--dry-run` 全程只读；非交互须 `--yes`。
+  事务记录（.km/env/，不入库）携带操作 ID/前后快照/哈希备份；旧二进制经 state_version 2
+  门槛明确拒绝（实测）；run/init/stop 在事务未完成时阻断；status/doctor 展示当前代、
+  未完成事务与账本恒等式。新增稳定码 `KM_TRANSACTION_PENDING`、`KM_NO_PREVIOUS`、
+  `KM_PLATFORM_MISMATCH`。
 - `km tools`：只读查看精选六项工具（python3、curl、jq、file、openssl、nmap）在当前
   项目容器内的可用性（AVAILABLE 附解析路径 / MISSING）；清单不枚举容器全部软件，
   AVAILABLE 不保证版本或执行结果；缺失时给出维护镜像 Dockerfile 的指引（临时安装

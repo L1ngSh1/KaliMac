@@ -1,0 +1,88 @@
+{
+ "ok": true,
+ "steps": [
+  {
+   "step": 0,
+   "op": "expect",
+   "ok": true,
+   "matched": true,
+   "buffer_tail": "\u001b[?2004hKM_SHELL> "
+  },
+  {
+   "step": 1,
+   "op": "send",
+   "ok": true,
+   "sent": "sleep 290 &\r"
+  },
+  {
+   "step": 2,
+   "op": "expect",
+   "ok": true,
+   "matched": true,
+   "buffer_tail": "\u001b[?2004hKM_SHELL> sleep 290 &\r\n\u001b[?2004l\r[1] 14\r\n\u001b[?2004hKM_SHELL> "
+  },
+  {
+   "step": 3,
+   "op": "send",
+   "ok": true,
+   "sent": "sleep 300 | sleep 301 &\r"
+  },
+  {
+   "step": 4,
+   "op": "expect",
+   "ok": true,
+   "matched": true,
+   "buffer_tail": "\u001b[?2004hKM_SHELL> sleep 290 &\r\n\u001b[?2004l\r[1] 14\r\n\u001b[?2004hKM_SHELL> sleep 300 | sleep 301 &\r\n\u001b[?2004l\r[2] 16\r\n\u001b[?2004hKM_SHELL> "
+  },
+  {
+   "step": 5,
+   "op": "send",
+   "ok": true,
+   "sent": "sh -c 'trap \"\" HUP TERM INT; sleep 302' &\r"
+  },
+  {
+   "step": 6,
+   "op": "expect",
+   "ok": true,
+   "matched": true,
+   "buffer_tail": "\u001b[?2004hKM_SHELL> sleep 290 &\r\n\u001b[?2004l\r[1] 14\r\n\u001b[?2004hKM_SHELL> sleep 300 | sleep 301 &\r\n\u001b[?2004l\r[2] 16\r\n\u001b[?2004hKM_SHELL> sh -c 'trap \"\" HUP TERM INT; sleep 302' &\r\n\u001b[?2004l\r[3] 17\r\n\u001b[?2004hKM_SHELL> "
+  },
+  {
+   "step": 7,
+   "op": "send",
+   "ok": true,
+   "sent": "setsid sleep 303 &\r"
+  },
+  {
+   "step": 8,
+   "op": "expect",
+   "ok": true,
+   "matched": true,
+   "buffer_tail": "\u001b[?2004hKM_SHELL> sleep 290 &\r\n\u001b[?2004l\r[1] 14\r\n\u001b[?2004hKM_SHELL> sleep 300 | sleep 301 &\r\n\u001b[?2004l\r[2] 16\r\n\u001b[?2004hKM_SHELL> sh -c 'trap \"\" HUP TERM INT; sleep 302' &\r\n\u001b[?2004l\r[3] 17\r\n\u001b[?2004hKM_SHELL> setsid sleep 303 &\r\n\u001b[?2004l\r[4] 19\r\n\u001b[?2004hKM_SHELL> "
+  },
+  {
+   "step": 9,
+   "op": "send",
+   "ok": true,
+   "sent": "ps -o pid,ppid,pgid,sid,args\r"
+  },
+  {
+   "step": 10,
+   "op": "expect",
+   "ok": true,
+   "matched": true,
+   "buffer_tail": "00\r\n   16     7    15     7 sleep 301\r\n   17     7    17     7 sh -c trap \"\" HUP TERM INT; sleep 302\r\n   18    17    17     7 sleep 302\r\n   21     7    21     7 ps -o pid,ppid,pgid,sid,args\r\n[4]+  Done                       setsid sleep 303\r\n\u001b[?2004hKM_SHELL> "
+  },
+  {
+   "step": 11,
+   "op": "send",
+   "ok": true,
+   "sent": "exit\r"
+  }
+ ],
+ "exit_code": 0,
+ "exit_sig": null,
+ "termios_equal": true,
+ "signals_sent": [],
+ "error": null
+}

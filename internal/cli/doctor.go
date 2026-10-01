@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"kalimac/internal/envtxn"
 	"kalimac/internal/project"
 	"kalimac/internal/runtime"
 	"kalimac/internal/session"
@@ -87,6 +88,11 @@ func RunDoctor(ctx context.Context, dir string, stdout io.Writer, dk *runtime.Do
 	// 5. container ownership + image content identity
 	if ok && cfg != nil {
 		checkContainerAndImage(r, ctx, dk, root, cfg, st)
+	}
+
+	// 6. environment-switch records + resource ledger (ADR §6 不变量)
+	if st != nil && ok {
+		checkEnvRecords(r, ctx, dk, root, st)
 	}
 
 	r.line("")
@@ -302,6 +308,121 @@ func checkImage(r *reporter, ctx context.Context, dk *runtime.Docker, cfg *proje
 		return
 	}
 	r.item("OK", "镜像: %s", id)
+}
+
+// checkEnvRecords 校验环境切换记录与资源账本（ADR §6）：
+// 账本恒等式 = 实际项目容器 ⊆ 当前代 + 上一代 + retained + 事务资源；
+// 记录损坏或归属不符是失败项，账本外资源是警告项。
+func checkEnvRecords(r *reporter, ctx context.Context, dk *runtime.Docker, root string, st *project.State) {
+	r.line("环境记录:")
+	txn, terr := envtxn.LoadTransaction(root)
+	prev, perr := envtxn.LoadPrevious(root)
+	ret, rerr := envtxn.LoadRetained(root)
+
+	if st.StateVersion != project.SupportedStateVersionEnv {
+		// v1 + previous/retained 并存才是真不一致；
+		// v1 + 仅事务记录是 PREPARED 升版前的合法崩溃窗口（先事务后升版）。
+		if envtxn.PreviousExists(root) || ret != nil {
+			r.item("失败", "%s: state_version=%d 但存在回退/retained 记录，记录组合不一致；请人工核验 .km/", runtime.CodeStateInvalid, st.StateVersion)
+			return
+		}
+	} else if st.Env == nil {
+		r.item("失败", "%s: state_version=2 缺少 env 块", runtime.CodeStateInvalid)
+		return
+	} else {
+		r.item("OK", "当前代: 第 %d", st.Env.Generation)
+	}
+
+	switch {
+	case terr == nil:
+		r.item("失败", "%s: 未完成事务 op=%s kind=%s stage=%s；km env recover --dry-run 查看，确认后 km env recover 恢复",
+			runtime.CodeTransactionPending, txn.OpID, txn.Kind, txn.Stage)
+	case os.IsNotExist(terr):
+	default:
+		r.item("失败", "%s: 事务记录无法解析（原样保留）: %v", runtime.CodeStateInvalid, terr)
+	}
+
+	switch {
+	case perr == nil:
+		r.item("OK", "回退槽位: 第 %d（容器 %s，ID %s…，镜像引用 %s）", prev.Generation, prev.ContainerName, shortID(prev.ContainerID), prev.ImageRef)
+		if _, exists, ierr := dk.InspectContainer(ctx, prev.ContainerID); ierr == nil && !exists {
+			r.item("警告", "回退槽位容器（ID %s…）不存在（可能被外部删除）；rollback 将明确拒绝", shortID(prev.ContainerID))
+		}
+	case os.IsNotExist(perr):
+		r.item("OK", "回退槽位: 空")
+	default:
+		r.item("失败", "%s: 回退槽位无法解析（原样保留）: %v", runtime.CodeStateInvalid, perr)
+	}
+
+	switch {
+	case rerr == nil:
+		r.item("OK", "retained 账本: %d 个有意保留容器", len(ret.Containers))
+		for _, e := range ret.Containers {
+			if _, exists, ierr := dk.InspectContainer(ctx, e.ContainerID); ierr == nil && !exists {
+				r.item("警告", "retained 容器 %s（ID %s…）已不存在（可能被人工清理）；建议核验后删除该账本条目", e.ContainerName, shortID(e.ContainerID))
+			}
+		}
+	case os.IsNotExist(rerr):
+	default:
+		r.item("失败", "%s: retained 账本无法解析（原样保留）: %v", runtime.CodeStateInvalid, rerr)
+	}
+
+	if st.StateVersion != project.SupportedStateVersionEnv && terr != nil && os.IsNotExist(terr) && perr != nil && os.IsNotExist(perr) && rerr != nil && os.IsNotExist(rerr) {
+		r.item("OK", "未采纳环境切换（原始代项目）")
+		return
+	}
+
+	// 账本恒等式核验（只读）。docker ps 返回短 ID（12 hex），与记录的完整 ID
+	// 必须按前缀比对（安装版验收发现的 fake/真实差异：精确比对会把全部容器
+	// 误报为账本外）。
+	if st.Container.ID == "" {
+		return
+	}
+	sums, err := dk.FindContainersByLabel(ctx, runtime.ProjectLabel, st.ProjectID)
+	if err != nil {
+		r.item("警告", "账本核验失败（按项目标签列出容器）: %v", err)
+		return
+	}
+	var knownFull []string
+	addKnown := func(id string) {
+		if id != "" {
+			knownFull = append(knownFull, id)
+		}
+	}
+	addKnown(st.Container.ID)
+	if txn != nil {
+		addKnown(txn.Old.ContainerID)
+		addKnown(txn.New.ContainerID)
+		for _, p := range txn.Probes {
+			addKnown(p.ContainerID)
+		}
+	}
+	if prev != nil {
+		addKnown(prev.ContainerID)
+	}
+	if ret != nil {
+		for _, e := range ret.Containers {
+			addKnown(e.ContainerID)
+		}
+	}
+	var extra []string
+	for _, s := range sums {
+		matched := false
+		for _, full := range knownFull {
+			if strings.HasPrefix(full, s.ID) {
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			extra = append(extra, fmt.Sprintf("%s(%s…)", s.Name, shortID(s.ID)))
+		}
+	}
+	if len(extra) > 0 {
+		r.item("警告", "发现账本外的项目容器: %v；不属于当前代/上一代/retained/事务，请人工核验来源", extra)
+	} else {
+		r.item("OK", "资源账本与实际容器一致（%d 个）", len(sums))
+	}
 }
 
 func shortID(id string) string {

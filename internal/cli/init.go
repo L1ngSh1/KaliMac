@@ -212,6 +212,10 @@ func runInitCommand(ctx context.Context, rest []string, stdout, stderr io.Writer
 	if lock.BrokeStale() {
 		fmt.Fprintf(stderr, "km: 清理了遗留锁（持有人进程已退出）\n")
 	}
+	// 事务互斥（ADR §5.4）：存在未完成环境事务时 init 阻断
+	if err := refuseIfEnvTxnPending(wd); err != nil {
+		return envError(stderr, err)
+	}
 	// 全新项目失败时不留 .km 空目录（先注册 → 在锁释放之后执行）
 	preExistingState := project.StateExists(wd)
 	defer func() {

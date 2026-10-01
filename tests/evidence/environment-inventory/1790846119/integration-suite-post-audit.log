@@ -1,0 +1,159 @@
+=== RUN   TestEnvRemoveRealDrillABC
+--- PASS: TestEnvRemoveRealDrillABC (28.68s)
+=== RUN   TestEnvSwitchRealKill9StageBoundaries
+=== RUN   TestEnvSwitchRealKill9StageBoundaries/事务建立窗口
+    environment_switch_kill_test.go:194: kill 命中=true 完整成功=false；switch 输出="km env switch 预览（只读，未做任何变更）\n  项目根: /private/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T/TestEnvSwitchRealKill9StageBoundaries事务建立窗口962436995/001\n  项目 ID: p24faf5c357\n  引擎: unix:///Users/y4n9/.docker/run/docker.sock（来源 context）\n  当前代: 0（原始代）（容器 km-p24faf5c357，ID 417569d3f150，状态 running，镜像内容 sha256:10599，平台 linux/arm64）\n  目标镜像: km-envtest-b:local（内容 sha256:8e5fc，平台 linux/arm64）\n  计划:\n    - 会话门禁: 执行时在当前容器安装 km-ctl 并核验（ACTIVE/未知将拒绝；dry-run 不安装不查询）\n    - 创建只读探测容器（验证会话运行依赖后删除；不执行项目脚本，工作区只读挂载）\n    - 新建候选容器 km-p24faf5c357-g1（内容 sha256:8e5fc，成为第 1 并保持运行）\n    - 停止当前容器 km-p24faf5c357 并保留（停止会结束其中非 km 管理的进程）\n    - 回退槽位: 空 → 切换后可用 km env rollback 回退上一代\n  边界: 注意：环境切换/回退不会撤销新环境运行期间对项目文件的改动；容器可写层不迁移。\n  结果: 允许执行" err=""
+=== RUN   TestEnvSwitchRealKill9StageBoundaries/旧容器停止后
+    environment_switch_kill_test.go:194: kill 命中=true 完整成功=false；switch 输出="km env switch 预览（只读，未做任何变更）\n  项目根: /private/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T/TestEnvSwitchRealKill9StageBoundaries旧容器停止后2676679567/001\n  项目 ID: pebfe103b7e\n  引擎: unix:///Users/y4n9/.docker/run/docker.sock（来源 context）\n  当前代: 0（原始代）（容器 km-pebfe103b7e，ID 66374580cb2e，状态 running，镜像内容 sha256:10599，平台 linux/arm64）\n  目标镜像: km-envtest-b:local（内容 sha256:8e5fc，平台 linux/arm64）\n  计划:\n    - 会话门禁: 执行时在当前容器安装 km-ctl 并核验（ACTIVE/未知将拒绝；dry-run 不安装不查询）\n    - 创建只读探测容器（验证会话运行依赖后删除；不执行项目脚本，工作区只读挂载）\n    - 新建候选容器 km-pebfe103b7e-g1（内容 sha256:8e5fc，成为第 1 并保持运行）\n    - 停止当前容器 km-pebfe103b7e 并保留（停止会结束其中非 km 管理的进程）\n    - 回退槽位: 空 → 切换后可用 km env rollback 回退上一代\n  边界: 注意：环境切换/回退不会撤销新环境运行期间对项目文件的改动；容器可写层不迁移。\n  结果: 允许执行" err=""
+=== RUN   TestEnvSwitchRealKill9StageBoundaries/提交点
+    environment_switch_kill_test.go:194: kill 命中=false 完整成功=true；switch 输出="km env switch 预览（只读，未做任何变更）\n  项目根: /private/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T/TestEnvSwitchRealKill9StageBoundaries提交点1620268506/001\n  项目 ID: p5337944213\n  引擎: unix:///Users/y4n9/.docker/run/docker.sock（来源 context）\n  当前代: 0（原始代）（容器 km-p5337944213，ID 0444e2515edd，状态 running，镜像内容 sha256:10599，平台 linux/arm64）\n  目标镜像: km-envtest-b:local（内容 sha256:8e5fc，平台 linux/arm64）\n  计划:\n    - 会话门禁: 执行时在当前容器安装 km-ctl 并核验（ACTIVE/未知将拒绝；dry-run 不安装不查询）\n    - 创建只读探测容器（验证会话运行依赖后删除；不执行项目脚本，工作区只读挂载）\n    - 新建候选容器 km-p5337944213-g1（内容 sha256:8e5fc，成为第 1 并保持运行）\n    - 停止当前容器 km-p5337944213 并保留（停止会结束其中非 km 管理的进程）\n    - 回退槽位: 空 → 切换后可用 km env rollback 回退上一代\n  边界: 注意：环境切换/回退不会撤销新环境运行期间对项目文件的改动；容器可写层不迁移。\n  结果: 允许执行\nkm env switch: 已切换到第 1（容器 km-p5337944213-g1，镜像内容 sha256:8e5fc）；上一代容器 km-p5337944213 已停止并保留。\n注意：环境切换/回退不会撤销新环境运行期间对项目文件的改动；容器可写层不迁移。\n回退：km env rollback --dry-run 预览后执行。" err=""
+=== RUN   TestEnvSwitchRealKill9StageBoundaries/提交完成
+    environment_switch_kill_test.go:194: kill 命中=true 完整成功=false；switch 输出="km env switch 预览（只读，未做任何变更）\n  项目根: /private/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T/TestEnvSwitchRealKill9StageBoundaries提交完成52971123/001\n  项目 ID: p0e95ed96f6\n  引擎: unix:///Users/y4n9/.docker/run/docker.sock（来源 context）\n  当前代: 0（原始代）（容器 km-p0e95ed96f6，ID ef18c8d96ef9，状态 running，镜像内容 sha256:10599，平台 linux/arm64）\n  目标镜像: km-envtest-b:local（内容 sha256:8e5fc，平台 linux/arm64）\n  计划:\n    - 会话门禁: 执行时在当前容器安装 km-ctl 并核验（ACTIVE/未知将拒绝；dry-run 不安装不查询）\n    - 创建只读探测容器（验证会话运行依赖后删除；不执行项目脚本，工作区只读挂载）\n    - 新建候选容器 km-p0e95ed96f6-g1（内容 sha256:8e5fc，成为第 1 并保持运行）\n    - 停止当前容器 km-p0e95ed96f6 并保留（停止会结束其中非 km 管理的进程）\n    - 回退槽位: 空 → 切换后可用 km env rollback 回退上一代\n  边界: 注意：环境切换/回退不会撤销新环境运行期间对项目文件的改动；容器可写层不迁移。\n  结果: 允许执行" err=""
+--- PASS: TestEnvSwitchRealKill9StageBoundaries (57.58s)
+    --- PASS: TestEnvSwitchRealKill9StageBoundaries/事务建立窗口 (10.22s)
+    --- PASS: TestEnvSwitchRealKill9StageBoundaries/旧容器停止后 (16.05s)
+    --- PASS: TestEnvSwitchRealKill9StageBoundaries/提交点 (15.54s)
+    --- PASS: TestEnvSwitchRealKill9StageBoundaries/提交完成 (15.77s)
+=== RUN   TestEnvRollbackRealKill9StageBoundary
+    environment_switch_kill_test.go:213: kill 命中=true 完整成功=false；rollback 输出="km env rollback 预览（只读，未做任何变更）\n  项目根: /private/var/folders/j5/fsj0sbnn2_b0cnggnn4vjzt80000gn/T/TestEnvRollbackRealKill9StageBoundary1670792244/001\n  项目 ID: p3a88a44989\n  引擎: unix:///Users/y4n9/.docker/run/docker.sock（来源 context）\n  当前代: 第 1（容器 km-p3a88a44989-g1，ID f3bf0b6e250d，状态 running，镜像内容 sha256:8e5fc，平台 linux/arm64）\n  回退目标: 第 0（原始代）（容器 km-p3a88a44989，ID ee21f539a4e8，镜像引用 km-envtest-a:local，内容 sha256:10599，平台 linux/arm64，切换前状态 running）\n  计划:\n    - 会话门禁: 执行时在当前容器安装 km-ctl 并核验（ACTIVE/未知将拒绝；dry-run 不安装不查询）\n    - 停止当前容器 km-p3a88a44989-g1（停止会结束其中非 km 管理的进程）\n    - 激活上一代容器 km-p3a88a44989（恢复其切换前的 running 状态）\n    - .km.json 的 image 恢复为 km-envtest-a:local；本机状态指向上一代\n    - 当前容器计入 retained 清单；回退槽位消费（再次 rollback 将无可回退记录）\n  边界: 注意：环境切换/回退不会撤销新环境运行期间对项目文件的改动；容器可写层不迁移。\n  结果: 允许执行" err=""
+--- PASS: TestEnvRollbackRealKill9StageBoundary (21.39s)
+=== RUN   TestEnvRemoveRealKill9
+    environment_switch_kill_test.go:236: kill 命中=true 完整成功=false；remove 输出="km env remove 预览（只读，未做任何变更）\n  目标容器: 3ba9e6d79a87f1ef72adf9b9710d8ec227d65e9612b62a7e5a25c35dd628e0b6\n  记录角色: RETAINED（原因 rolled-back）\n  实际状态: exited（镜像内容 sha256:8e5fc）\n  计划: 普通 docker rm（无 -f/-v）→ 确认不存在 → 从 retained 账本移除本条目\n  保护检查: 当前环境/回退目标/事务资源不受影响；其他账本条目原样保留\n  边界: 容器可写层内文件将永久丢失；不会删除共享项目文件，也不会删除镜像\n  结果: 允许执行" err=""
+--- PASS: TestEnvRemoveRealKill9 (20.95s)
+=== RUN   TestEnvSwitchRealHappyRollback
+--- PASS: TestEnvSwitchRealHappyRollback (18.98s)
+=== RUN   TestEnvSwitchRealNoOp
+--- PASS: TestEnvSwitchRealNoOp (8.44s)
+=== RUN   TestEnvSwitchRealMissingImage
+--- PASS: TestEnvSwitchRealMissingImage (5.50s)
+=== RUN   TestP2BResidueCheck
+--- PASS: TestP2BResidueCheck (0.00s)
+=== RUN   TestInitRunStopRestoreLoop
+--- PASS: TestInitRunStopRestoreLoop (10.31s)
+=== RUN   TestRunComplexArgvAndExitCodes
+--- PASS: TestRunComplexArgvAndExitCodes (12.95s)
+=== RUN   TestRunBinaryPipeAndStderr
+--- PASS: TestRunBinaryPipeAndStderr (3.68s)
+=== RUN   TestRunChineseSpacePathsAndSubdirCwd
+--- PASS: TestRunChineseSpacePathsAndSubdirCwd (7.03s)
+=== RUN   TestRunCancelCleansSession
+--- PASS: TestRunCancelCleansSession (4.97s)
+=== RUN   TestRunMultiProjectIsolationAndBusy
+--- PASS: TestRunMultiProjectIsolationAndBusy (9.33s)
+=== RUN   TestRunEngineDriftRejected
+--- PASS: TestRunEngineDriftRejected (4.10s)
+=== RUN   TestRunSameNameConflictRejected
+--- PASS: TestRunSameNameConflictRejected (3.72s)
+=== RUN   TestRunImageIdentityConflictRejected
+--- PASS: TestRunImageIdentityConflictRejected (4.25s)
+=== RUN   TestInitFailureRecovery
+--- PASS: TestInitFailureRecovery (9.47s)
+=== RUN   TestCuratedToolSmoke
+=== RUN   TestCuratedToolSmoke/python3-fixture
+=== RUN   TestCuratedToolSmoke/curl-local-service
+=== RUN   TestCuratedToolSmoke/jq-fixed-json
+=== RUN   TestCuratedToolSmoke/nmap-local-loopback
+=== RUN   TestCuratedToolSmoke/file-text
+--- PASS: TestCuratedToolSmoke (12.83s)
+    --- PASS: TestCuratedToolSmoke/python3-fixture (1.50s)
+    --- PASS: TestCuratedToolSmoke/curl-local-service (0.96s)
+    --- PASS: TestCuratedToolSmoke/jq-fixed-json (1.27s)
+    --- PASS: TestCuratedToolSmoke/nmap-local-loopback (1.99s)
+    --- PASS: TestCuratedToolSmoke/file-text (1.12s)
+=== RUN   TestRunCancelChildIgnoresTERM
+--- PASS: TestRunCancelChildIgnoresTERM (7.90s)
+=== RUN   TestRunNormalExitDrainsLingeringChild
+--- PASS: TestRunNormalExitDrainsLingeringChild (4.17s)
+=== RUN   TestStaleHostLockActiveSessionBlocked
+--- PASS: TestStaleHostLockActiveSessionBlocked (10.93s)
+=== RUN   TestConcurrentInitSingleEnvironment
+--- PASS: TestConcurrentInitSingleEnvironment (4.26s)
+=== RUN   TestNewUserInitFlagsAndStatus
+--- PASS: TestNewUserInitFlagsAndStatus (5.09s)
+=== RUN   TestNewUserLegacyConfigCompatReal
+--- PASS: TestNewUserLegacyConfigCompatReal (4.01s)
+=== RUN   TestNewUserPlatformChangeRejectedReal
+--- PASS: TestNewUserPlatformChangeRejectedReal (3.77s)
+=== RUN   TestNewUserStatusPausedReal
+--- PASS: TestNewUserStatusPausedReal (4.03s)
+=== RUN   TestNewUserToolsReal
+--- PASS: TestNewUserToolsReal (8.10s)
+=== RUN   TestNewUserToolsStoppedReal
+--- PASS: TestNewUserToolsStoppedReal (5.04s)
+=== RUN   TestRealSessionArgvPassthrough
+--- PASS: TestRealSessionArgvPassthrough (5.33s)
+=== RUN   TestRealSessionBinaryRoundtripAndStderr
+--- PASS: TestRealSessionBinaryRoundtripAndStderr (4.31s)
+=== RUN   TestRealSessionExitCodes
+--- PASS: TestRealSessionExitCodes (4.67s)
+=== RUN   TestRealSessionLongTaskNotKilledByMgmtTimeout
+--- PASS: TestRealSessionLongTaskNotKilledByMgmtTimeout (8.11s)
+=== RUN   TestRealSessionCancelNocleanFixture
+--- PASS: TestRealSessionCancelNocleanFixture (4.58s)
+=== RUN   TestRealSessionCancelSelfcleanFixture
+--- PASS: TestRealSessionCancelSelfcleanFixture (4.01s)
+=== RUN   TestRealSessionCancelGrandchild
+--- PASS: TestRealSessionCancelGrandchild (5.26s)
+=== RUN   TestRealSessionRepeatCancelIdempotent
+--- PASS: TestRealSessionRepeatCancelIdempotent (10.83s)
+=== RUN   TestRealSessionStartupCancel
+--- PASS: TestRealSessionStartupCancel (3.56s)
+=== RUN   TestRealSessionMultiProjectIsolation
+--- PASS: TestRealSessionMultiProjectIsolation (9.24s)
+=== RUN   TestRealSessionClientSigkillObservedSeparately
+--- PASS: TestRealSessionClientSigkillObservedSeparately (4.90s)
+=== RUN   TestSessionRecoveryChain
+--- PASS: TestSessionRecoveryChain (10.93s)
+=== RUN   TestSessionCmdsArgsAndUnknown
+--- PASS: TestSessionCmdsArgsAndUnknown (4.61s)
+=== RUN   TestSessionCmdsProjectIsolationAndNoLock
+--- PASS: TestSessionCmdsProjectIsolationAndNoLock (11.16s)
+=== RUN   TestSessionCmdsRepeatAndNaturalExit
+--- PASS: TestSessionCmdsRepeatAndNaturalExit (9.22s)
+=== RUN   TestSessionCancelNoiseRegression
+--- PASS: TestSessionCancelNoiseRegression (27.27s)
+=== RUN   TestC1PromptControlTerminal
+--- PASS: TestC1PromptControlTerminal (7.22s)
+=== RUN   TestC1CtrlCDuringSleepAndAtPrompt
+--- PASS: TestC1CtrlCDuringSleepAndAtPrompt (4.61s)
+=== RUN   TestC1ExitPaths
+--- PASS: TestC1ExitPaths (7.03s)
+=== RUN   TestC1JobControl
+--- PASS: TestC1JobControl (7.52s)
+=== RUN   TestC1WindowSizeFollows
+--- PASS: TestC1WindowSizeFollows (5.41s)
+=== RUN   TestC1BackgroundCleanupAtSessionEnd
+--- PASS: TestC1BackgroundCleanupAtSessionEnd (11.33s)
+=== RUN   TestC1TermiosRestored
+--- PASS: TestC1TermiosRestored (16.12s)
+=== RUN   TestC1ProjectIsolation
+--- PASS: TestC1ProjectIsolation (11.27s)
+=== RUN   TestC1SigkillObservedSeparately
+--- PASS: TestC1SigkillObservedSeparately (4.82s)
+=== RUN   TestC1DetachKeys
+    shell_c1_test.go:434: 结果 A：bash 已退出，会话已清扫，run 直接成功
+--- PASS: TestC1DetachKeys (22.13s)
+=== RUN   TestC1NonTTYFailsEarly
+--- PASS: TestC1NonTTYFailsEarly (0.40s)
+=== RUN   TestC2PipelineJobCleanup
+--- PASS: TestC2PipelineJobCleanup (5.94s)
+=== RUN   TestC2StoppedJobCleanup
+--- PASS: TestC2StoppedJobCleanup (6.17s)
+=== RUN   TestC2ShellExternalSignals
+--- PASS: TestC2ShellExternalSignals (23.10s)
+=== RUN   TestC2ShellStartupFailure
+--- PASS: TestC2ShellStartupFailure (2.93s)
+=== RUN   TestC2ShellInteractiveAndRegistered
+--- PASS: TestC2ShellInteractiveAndRegistered (7.40s)
+=== RUN   TestC2ShellCtrlC
+--- PASS: TestC2ShellCtrlC (6.08s)
+=== RUN   TestC2ShellExitCodePassthrough
+--- PASS: TestC2ShellExitCodePassthrough (5.28s)
+=== RUN   TestC2ShellSessionBlocksAfterHostKill
+--- PASS: TestC2ShellSessionBlocksAfterHostKill (11.69s)
+=== RUN   TestC2ShellRequiresTTY
+--- PASS: TestC2ShellRequiresTTY (0.02s)
+=== RUN   TestC2ShellSigkillBashSurvives
+--- PASS: TestC2ShellSigkillBashSurvives (4.35s)
+PASS
+ok  	kalimac/tests/integration	607.215s

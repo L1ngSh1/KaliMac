@@ -1,0 +1,38 @@
+[acceptance] Docker 引擎可达
+[acceptance] 测试镜像就绪（km-envtest-a/b:local，marker 内容差异）
+[acceptance] 运行 scripts/package.sh（cwd=仓库外，DIST 指向临时目录）
+[PASS] package.sh 完成
+[PASS] arm64 压缩包存在：km-0.4.0-p3-darwin-arm64.tar.gz
+[PASS] SHA256SUMS 校验通过
+[acceptance] install.sh 安装到 /tmp/km-install-accept.0bvyuL/prefix
+[PASS] 安装完成
+[PASS] 安装产物可执行
+[PASS] 清单文件 share/km/VERSION
+[PASS] 清单文件 share/km/BUILD-INFO
+[PASS] 清单文件 share/km/manifest.txt
+[PASS] 构建身份=HEAD c9f297baa0bfaffd03a66e53af8a7ad48d7bea00
+[PASS] worktree 如实记录（dirty）
+[PASS] target: darwin/arm64（本机实测）
+[acceptance] 仓库外项目 /tmp/km-install-accept.0bvyuL/proj.BEuKYC：init → switch → rollback → recover
+[PASS] init（镜像 A）
+[PASS] 初始环境实际执行 → env-a
+[PASS] switch --dry-run 预览
+[PASS] switch A→B --yes
+[PASS] 新环境实际执行 → env-b
+[PASS] rollback B→A
+[PASS] 回退后实际执行 → env-a
+[PASS] recover：无需恢复（exit 0）
+[PASS] env list：显示 RETAINED（回退撤下的 B）
+[PASS] 取得 retained 容器完整 ID
+[PASS] remove --dry-run 预览
+[PASS] remove --yes 删除 retained 容器
+[PASS] 容器已删除（不可逆）
+[PASS] 二次删除按未知目标拒绝
+[PASS] 清理后当前环境仍正常执行
+[PASS] doctor：资源账本与实际容器一致
+[PASS] 账本恒等式：实际容器=1（当前代；retained 已显式清理）
+[PASS] uninstall.sh 完成
+[PASS] 卸载后 bin/km 已移除
+[PASS] 卸载后 share/km 已移除
+
+[acceptance] 结果：31 通过, 0 失败

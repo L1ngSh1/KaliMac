@@ -1,0 +1,24 @@
+[?2004hKM_SHELL> sleep 290 &
+[?2004l[1] 14
+[?2004hKM_SHELL> sleep 300 | sleep 301 &
+[?2004l[2] 16
+[?2004hKM_SHELL> sh -c 'trap "" HUP TERM INT; sleep 302' &
+[?2004l[3] 17
+[?2004hKM_SHELL> setsid sleep 303 &
+[?2004l[4] 19
+[?2004hKM_SHELL> ps -o pid,ppid,pgid,sid,args
+[?2004l  PID  PPID  PGID   SID COMMAND
+    7     0     7     7 bash --noprofile --norc -i
+   14     7    14     7 sleep 290
+   15     7    15     7 sleep 300
+   16     7    15     7 sleep 301
+   17     7    17     7 sh -c trap "" HUP TERM INT; sleep 302
+   18    17    17     7 sleep 302
+   21     7    21     7 ps -o pid,ppid,pgid,sid,args
+[4]+  Done                       setsid sleep 303
+[?2004hKM_SHELL> exit
+[?2004lexit
+
+[1mWhat's next:[0m
+    Try Docker Debug for seamless, persistent debugging tools in any container or image → [36mdocker debug 36574f15ab60a9d4aae70de86c012e3c5f42e4f9091104f78eaff4c9d2b2fb08[0m
+    Learn more at https://docs.docker.com/go/debug-cli/

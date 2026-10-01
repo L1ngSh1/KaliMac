@@ -1,0 +1,15 @@
+旧二进制（c9f297b 构建）对 kind=remove 事务的 fail-closed 门禁实测（无需 Docker）：
+
+夹具：v2 状态项目 + .km/env/transaction.json（kind=remove, stage=REMOVE_REQUESTED, op_id 合法）
+
+=== 旧二进制 km status ===
+错误: 环境事务记录无法解析（.km/env/transaction.json 原样保留）:
+  ...: kind 非法: "remove"（KM_STATE_INVALID）
+
+=== 新二进制（codex/environment-inventory 构建）同一夹具 ===
+state: env_transaction_pending
+txn: {op_id: e0fedcba098765432, kind: remove, stage: REMOVE_REQUESTED}
+
+结论：旧二进制不会忽略清理操作并行 switch/rollback（kind 校验 fail-closed）；
+新二进制正确识别并展示待恢复的删除事务。run/init/stop 走同一 loadOpenTransaction
+路径，同样 fail-closed。

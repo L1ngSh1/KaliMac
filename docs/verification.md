@@ -1,5 +1,157 @@
 # 验证记录
 
+## 第十轮：环境资源查看与显式清理（2026-10-01，environment-inventory 计划）
+
+计划与冻结合同：docs/environment-inventory-plan.md + ADR §10。
+进度与需求映射：docs/environment-inventory-progress.md。
+证据：tests/evidence/environment-inventory/1790846119/。本轮按计划约定未提交/未推送。
+
+### 交付
+
+- `km env list`：只读角色总览（CURRENT/PREVIOUS/RETAINED/TRANSACTION/UNTRACKED/
+  CONFLICT + MISSING/UNKNOWN 严格区分 + 可删除性标注）；零副作用（不取锁/不写文件/
+  不装脚本/不清扫）；v1 项目仅显示当前容器、不迁移。
+- `km env remove <完整容器ID>`：定向显式清理——仅本项目 retained 内、身份全匹配
+  （扩展 inspect：名称/项目标签/镜像内容/挂载；probe 条目须只读挂载核验）、
+  exited 的容器；保护集合（当前/槽位/事务引用）始终优先；普通 `docker rm`
+  （无 -f/-v，argv 测试锁定）；事务 kind=remove（journal 先行 → rm → 确认不存在 →
+  外科手术式账本收尾），中断由 recover 收尾（永不重建容器）；失效记录仅清账本并
+  明确说明；完成后同 ID 再删按未知目标处理。
+- runtime 新增：FindContainersByLabelFull（--no-trunc 完整 ID 枚举）、
+  InspectContainerExtended（km.op/role/gen 标签 + 挂载 RW）、
+  RemoveContainerGraceful；既有带 -f 的 RemoveContainer 仅限 init 回滚/探测清理。
+- 旧二进制门禁（ADR §10.1）：remove 事务复用 transaction.json（kind=remove），
+  旧构建在 kind 校验处 fail-closed——以 c9f297b 构建实测 `km status` 拒绝
+  （"kind 非法: remove"），新构建识别 pending 并展示；无 schema 升版，
+  v1/v2 项目既有行为不变。
+
+### 验证（本机 darwin/arm64 实测，Docker Engine 29.6.1）
+
+- unit/race/vet(双 tag)/build 全 PASS；gofmt（本轮改动文件）干净。
+- 真实集成 **66 PASS / 0 FAIL / 0 SKIP**，零残留，含新增：
+  - TestEnvRemoveRealDrillABC：A→B→C 三代，list 角色断言、C/B 保护拒绝、
+    A 删除成功且账本同步；可写层金丝雀随容器删除消失、项目文件金丝雀保留、
+    镜像未删；C 正常执行、仍能 rollback B。
+  - TestEnvRemoveRealKill9：remove 期间真实 SIGKILL 进程组（命中），
+    recover 收敛：容器删除（不重建）+ 账本收尾。
+- 安装版验收扩展（list/remove/二次删除拒绝/清理后执行）→ **31/31 PASS**。
+- fake 层：list 10 项 + remove 15 项（保护矩阵/跨项目真实 ID/状态拒绝/响应丢失/
+  journal 与账本写失败/外部账本编辑保留/幂等/用法错误）。
+
+### 边界与未验证
+
+- Intel 实机未做（amd64 仅 CI 交叉编译）；kill 落点以恢复不变量为验收标准。
+
+## 第九轮：环境切换与单代回退（2026-09-28，environment-switch 计划）
+
+计划与冻结合同：docs/environment-switch-plan.md + docs/adr-environment-transactions.md（P0 冻结）。
+进度与需求映射：docs/environment-switch-progress.md。
+证据：tests/evidence/environment-switch/1790579945/。本轮未提交/未推送（计划约定）。
+
+### 交付
+
+- `km env switch --image <ref> [--dry-run] [--yes]` / `km env rollback [--dry-run] [--yes]` /
+  `km env recover [--dry-run] [--yes]`；`env` 为管理命令，重名工具仍可 `km run -- env …`。
+- 事务层 `internal/envtxn`（transaction/previous/retained，env_version 严格校验、原子写、
+  哈希备份）；state_version 2（env 块）作为旧二进制明确拒绝门槛，v1 项目完全兼容（不批量迁移）。
+- 冻结的恢复表：COMMIT_INTENT 前失败收敛前态、之后收敛新态；recover 幂等；
+  资源身份无法确认时停止写操作并保留事务；外部修改 config/state 拒绝覆盖。
+- run/init/stop 取锁后事务阻断（KM_TRANSACTION_PENDING）；sessions/cancel 不受影响。
+- status 新增 `env_transaction_pending` 状态与当前代展示；doctor 新增环境记录节
+  （事务/槽位/retained 健康 + 账本恒等式只读核验）。
+- 新增稳定码：KM_TRANSACTION_PENDING / KM_NO_PREVIOUS / KM_PLATFORM_MISMATCH（已入 cli-contract.md）。
+
+### 验证（本机 darwin/arm64 实测；Docker Engine 29.6.1 本轮启动）
+
+- `gofmt -l .`：本轮改动文件干净（docs/review-p2-20260906/ 为先于本轮存在的未跟踪备份，
+  其中 1 文件本就未格式化，按计划原样保留未触碰）。
+- `go vet ./...`、`go vet -tags=integration ./...`：PASS。
+- `go test -count=1 ./...`、`go test -race -count=1 ./...`、`go build ./...`：PASS。
+- `go test -tags=integration -count=1 -timeout 15m -v ./tests/integration/`：
+  **67 RUN / 62 PASS / 0 FAIL / 0 SKIP（161.997s）**，含本轮新增真实集成：
+  TestEnvSwitchRealHappyRollback（dry-run 零写入 → A→B 实际执行 marker 证明 → 旧容器停止
+  保留 → 回退 → marker 证明回到 A → 文件改动不回滚 → 槽位消费 → 二次回退拒绝 → 账本恒等式
+  实际容器=当前代+retained=2）、TestEnvSwitchRealNoOp、TestEnvSwitchRealMissingImage。
+  零清理标记；引擎复核 `docker ps -a --filter label=km.owner=km` 为 0 个残留。
+- fake 层覆盖（internal/cli/env_*_test.go，24 项）：负向拒绝矩阵（镜像缺失/平台冲突/
+  身份冲突/会话活跃/未知/事务阻断/用法错误，全部断言零容器调用与零文件写入）、
+  全链路 switch/rollback、no-op、槽位轮换、恢复表全阶段（PREPARED→CURRENT_COMMITTED、
+  rollback 前后、资源消失拒绝）、创建响应丢失（op 标签核验）、并发互斥、多项目隔离、
+  损坏记录阻断、非交互 --yes 合同、拒绝确认退出码 1（KM_CANCELED，冻结值）。
+- 旧二进制兼容实测（无需 Docker）：以基线 1d3eaab 构建 km，对 v2 状态夹具
+  `km status`/`km stop` 均在接触 Docker 前拒绝（`.km/state.json: 不支持的状态版本 2`，
+  退出 1）；当前构建对同一夹具正常通过状态解析。证据见 summary.md。
+
+### 独立审查与修复（同轮）
+
+独立审查（重点：测试是否覆盖声称的失败路径）结论 FIX-FIRST，全部修复：
+
+- **P0**：二次及以后 switch 在 COMMIT_INTENT 崩溃时 recover 死锁（槽位轮换窗口未覆盖）。
+  修复：恢复路径完成槽位轮换（同一归属核验）；回归 TestEnvRecoverCrashAtCommitIntentWithSlot。
+- **P1**：取锁后重读 cfg/st（switch/rollback）；retained.json 预检；外部编辑冲突测试
+  （提交前检测 → 拒绝并收敛前态，外部修改保持原样；recover 侧拒绝 + 恢复后收敛）。
+- **P2**：no-op 后置于全部门禁；op 资源删除需名称+镜像内容匹配；switch/rollback 校验
+  容器实际镜像↔记录；recover 确认后事务变化放弃；补 CANDIDATE_VERIFIED、rollback
+  PREPARED、init 事务阻断、sessions 不阻断、阶段写点/SavePrevious IO 注入测试；
+  删除同义反复的 v1-only 兼容测试（以真实 1d3eaab 旧二进制实测为准）。
+- 修复后全量复跑：unit/race/vet(双 tag)/build PASS；集成套件 **62 PASS / 0 FAIL**，
+  env 三测全过，零清理标记，引擎复核 km.owner=km 残留为 0
+  （integration-suite-post-review.log）。
+
+### 验收缺口补齐（同轮追加，2026-09-29）
+
+第一轮交付明确记录两个缺口，均已补齐并有可重复入口：
+
+- **安装版验收（原 NOT-RUN → PASS）**：`tests/acceptance/install_env_switch_acceptance.sh`
+  ——package.sh（仓库外调用、临时 DIST）→ SHA256 → 临时 PREFIX 安装 → 仓库外临时项目
+  以安装产物执行 init/run/dry-run/switch/rollback/recover/doctor → 账本恒等式 → 卸载。
+  **24/24 PASS**，构建身份=HEAD 2baa188、darwin/arm64 本机实测。
+  **发现并修复真实缺陷**：doctor 账本核验按完整 ID 精确比对，被真实 `docker ps` 的
+  12 位短 ID 全部误报"账本外"（fake 返回全 ID 故未暴露）；修复为前缀比对
+  （internal/cli/doctor.go），env fake 的 ps 输出与容器引用对齐真实行为
+  （TestDoctorShowsEnvRecords 锁定回归）。
+- **真实 kill -9 阶段边界实验（原"未执行" → PASS）**：
+  `tests/integration/environment_switch_kill_test.go` —— 独立进程组启动 switch/rollback，
+  按阶段条件（事务出现/OLD_STOPPED/COMMIT_INTENT/CURRENT_COMMITTED/rollback 停止后）
+  对进程组 SIGKILL，断言恢复不变量：recover 幂等收敛、事务清除、文件↔运行时一致、
+  账本恒等式、doctor 无账本外告警、status 正常态。5 场景 PASS（4 场景真实命中
+  SIGKILL；1 场景"提交点"进程在命中前已完整成功，竞态下两种落点不变量均成立）。
+- 修复后全量复跑：unit/race/vet(双 tag)/build PASS；集成套件 **73 RUN / 64 PASS /
+  0 FAIL / 0 SKIP**，引擎复核 km.owner=km 残留 = 0。
+- 证据：tests/evidence/environment-switch/1790579945/{install-acceptance.log,
+  kill9-stage-experiments.log, summary.md}。
+
+### 独立审计修复（同轮追加，2026-10-01）
+
+外部独立审计发现 8 项可复现问题（2×P1/5×P2/1×P3），全部修复并把反例测试入库：
+
+- **P1-1** recover 绕过保护（中断后手工把目标记为 CURRENT/PREVIOUS/改身份仍被删）：
+  抽出 `verifyRemoveTarget` 供普通 remove 与 recover 共用——保护集合基于锁内新鲜
+  记录、retained 精确匹配、扩展 inspect 身份全匹配（与 list 共用
+  envIdentityProblems）、exited 门禁，另比对确认快照（retained 被外部改名/换镜像
+  → 拒绝）。反例 5 场景全部拒绝且零额外 rm。
+- **P1-2** 确认后复查沿用旧 state（等待 yes 期间目标被改为 CURRENT 仍被删）：
+  确认后锁内 reloadProjectFiles 重读再 planRemove；removePlanStillValid 扩展为
+  完整快照比对；switch/rollback 的确认后复查同模式加固。
+- **P2/P3**：list 对 UNTRACKED 的 inspect 失败 → UNKNOWN + 非零退出（不再吞掉）；
+  list/remove 身份判定统一（缺失挂载=不符，共用 envIdentityProblems）；list 对
+  state/previous/retained/transaction 做前后指纹校验 + 有界重读一次（并发变更
+  不输出混合角色，持续变化标注未核实并退出 1）；remove 恢复预览独立文案
+  （按阶段区分"重试不可逆删除"与"仅账本收尾"，不再承诺恢复原环境/还原文件）；
+  扩展 inspect 挂载源与 RW 拆为独立字段（含逗号路径安全）；代号展示按字符截断。
+- 反例测试入库（8 顶层/12 叶子场景，全部通过）：internal/cli/env_audit_test.go、
+  env_audit_display_test.go、internal/runtime/env_audit_test.go。
+
+修复后复跑：unit/race/vet(双 tag)/build 全 PASS；真实集成 **66 PASS / 0 FAIL**
+（零残留）；安装版验收 **31/31 PASS**。证据：
+tests/evidence/environment-inventory/1790846119/{integration-suite-post-audit.log,
+install-acceptance-post-audit.log}。
+
+### 边界与未验证（更新后）
+
+- Intel 实机未做（amd64 仅 CI 交叉编译）；真实 kill 实验的落点存在观测竞态
+  （不断言精确杀死时刻，以恢复不变量为验收标准）。
+
 ## 第八轮：会话查看与显式恢复（2026-09-16，session-recovery 计划）
 
 计划与行为合同：docs/session-recovery-plan.md（S1 审查结论与 S2 冻结合同在该文件）。

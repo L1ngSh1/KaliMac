@@ -219,6 +219,15 @@ func ContainerName(projectID string) string { return "km-" + projectID }
 // ProjectLabel is the label key km stamps on the containers it owns.
 const ProjectLabel = "km.project"
 
+// Additional label keys for environment-switch transactions: every resource
+// of one operation carries the same op id so a lost create response can be
+// reconciled by label even when the client never saw the container ID.
+const (
+	OpLabel   = "km.op"   // value: envtxn op id ("e"+16hex)
+	GenLabel  = "km.gen"  // value: generation number of a candidate container
+	RoleLabel = "km.role" // value: "candidate" | "probe"
+)
+
 // FindContainersByLabel lists containers carrying the given label=value.
 func (d *Docker) FindContainersByLabel(ctx context.Context, label, value string) ([]ContainerSummary, error) {
 	out, err := d.run(ctx, "ps", "-a",
@@ -279,13 +288,21 @@ func (d *Docker) ImageID(ctx context.Context, ref string) (string, bool, error) 
 
 // ContainerCreateOpts describes the km-managed container to create.
 type ContainerCreateOpts struct {
-	Name       string // km-<project-id>
+	Name       string // km-<project-id> or km-<project-id>-g<N>
 	ProjectID  string // stamped into the km.project label
 	Image      string
 	ProjectDir string // host path bound to /workspace
 	// Platform 兑现配置声明（如 linux/arm64）；空 = 不传 --platform（native，
 	// 旧配置未声明平台时的历史行为）。
 	Platform string
+	// ExtraLabels are appended verbatim as --label k=v entries.
+	ExtraLabels []string
+	// WorkspaceReadOnly binds /workspace read-only (probe containers only;
+	// project containers always use the real read-write mount).
+	WorkspaceReadOnly bool
+	// Cmd overrides the container command; nil selects the project default
+	// (`sleep infinity`).
+	Cmd []string
 }
 
 // CreateContainer creates the project container with --init (reaping PID1)
@@ -296,12 +313,24 @@ func (d *Docker) CreateContainer(ctx context.Context, o ContainerCreateOpts) (st
 		"--name", o.Name,
 		"--label", ProjectLabel + "=" + o.ProjectID,
 		"--label", "km.owner=km",
-		"--label", "km.schema=1",
-		"-v", o.ProjectDir + ":/workspace"}
+		"--label", "km.schema=1"}
+	for _, l := range o.ExtraLabels {
+		args = append(args, "--label", l)
+	}
+	mount := o.ProjectDir + ":/workspace"
+	if o.WorkspaceReadOnly {
+		mount += ":ro"
+	}
+	args = append(args, "-v", mount)
 	if o.Platform != "" {
 		args = append(args, "--platform", o.Platform)
 	}
-	args = append(args, o.Image, "sleep", "infinity")
+	args = append(args, o.Image)
+	if len(o.Cmd) > 0 {
+		args = append(args, o.Cmd...)
+	} else {
+		args = append(args, "sleep", "infinity")
+	}
 	out, err := d.run(ctx, args...)
 	if err != nil {
 		return "", err
@@ -355,5 +384,93 @@ func (d *Docker) ImageOSArch(ctx context.Context, ref string) (string, error) {
 // km never removes project containers elsewhere).
 func (d *Docker) RemoveContainer(ctx context.Context, fullID string) error {
 	_, err := d.run(ctx, "rm", "-f", fullID)
+	return err
+}
+
+// FindContainersByLabelFull 等价于 FindContainersByLabel，但枚举使用
+// --no-trunc 的完整容器 ID（ADR §10.6：list/remove 一律以完整 ID 核验与匹配，
+// 显示用短 ID 不作为删除键）。
+func (d *Docker) FindContainersByLabelFull(ctx context.Context, label, value string) ([]ContainerSummary, error) {
+	out, err := d.run(ctx, "ps", "-a", "--no-trunc",
+		"--filter", "label="+label+"="+value,
+		"--format", "{{.ID}} {{.Names}} {{.State}}")
+	if err != nil {
+		return nil, err
+	}
+	var result []ContainerSummary
+	for _, line := range strings.Split(out, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) < 3 {
+			continue
+		}
+		result = append(result, ContainerSummary{ID: fields[0], Name: fields[1], State: fields[2]})
+	}
+	return result, nil
+}
+
+// InspectExtended 是 env list/remove 用的扩展 inspect 结果：在基础身份之外
+// 携带 km.op/km.role/km.gen 标签与 /workspace 挂载的读写模式（探测容器为
+// 只读挂载，remove 的 probe-cleanup-failed 条目必须按角色完整核验）。
+type InspectExtended struct {
+	ID          string
+	Name        string
+	State       string
+	ProjectID   string
+	Image       string
+	MountSource string
+	MountRW     bool
+	OpID        string
+	Role        string
+	Gen         string
+}
+
+// InspectContainerExtended 按 ref（完整 ID）返回扩展 inspect 结果。
+// ok=false 表示容器不存在；标签缺失渲染为空串。
+// 挂载源与 RW 是两个独立字段——用户路径可含逗号，绝不能用分隔符切路径
+// （独立审计 P2：/tmp/project,notes 曾被截断）。
+func (d *Docker) InspectContainerExtended(ctx context.Context, ref string) (InspectExtended, bool, error) {
+	format := "{{.Id}}|{{.Name}}|{{.State.Status}}|" +
+		"{{index .Config.Labels \"" + ProjectLabel + "\"}}|{{.Image}}" +
+		"|{{range .Mounts}}{{if eq .Destination \"/workspace\"}}{{.Source}}{{end}}{{end}}" +
+		"|{{range .Mounts}}{{if eq .Destination \"/workspace\"}}{{.RW}}{{end}}{{end}}" +
+		"|{{index .Config.Labels \"" + OpLabel + "\"}}|{{index .Config.Labels \"" + RoleLabel + "\"}}" +
+		"|{{index .Config.Labels \"" + GenLabel + "\"}}"
+	out, err := d.run(ctx, "container", "inspect", "--format", format, ref)
+	if err != nil {
+		if IsNotFound(err) {
+			return InspectExtended{}, false, nil
+		}
+		return InspectExtended{}, false, err
+	}
+	parts := strings.SplitN(out, "|", 10)
+	if len(parts) < 10 {
+		return InspectExtended{}, false, errf(CodeStateInvalid, "docker inspect 输出格式异常: %q", out)
+	}
+	clean := func(s string) string {
+		if s == "<no value>" {
+			return ""
+		}
+		return s
+	}
+	res := InspectExtended{
+		ID:          parts[0],
+		Name:        strings.TrimPrefix(parts[1], "/"),
+		State:       parts[2],
+		ProjectID:   parts[3],
+		Image:       parts[4],
+		MountSource: parts[5],
+		MountRW:     parts[6] == "true",
+		OpID:        clean(parts[7]),
+		Role:        clean(parts[8]),
+		Gen:         clean(parts[9]),
+	}
+	return res, true, nil
+}
+
+// RemoveContainerGraceful 以普通 `docker rm <完整ID>` 删除容器：不带 -f（不强制
+// 运行中容器）也不带 -v（不删除匿名卷）。这是 km env remove 的唯一删除入口；
+// 带 -f 的 RemoveContainer 仅限 init 回滚与探测容器清理（ADR §10.4）。
+func (d *Docker) RemoveContainerGraceful(ctx context.Context, fullID string) error {
+	_, err := d.run(ctx, "rm", fullID)
 	return err
 }

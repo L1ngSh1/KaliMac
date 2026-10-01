@@ -1,0 +1,84 @@
+{
+ "ok": true,
+ "steps": [
+  {
+   "step": 0,
+   "op": "expect",
+   "ok": true,
+   "matched": true,
+   "buffer_tail": "\u001b[?2004hKM_SHELL> "
+  },
+  {
+   "step": 1,
+   "op": "send",
+   "ok": true,
+   "sent": "sleep 5\r"
+  },
+  {
+   "step": 2,
+   "op": "settle",
+   "ok": true
+  },
+  {
+   "step": 3,
+   "op": "sendb",
+   "ok": true
+  },
+  {
+   "step": 4,
+   "op": "expect",
+   "ok": true,
+   "matched": true,
+   "buffer_tail": "\u001b[?2004hKM_SHELL> sleep 5\r\n\u001b[?2004l\r^C\r\n\u001b[?2004hKM_SHELL> "
+  },
+  {
+   "step": 5,
+   "op": "send",
+   "ok": true,
+   "sent": "echo B=$?\r"
+  },
+  {
+   "step": 6,
+   "op": "expect",
+   "ok": true,
+   "matched": true,
+   "buffer_tail": "\u001b[?2004hKM_SHELL> sleep 5\r\n\u001b[?2004l\r^C\r\n\u001b[?2004hKM_SHELL> echo B=$?\r\n\u001b[?2004l\rB=130\r\n\u001b[?2004hKM_SHELL> "
+  },
+  {
+   "step": 7,
+   "op": "sendb",
+   "ok": true
+  },
+  {
+   "step": 8,
+   "op": "expect",
+   "ok": true,
+   "matched": true,
+   "buffer_tail": "\u001b[?2004hKM_SHELL> sleep 5\r\n\u001b[?2004l\r^C\r\n\u001b[?2004hKM_SHELL> echo B=$?\r\n\u001b[?2004l\rB=130\r\n\u001b[?2004hKM_SHELL> "
+  },
+  {
+   "step": 9,
+   "op": "send",
+   "ok": true,
+   "sent": "echo C_STILL_ALIVE\r"
+  },
+  {
+   "step": 10,
+   "op": "expect",
+   "ok": true,
+   "matched": true,
+   "buffer_tail": "\u001b[?2004hKM_SHELL> sleep 5\r\n\u001b[?2004l\r^C\r\n\u001b[?2004hKM_SHELL> echo B=$?\r\n\u001b[?2004l\rB=130\r\n\u001b[?2004hKM_SHELL> ^C\u001b[?2004l\r\u001b[?2004h\u001b[?2004l\r\r\n\u001b[?2004hKM_SHELL> echo C_STILL_ALIVE\r\n\u001b[?2004l\rC_STILL_ALIVE\r\n\u001b[?2004hKM_SHELL> "
+  },
+  {
+   "step": 11,
+   "op": "send",
+   "ok": true,
+   "sent": "exit\r"
+  }
+ ],
+ "exit_code": 0,
+ "exit_sig": null,
+ "termios_equal": true,
+ "signals_sent": [],
+ "error": null
+}

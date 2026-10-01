@@ -8,8 +8,10 @@
 Mac 终端
   └─ km（Go, 本仓库）
       ├─ internal/cli        分派/帮助/版本/doctor/init/run/shell/stop；工具 argv 原样透传
-      ├─ internal/project    .km.json 校验；.km/ 本机状态、项目锁与身份
+      ├─ internal/project    .km.json 校验；.km/ 本机状态（v1/v2）、项目锁与身份
       ├─ internal/runtime    docker CLI 封装（Executor 可注入，测试用 fake；endpoint 解析与固定）
+      ├─ internal/envtxn     环境切换事务记录层：transaction/previous/retained 的
+      │                      schema 校验、原子写、哈希备份（不接触 Docker，ADR §2）
       ├─ internal/session    会话内核：唯一会话身份、容器内侧进程组清理、km-ctl/km-run 协议、
       │                      DockerController/ExecStarter（P2 执行与交互 shell 的事实标准，见 ADR-004/005）
       ├─ internal/residue    测试终检的资源判定纯函数：「确认消失/确认残留/无法核实」三类区分，
@@ -35,6 +37,14 @@ Mac 终端
    （0=已收尾、3=已消失、4=未确认）；cancel 前先列会话确认归属与存在，列表与取消之间
    的状态变化由协议码兜底。归属门禁复用 run 的容器身份检查（不含镜像内容检查：镜像
    漂移不阻止只读恢复）。
+10. **环境切换是显式事务（ADR：docs/adr-environment-transactions.md）**：`km env
+   switch/rollback/recover` 以项目本机状态目录 `.km/env/` 的事务记录（操作 ID + 前后
+   快照 + 配置/状态哈希备份）与冻结的恢复表实现可中断切换；提交点 COMMIT_INTENT 之前
+   失败收敛回前态、之后收敛到新态，recover 幂等。旧二进制兼容以 state_version 2 为
+   门槛（旧构建在接触 Docker 前明确拒绝，已用基线提交二进制实测）；候选容器按镜像
+   内容 ID 创建并携带 km.op/km.gen/km.role 标签，创建响应丢失按 op 标签核验登记；
+   资源账本恒等式（当前代 + 上一代 + retained + 事务资源 = 实际容器）由 doctor 只读
+   核验。run/init/stop 在取锁后检查未完成事务并阻断；sessions/cancel 保持可用。
 
 ## 错误模型
 

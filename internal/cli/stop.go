@@ -39,6 +39,11 @@ func runStopCommand(ctx context.Context, rest []string, stdout, stderr io.Writer
 		fmt.Fprintf(stderr, "km: 清理了遗留锁（持有人进程已退出）；这不代表容器内任务已结束，可用 km doctor 复核\n")
 	}
 
+	// 事务互斥（ADR §5.4）：存在未完成环境事务时 stop 阻断
+	if err := refuseIfEnvTxnPending(root); err != nil {
+		return envError(stderr, err)
+	}
+
 	res, exists, err := dk.InspectContainer(ctx, st.Container.ID)
 	if err != nil {
 		return envError(stderr, err)
