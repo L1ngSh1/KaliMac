@@ -30,12 +30,22 @@ const (
 	StageOldStopped        = "OLD_STOPPED"
 	StageCommitIntent      = "COMMIT_INTENT"
 	StageCurrentCommitted  = "CURRENT_COMMITTED"
+
+	// remove 专属阶段（ADR §10.2）：PREPARED 与 switch/rollback 共享名称，
+	// 语义由 kind 区分；FINALIZED 不是持久化阶段（事务清除即完成）。
+	StageRemoveRequested  = "REMOVE_REQUESTED"
+	StageAbsenceConfirmed = "ABSENCE_CONFIRMED"
+	StageLedgerUpdated    = "LEDGER_UPDATED"
 )
 
 // Transaction kinds.
 const (
 	KindSwitch   = "switch"
 	KindRollback = "rollback"
+	// KindRemove 是定向清理（km env remove）的事务类型。旧构建的 LoadTransaction
+	// 只认 switch/rollback，遇 remove 在 kind 校验处 fail-closed（ADR §10.1）：
+	// 不会忽略清理操作并行变更，也不会把删除事务按切换事务解释。
+	KindRemove = "remove"
 )
 
 var stageRank = map[string]int{
@@ -45,6 +55,25 @@ var stageRank = map[string]int{
 	StageOldStopped:        3,
 	StageCommitIntent:      4,
 	StageCurrentCommitted:  5,
+	StageRemoveRequested:   6,
+	StageAbsenceConfirmed:  7,
+	StageLedgerUpdated:     8,
+}
+
+// kindStages 冻结每种事务的合法阶段集合；跨 kind 的阶段一律拒绝。
+var kindStages = map[string]map[string]bool{
+	KindSwitch: {
+		StagePrepared: true, StageCandidateCreated: true, StageCandidateVerified: true,
+		StageOldStopped: true, StageCommitIntent: true, StageCurrentCommitted: true,
+	},
+	KindRollback: {
+		StagePrepared: true, StageOldStopped: true,
+		StageCommitIntent: true, StageCurrentCommitted: true,
+	},
+	KindRemove: {
+		StagePrepared: true, StageRemoveRequested: true,
+		StageAbsenceConfirmed: true, StageLedgerUpdated: true,
+	},
 }
 
 // StageRank returns the order rank of a stage; ok=false for unknown stages.
@@ -97,6 +126,13 @@ type Transaction struct {
 	StateBackup  FileBackup `json:"state_backup"`
 
 	Probes []ProbeRecord `json:"probes,omitempty"`
+
+	// remove 专属（ADR §10.2）：ledger_backup 是前态 retained.json 的字节+哈希
+	// （诊断用，绝不作为覆盖源）；protected 是 PREPARED 时的保护集合摘要；
+	// remove_reason 记录 retained 条目原因。
+	LedgerBackup FileBackup `json:"ledger_backup,omitempty"`
+	Protected    []string   `json:"protected,omitempty"`
+	RemoveReason string     `json:"remove_reason,omitempty"`
 
 	TargetImageRef string `json:"target_image_ref,omitempty"` // switch: user ref
 	PrevImageRef   string `json:"prev_image_ref,omitempty"`   // rollback: previous gen's config ref
@@ -236,11 +272,11 @@ func LoadTransaction(root string) (*Transaction, error) {
 	if !ValidOpID(t.OpID) {
 		return nil, envErr(p, "op_id 缺失或格式非法")
 	}
-	if t.Kind != KindSwitch && t.Kind != KindRollback {
+	if t.Kind != KindSwitch && t.Kind != KindRollback && t.Kind != KindRemove {
 		return nil, envErr(p, "kind 非法: %q", t.Kind)
 	}
-	if _, ok := StageRank(t.Stage); !ok {
-		return nil, envErr(p, "stage 非法: %q", t.Stage)
+	if !kindStages[t.Kind][t.Stage] {
+		return nil, envErr(p, "stage %q 不属于 kind %q", t.Stage, t.Kind)
 	}
 	if t.Kind == KindRollback && t.New.ContainerID == "" {
 		return nil, envErr(p, "rollback 事务缺少上一代容器 ID")
@@ -248,7 +284,19 @@ func LoadTransaction(root string) (*Transaction, error) {
 	if t.Old.ContainerName == "" || t.New.ContainerName == "" {
 		return nil, envErr(p, "old/new 快照不完整")
 	}
-	if t.ConfigBackup.SHA256 == "" || t.StateBackup.SHA256 == "" {
+	if t.Kind == KindRemove {
+		// 删除事务（ADR §10.2）：new 即目标；账本备份与原因必须落盘；
+		// config/state 不被 remove 触碰，不要求备份。
+		if t.New.ContainerID == "" {
+			return nil, envErr(p, "remove 事务缺少目标容器 ID")
+		}
+		if t.LedgerBackup.SHA256 == "" {
+			return nil, envErr(p, "remove 事务缺少前态账本备份")
+		}
+		if t.RemoveReason == "" {
+			return nil, envErr(p, "remove 事务缺少 retained 原因")
+		}
+	} else if t.ConfigBackup.SHA256 == "" || t.StateBackup.SHA256 == "" {
 		return nil, envErr(p, "缺少配置/状态备份")
 	}
 	return &t, nil

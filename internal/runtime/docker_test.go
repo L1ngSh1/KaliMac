@@ -144,3 +144,49 @@ func TestContainerName(t *testing.T) {
 		t.Fatalf("got %q", got)
 	}
 }
+
+// env remove 的删除入口必须是普通 rm：无 -f（不强制运行中容器）、无 -v（不删卷）。
+func TestRemoveContainerGracefulArgv(t *testing.T) {
+	fake := &FakeExecutor{Respond: func(name string, args []string) ([]byte, []byte, error) {
+		return []byte("abc123"), nil, nil
+	}}
+	d := &Docker{Exec: fake}
+	if err := d.RemoveContainerGraceful(context.Background(), "abc123def"); err != nil {
+		t.Fatalf("RemoveContainerGraceful: %v", err)
+	}
+	if len(fake.Calls) != 1 {
+		t.Fatalf("应只有一次调用: %+v", fake.Calls)
+	}
+	args := fake.Calls[0].Args
+	if len(args) != 2 || args[0] != "rm" || args[1] != "abc123def" {
+		t.Fatalf("必须是 docker rm <完整ID>，得到 %v", args)
+	}
+	for _, banned := range []string{"-f", "--force", "-v", "--volumes"} {
+		for _, a := range args {
+			if a == banned {
+				t.Fatalf("普通删除不得携带 %s: %v", banned, args)
+			}
+		}
+	}
+}
+
+// 完整 ID 枚举必须带 --no-trunc（list/remove 以完整 ID 为准）。
+func TestFindContainersByLabelFullArgv(t *testing.T) {
+	fake := &FakeExecutor{Respond: func(name string, args []string) ([]byte, []byte, error) {
+		return []byte("abc\n"), nil, nil
+	}}
+	d := &Docker{Exec: fake}
+	if _, err := d.FindContainersByLabelFull(context.Background(), "km.project", "p1"); err != nil {
+		t.Fatalf("FindContainersByLabelFull: %v", err)
+	}
+	args := fake.Calls[0].Args
+	hasNoTrunc := false
+	for _, a := range args {
+		if a == "--no-trunc" {
+			hasNoTrunc = true
+		}
+	}
+	if !hasNoTrunc {
+		t.Fatalf("枚举必须 --no-trunc: %v", args)
+	}
+}

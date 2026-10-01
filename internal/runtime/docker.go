@@ -386,3 +386,91 @@ func (d *Docker) RemoveContainer(ctx context.Context, fullID string) error {
 	_, err := d.run(ctx, "rm", "-f", fullID)
 	return err
 }
+
+// FindContainersByLabelFull 等价于 FindContainersByLabel，但枚举使用
+// --no-trunc 的完整容器 ID（ADR §10.6：list/remove 一律以完整 ID 核验与匹配，
+// 显示用短 ID 不作为删除键）。
+func (d *Docker) FindContainersByLabelFull(ctx context.Context, label, value string) ([]ContainerSummary, error) {
+	out, err := d.run(ctx, "ps", "-a", "--no-trunc",
+		"--filter", "label="+label+"="+value,
+		"--format", "{{.ID}} {{.Names}} {{.State}}")
+	if err != nil {
+		return nil, err
+	}
+	var result []ContainerSummary
+	for _, line := range strings.Split(out, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) < 3 {
+			continue
+		}
+		result = append(result, ContainerSummary{ID: fields[0], Name: fields[1], State: fields[2]})
+	}
+	return result, nil
+}
+
+// InspectExtended 是 env list/remove 用的扩展 inspect 结果：在基础身份之外
+// 携带 km.op/km.role/km.gen 标签与 /workspace 挂载的读写模式（探测容器为
+// 只读挂载，remove 的 probe-cleanup-failed 条目必须按角色完整核验）。
+type InspectExtended struct {
+	ID          string
+	Name        string
+	State       string
+	ProjectID   string
+	Image       string
+	MountSource string
+	MountRW     bool
+	OpID        string
+	Role        string
+	Gen         string
+}
+
+// InspectContainerExtended 按 ref（完整 ID）返回扩展 inspect 结果。
+// ok=false 表示容器不存在；标签缺失渲染为空串。
+// 挂载源与 RW 是两个独立字段——用户路径可含逗号，绝不能用分隔符切路径
+// （独立审计 P2：/tmp/project,notes 曾被截断）。
+func (d *Docker) InspectContainerExtended(ctx context.Context, ref string) (InspectExtended, bool, error) {
+	format := "{{.Id}}|{{.Name}}|{{.State.Status}}|" +
+		"{{index .Config.Labels \"" + ProjectLabel + "\"}}|{{.Image}}" +
+		"|{{range .Mounts}}{{if eq .Destination \"/workspace\"}}{{.Source}}{{end}}{{end}}" +
+		"|{{range .Mounts}}{{if eq .Destination \"/workspace\"}}{{.RW}}{{end}}{{end}}" +
+		"|{{index .Config.Labels \"" + OpLabel + "\"}}|{{index .Config.Labels \"" + RoleLabel + "\"}}" +
+		"|{{index .Config.Labels \"" + GenLabel + "\"}}"
+	out, err := d.run(ctx, "container", "inspect", "--format", format, ref)
+	if err != nil {
+		if IsNotFound(err) {
+			return InspectExtended{}, false, nil
+		}
+		return InspectExtended{}, false, err
+	}
+	parts := strings.SplitN(out, "|", 10)
+	if len(parts) < 10 {
+		return InspectExtended{}, false, errf(CodeStateInvalid, "docker inspect 输出格式异常: %q", out)
+	}
+	clean := func(s string) string {
+		if s == "<no value>" {
+			return ""
+		}
+		return s
+	}
+	res := InspectExtended{
+		ID:          parts[0],
+		Name:        strings.TrimPrefix(parts[1], "/"),
+		State:       parts[2],
+		ProjectID:   parts[3],
+		Image:       parts[4],
+		MountSource: parts[5],
+		MountRW:     parts[6] == "true",
+		OpID:        clean(parts[7]),
+		Role:        clean(parts[8]),
+		Gen:         clean(parts[9]),
+	}
+	return res, true, nil
+}
+
+// RemoveContainerGraceful 以普通 `docker rm <完整ID>` 删除容器：不带 -f（不强制
+// 运行中容器）也不带 -v（不删除匿名卷）。这是 km env remove 的唯一删除入口；
+// 带 -f 的 RemoveContainer 仅限 init 回滚与探测容器清理（ADR §10.4）。
+func (d *Docker) RemoveContainerGraceful(ctx context.Context, fullID string) error {
+	_, err := d.run(ctx, "rm", fullID)
+	return err
+}

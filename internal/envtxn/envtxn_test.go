@@ -82,7 +82,7 @@ func TestLoadTransactionRejectsCorruptAndInvalidFields(t *testing.T) {
 		if err := os.WriteFile(TransactionPath(root), []byte(raw), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := LoadTransaction(root); err == nil || !strings.Contains(err.Error(), "stage 非法") {
+		if _, err := LoadTransaction(root); err == nil || !strings.Contains(err.Error(), `不属于 kind`) {
 			t.Fatalf("非法 stage 应被拒绝，得到 %v", err)
 		}
 	})
