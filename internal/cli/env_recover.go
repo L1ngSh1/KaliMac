@@ -97,7 +97,12 @@ func runEnvRecover(ctx context.Context, rest []string, stdout, stderr io.Writer,
 }
 
 // renderRecoverPlan 输出实际状态、计划恢复方向与风险；不修文件或容器。
+// remove 事务使用独立文案（独立审计 P2-6）：不可逆删除的收尾不是“恢复原
+// 环境”，也不套用切换/回退的提交点方向判断。
 func renderRecoverPlan(w io.Writer, root string, txn *envtxn.Transaction, st *project.State) string {
+	if txn.Kind == envtxn.KindRemove {
+		return renderRemoveRecoverPlan(w, root, txn)
+	}
 	after := envtxn.AtOrAfterCommitIntent(txn.Stage)
 	direction := "前态（恢复原环境）"
 	if after {
@@ -109,7 +114,11 @@ func renderRecoverPlan(w io.Writer, root string, txn *envtxn.Transaction, st *pr
 	fmt.Fprintf(w, "  原环境: 第 %s（容器 %s，ID %s，镜像内容 %s，切换前状态 %s）\n",
 		generationDisplay(txn.Old.Generation), txn.Old.ContainerName, shortID(txn.Old.ContainerID),
 		shortID(txn.Old.ImageID), runningDisplay(txn.Old.WasRunning))
-	if txn.Kind == envtxn.KindSwitch {
+	if txn.Kind == envtxn.KindRemove {
+		fmt.Fprintf(w, "  删除目标: %s（%s，镜像内容 %s，原因 %s）\n",
+			txn.New.ContainerID, txn.New.ContainerName, shortID(txn.New.ImageID), txn.RemoveReason)
+		fmt.Fprintf(w, "  语义: 容器删除不可逆；恢复仅完成核验与账本收尾，不会重建容器\n")
+	} else if txn.Kind == envtxn.KindSwitch {
 		fmt.Fprintf(w, "  目标环境: 第 %s（候选 %s，镜像内容 %s，引用 %s）\n",
 			generationDisplay(txn.New.Generation), txn.New.ContainerName, shortID(txn.New.ImageID), txn.TargetImageRef)
 	} else {
@@ -126,8 +135,35 @@ func renderRecoverPlan(w io.Writer, root string, txn *envtxn.Transaction, st *pr
 	return direction
 }
 
+// renderRemoveRecoverPlan 是 remove 事务专用的恢复预览：明确区分
+// “目标仍在：确认后重试不可逆删除”与“目标已缺失：仅收尾账本”，
+// 不承诺恢复原环境或还原文件（容器可写层删除不可逆）。
+func renderRemoveRecoverPlan(w io.Writer, root string, txn *envtxn.Transaction) string {
+	fmt.Fprintf(w, "km env recover 恢复方案（事务 %s）\n", txn.OpID)
+	fmt.Fprintf(w, "  项目根: %s\n", root)
+	fmt.Fprintf(w, "  事务: kind=remove stage=%s op=%s\n", txn.Stage, txn.OpID)
+	fmt.Fprintf(w, "  删除目标: %s（%s，镜像内容 %s，原因 %s）\n",
+		txn.New.ContainerID, txn.New.ContainerName, shortID(txn.New.ImageID), txn.RemoveReason)
+	fmt.Fprintf(w, "  语义: 容器删除不可逆；恢复只做核验与账本收尾，永不重建容器\n")
+	switch txn.Stage {
+	case envtxn.StageLedgerUpdated:
+		fmt.Fprintf(w, "  恢复动作: 账本已更新，确认目标缺失后清除事务\n")
+	case envtxn.StageAbsenceConfirmed:
+		fmt.Fprintf(w, "  恢复动作: 目标已确认缺失，仅完成 retained 账本收尾\n")
+	default:
+		fmt.Fprintf(w, "  恢复动作: 重新核验全部删除资格（保护集合/身份/状态）后，目标仍在则确认后重试普通 rm（不可逆，无 -f/-v）\n")
+		fmt.Fprintf(w, "  风险: 若资格已丧失（变为运行中/受保护/身份不符），将停止并保留事务\n")
+	}
+	return "remove 收尾"
+}
+
 // convergeTxn 按冻结规则把未完成事务收敛到前态或新态。
+// remove 是第三种语义（ADR §10.2）：永不重建容器，只做核验与账本收尾
+// （目标仍在且资格成立时，确认后重试普通 rm）。
 func convergeTxn(ctx context.Context, dk *runtime.Docker, root string, txn *envtxn.Transaction, st *project.State, stderr io.Writer) (string, error) {
+	if txn.Kind == envtxn.KindRemove {
+		return convergeRemove(ctx, dk, root, txn, st, stderr)
+	}
 	after := envtxn.AtOrAfterCommitIntent(txn.Stage)
 	if txn.Kind == envtxn.KindSwitch {
 		if after {

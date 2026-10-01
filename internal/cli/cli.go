@@ -183,7 +183,9 @@ func PrintHelp(w io.Writer) {
   km cancel <id>              显式取消当前项目的指定会话（完整 ID 见 km sessions）
   km status [--json]          当前项目状态总览（只读；--json 结构化输出）
   km tools                    精选工具在容器内的可用性（只读；允许部分 MISSING）
+  km env list                 当前项目环境资源总览（只读；角色与可删除性）
   km env switch|rollback|recover  项目环境切换 / 单代回退 / 事务恢复（见 km help env）
+  km env remove <完整容器ID>  删除一个已停止的保留容器（不可逆；见 km help env）
 
 说明:
   项目文件留在 Mac；工具输出与退出状态回到原终端。

@@ -63,6 +63,10 @@ func runEnvRollback(ctx context.Context, rest []string, stdout, stderr io.Writer
 	if confirmed, code := confirmEnvAction(stdout, stderr, f.yes); !confirmed {
 		return code
 	}
+	cfg, st, err = reloadProjectFiles(root)
+	if err != nil {
+		return envError(stderr, err)
+	}
 	recheck, err := planRollback(ctx, dk, root, cfg, st, true, stderr)
 	if err != nil {
 		return envError(stderr, err)

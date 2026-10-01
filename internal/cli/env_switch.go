@@ -75,6 +75,12 @@ func runEnvSwitch(ctx context.Context, rest []string, stdout, stderr io.Writer, 
 		return code
 	}
 
+	// 确认后重读记录再核验（与 remove 同一 TOCTOU 加固：等待确认期间
+	// state/账本可能被外部修改）
+	cfg, st, err = reloadProjectFiles(root)
+	if err != nil {
+		return envError(stderr, err)
+	}
 	// 确认后第三次核验（关键条件变化 → 放弃执行）
 	recheck, err := planSwitch(ctx, dk, root, cfg, st, f.image, true, stderr)
 	if err != nil {

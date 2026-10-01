@@ -29,7 +29,7 @@ var (
 
 type envContainer struct {
 	id, name, state, project, image, mount string
-	opID, role                             string
+	opID, role, genLabel                   string
 }
 
 // fakeExecutor 把 envFake 的 respond 适配为 runtime.Executor。
@@ -63,6 +63,13 @@ type envFake struct {
 	onStopRetagTo  string
 	// onStopHook：stop 发生时执行（模拟事务中的外部文件修改/IO 故障注入）
 	onStopHook func()
+
+	// remove 注入：failRmNext = rm 报错且容器保留；rmLostResponse = 容器已删
+	// 但客户端收到错误（响应丢失）；onRmHook = rm 完成删除后执行
+	// （模拟删除与账本收尾之间的外部修改/IO 故障）
+	failRmNext     bool
+	rmLostResponse bool
+	onRmHook       func()
 
 	// 最近一次 run -d 的关键参数（断言创建细节用）
 	lastMount    string
@@ -144,6 +151,16 @@ func (f *envFake) respond(args []string) ([]byte, []byte, error) {
 		c := f.byRef(ref)
 		if c == nil {
 			return envFail("Error response from daemon: No such container: "+ref, 1)
+		}
+		joined := strings.Join(full, " ")
+		if strings.Contains(joined, "km.op") { // InspectContainerExtended：10 字段（挂载与 RW 分离）
+			rw := "true"
+			if c.role == "probe" {
+				rw = "false" // 探测容器工作区只读
+			}
+			line := fmt.Sprintf("%s|/%s|%s|%s|%s|%s|%s|%s|%s|%s",
+				c.id, c.name, c.state, c.project, c.image, c.mount, rw, c.opID, c.role, c.genLabel)
+			return []byte(line), nil, nil
 		}
 		line := fmt.Sprintf("%s|/%s|%s|%s|%s|%s", c.id, c.name, c.state, c.project, c.image, c.mount)
 		return []byte(line), nil, nil
@@ -231,6 +248,27 @@ func (f *envFake) respond(args []string) ([]byte, []byte, error) {
 			f.onStopHook()
 		}
 		return nil, nil, nil
+	case full[1] == "rm" && full[2] != "-f":
+		// 普通 rm（km env remove）：无 -f/-v；容器须存在才可删
+		f.hooks["rm"]++
+		ref := full[len(full)-1]
+		c := f.byRef(ref)
+		if c == nil {
+			return envFail("Error response from daemon: No such container: "+ref, 1)
+		}
+		if f.failRmNext {
+			f.failRmNext = false
+			return envFail("remove failed: container is not stopped / daemon error", 1)
+		}
+		delete(f.conts, c.id)
+		delete(f.names, c.name)
+		if f.onRmHook != nil {
+			f.onRmHook()
+		}
+		if f.rmLostResponse {
+			return envFail("client error after rm succeeded", 1)
+		}
+		return nil, nil, nil
 	case full[1] == "rm" && full[2] == "-f":
 		f.hooks["rm"]++
 		ref := full[len(full)-1]
@@ -253,6 +291,12 @@ func (f *envFake) respond(args []string) ([]byte, []byte, error) {
 				key, val = kv[0], kv[1]
 			}
 		}
+		idLen := 12 // 真实 docker ps 默认 12 位短 ID
+		for _, a := range full {
+			if a == "--no-trunc" {
+				idLen = 64 // FindContainersByLabelFull：完整 ID
+			}
+		}
 		var out strings.Builder
 		for _, c := range f.conts {
 			match := false
@@ -265,7 +309,7 @@ func (f *envFake) respond(args []string) ([]byte, []byte, error) {
 			if match {
 				// 真实 docker ps 默认返回 12 位短 ID（fake 与真实对齐，
 				// 曾暴露 doctor 账本核验的短/全 ID 比对缺陷）
-				fmt.Fprintf(&out, "%s %s %s\n", c.id[:12], c.name, c.state)
+				fmt.Fprintf(&out, "%s %s %s\n", c.id[:idLen], c.name, c.state)
 			}
 		}
 		return []byte(out.String()), nil, nil

@@ -32,6 +32,16 @@ func runEnvCommand(ctx context.Context, rest []string, stdout, stderr io.Writer,
 		return ExitOK
 	}
 	switch sub {
+	case "list":
+		if envSubHelp(args, stdout) {
+			return ExitOK
+		}
+		return runEnvList(ctx, args, stdout, stderr, dk)
+	case "remove":
+		if envSubHelp(args, stdout) {
+			return ExitOK
+		}
+		return runEnvRemove(ctx, args, stdout, stderr, dk)
 	case "switch":
 		if envSubHelp(args, stdout) {
 			return ExitOK
