@@ -100,13 +100,26 @@ grep -q "env-b" "$WORK/step-run-b.log" && ok "新环境实际执行 → env-b" |
 grep -q "env-a" "$WORK/step-run-a2.log" && ok "回退后实际执行 → env-a" || bad "回退后 marker"
 "$KM" env recover > "$WORK/step-recover.log" 2>&1 \
   && grep -q "无需恢复" "$WORK/step-recover.log" && ok "recover：无需恢复（exit 0）" || { bad "recover"; cat "$WORK/step-recover.log"; }
+PID="$(python3 -c 'import json;print(json.load(open("'"$PROJ"'/.km/state.json"))["project_id"])')"
+# ---------- 3b. 资源查看与显式清理（list / remove） ----------
+"$KM" env list > "$WORK/step-list.log" 2>&1   && grep -q "RETAINED" "$WORK/step-list.log" && ok "env list：显示 RETAINED（回退撤下的 B）"   || { bad "env list"; cat "$WORK/step-list.log"; }
+G1_FULL="$(docker container inspect --format '{{.Id}}' "km-$PID-g1" 2>/dev/null || true)"
+# PID 在 init 后即可用；此处的 gen1 容器是 rollback 撤下的 retained
+G1_FULL="$(docker container inspect --format '{{.Id}}' "$(docker ps -aq --filter "label=km.project=$PID" --filter "name=km-$PID-g1" | head -1)" 2>/dev/null || true)"
+[ -n "$G1_FULL" ] && ok "取得 retained 容器完整 ID" || { bad "取得完整 ID"; }
+"$KM" env remove "$G1_FULL" --dry-run > "$WORK/step-rm-dry.log" 2>&1   && grep -q "允许执行" "$WORK/step-rm-dry.log" && ok "remove --dry-run 预览" || { bad "remove dry-run"; cat "$WORK/step-rm-dry.log"; }
+"$KM" env remove "$G1_FULL" --yes > "$WORK/step-rm.log" 2>&1   && ok "remove --yes 删除 retained 容器" || { bad "remove"; cat "$WORK/step-rm.log"; }
+docker container inspect "$G1_FULL" >/dev/null 2>&1 && bad "容器应已删除" || ok "容器已删除（不可逆）"
+"$KM" env remove "$G1_FULL" --yes > "$WORK/step-rm2.log" 2>&1   && { bad "二次删除应拒绝"; cat "$WORK/step-rm2.log"; } || grep -q "KM_NOT_FOUND" "$WORK/step-rm2.log" && ok "二次删除按未知目标拒绝"
+"$KM" run -- cat /opt/km-env/marker > "$WORK/step-run-a3.log" 2>&1
+grep -q "env-a" "$WORK/step-run-a3.log" && ok "清理后当前环境仍正常执行" || bad "清理后执行"
 "$KM" doctor > "$WORK/step-doctor.log" 2>&1
 assert_contains "doctor：资源账本与实际容器一致" "$WORK/step-doctor.log" "资源账本与实际容器一致"
 
-# 账本恒等式：实际容器 = 当前代（A）+ retained（B）= 2
+# 账本恒等式：retained B 已被 remove 删除 → 实际容器 = 当前代（A）= 1
 PID="$(python3 -c 'import json;print(json.load(open("'"$PROJ"'/.km/state.json"))["project_id"])')"
 N="$(docker ps -aq --filter "label=km.project=$PID" | wc -l | tr -d ' ')"
-[ "$N" = "2" ] && ok "账本恒等式：实际容器=2（当前代+retained）" || bad "账本恒等式（实际 ${N}）"
+[ "$N" = "1" ] && ok "账本恒等式：实际容器=1（当前代；retained 已显式清理）" || bad "账本恒等式（实际 ${N}）"
 
 cd "$REPO"
 

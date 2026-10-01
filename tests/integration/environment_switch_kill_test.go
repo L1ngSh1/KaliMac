@@ -86,9 +86,9 @@ func envAssertRecoveredInvariant(t *testing.T, dir string) {
 	if code != 0 {
 		t.Fatalf("recover --dry-run: code=%d out=%s err=%s", code, out, errb)
 	}
-	out, errb, code = kmRun(t, dir, nil, "env", "recover", "--yes")
-	if code != 0 {
-		t.Fatalf("recover: code=%d out=%s err=%s", code, out, errb)
+	recOut, recErr, recCode := kmRun(t, dir, nil, "env", "recover", "--yes")
+	if recCode != 0 {
+		t.Fatalf("recover: code=%d out=%s err=%s", recCode, recOut, recErr)
 	}
 	out, _, code = kmRun(t, dir, nil, "env", "recover")
 	if code != 0 || !strings.Contains(out, "无需恢复") {
@@ -213,6 +213,42 @@ func TestEnvRollbackRealKill9StageBoundary(t *testing.T) {
 	t.Logf("kill 命中=%v 完整成功=%v；rollback 输出=%q err=%q", killed, completedOK, strings.TrimSpace(out), strings.TrimSpace(errb))
 	if !killed && !completedOK {
 		t.Fatalf("rollback 未命中 kill 条件且未成功完成（实验无效）: %s", errb)
+	}
+	envAssertRecoveredInvariant(t, dir)
+}
+
+// remove 的真实强杀：无论死在 rm 前还是 rm 后，recover 都能收尾
+// （容器删除或重试删除 + 账本收尾），且不可逆语义不重建容器。
+func TestEnvRemoveRealKill9(t *testing.T) {
+	dir := envInitProject(t)
+	if out, errb, code := kmRun(t, dir, nil, "env", "switch", "--image", envImgBTag, "--yes"); code != 0 {
+		t.Fatalf("前置 switch: %s %s", out, errb)
+	}
+	if out, errb, code := kmRun(t, dir, nil, "env", "rollback", "--yes"); code != 0 {
+		t.Fatalf("前置 rollback: %s %s", out, errb)
+	}
+	// 现在：当前 gen0（A），retained 含 gen1（B，exited）
+	target := containerFullIDByName(t, "km-"+envProjectID(t, dir)+"-g1")
+	killed, completedOK, out, errb := envRunAndKill9(t, dir, func() bool {
+		k, _ := envTxnInfo(dir)
+		return k == "remove"
+	}, "env", "remove", target, "--yes")
+	t.Logf("kill 命中=%v 完整成功=%v；remove 输出=%q err=%q", killed, completedOK, strings.TrimSpace(out), strings.TrimSpace(errb))
+	if !killed && !completedOK {
+		t.Fatalf("remove 未命中 kill 条件且未成功完成（实验无效）: %s", errb)
+	}
+	// 不变量：recover 收敛后，要么容器已删且账本条目移除（不可逆），
+	// 要么……remove 没有第二种终态：容器必然被删除（恢复语义永不重建）。
+	recOut, recErr, recCode := kmRun(t, dir, nil, "env", "recover", "--yes")
+	if recCode != 0 {
+		t.Fatalf("recover: code=%d out=%s err=%s", recCode, recOut, recErr)
+	}
+	if _, missing := envContainerState(t, "km-"+envProjectID(t, dir)+"-g1"); !missing {
+		t.Fatal("remove 收敛后目标容器应已删除（不重建）")
+	}
+	ret, err := os.ReadFile(filepath.Join(dir, ".km", "env", "retained.json"))
+	if err == nil && strings.Contains(string(ret), target) {
+		t.Fatalf("账本应收尾: %s", ret)
 	}
 	envAssertRecoveredInvariant(t, dir)
 }
