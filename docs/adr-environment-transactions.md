@@ -296,3 +296,77 @@ PREPARED → CANDIDATE_CREATED → CANDIDATE_VERIFIED → OLD_STOPPED
 - 旧二进制实测：用基线提交 `1d3eaab` 构建旧 km，对 v2 状态项目执行
   `km status`，留档拒绝输出（无需 Docker）。
 - 证据目录：`tests/evidence/environment-switch/<run-id>/`。
+
+## 10. 环境资源清理（km env remove）合同（冻结，v1 2026-10-01）
+
+> 计划原文：docs/environment-inventory-plan.md。本节冻结其实现合同；
+> list 为只读独立交付点，remove 为不可逆定向删除。
+
+### 10.1 旧二进制门禁（§6.1 的可验证方案）
+
+- **remove 事务复用 `transaction.json`，`kind="remove"`**。旧构建的
+  `LoadTransaction` 只接受 kind ∈ {switch, rollback}，遇 remove 在 kind 校验处
+  fail-closed：run/init/stop（pending 检查）、switch/rollback、recover 全部以
+  KM_STATE_INVALID 拒绝，不会忽略清理操作并行变更，也不会把删除事务按切换事务
+  解释。无 schema 升版；v1/v2 项目的既有行为不变；**list 不要求升级本机状态**。
+- 证据：用前序基线（c9f297b）构建的旧二进制对 kind=remove 事务夹具实测
+  `status/run` 拒绝（与 v2 状态实测同法，留档 evidence）。
+
+### 10.2 记录布局与阶段
+
+- 事务字段复用：`old`/`new` 快照均填目标容器快照；新增
+  `ledger_backup`（前态 retained.json 字节+哈希）、`protected`（PREPARED 时
+  保护集合摘要）、`remove_reason`（retained 条目原因）。旧二进制因 kind 拒绝，
+  未知字段无影响。
+- 阶段（写入点冻结）：
+  `PREPARED → REMOVE_REQUESTED → ABSENCE_CONFIRMED → LEDGER_UPDATED →（清除事务）`
+  | 阶段 | 动作 | 中断后 |
+  | --- | --- | --- |
+  | PREPARED | 持久化目标快照、保护集合、账本备份、操作 ID | 未发 rm；重核验 |
+  | REMOVE_REQUESTED | rm 调用前写意图，再发普通 rm | inspect 原完整 ID 定实态；不合格不重试 |
+  | ABSENCE_CONFIRMED | 目标明确不存在 | 只做账本收尾，不恢复容器 |
+  | LEDGER_UPDATED | 原子移除目标条目（其他条目原样保留） | 核验后清除事务 |
+- **恢复语义（与 switch/rollback 的本质区别）**：永不重建容器。收敛 = 完成核验
+  与账本收尾；目标仍在且全部删除资格成立时，可在显式 recover 确认后重试普通
+  rm；资格丧失（running/身份/保护变化）→ 停止写操作、保留事务、输出诊断。
+- **账本更新为外科手术式**：解析当前 retained.json（不可解析/未知版本拒绝），
+  仅移除目标条目，其余条目（含外部编辑结果）原样保留；绝不回写备份快照。
+  `ledger_backup` 用于诊断与"已被外部编辑"提示，不作为覆盖源。
+
+### 10.3 删除资格（全部满足才可删）
+
+1. 记录可解析（config/state/previous/retained，schema 受支持）。
+2. endpoint 固定且与项目记录一致。
+3. 目标为**本项目 retained 的精确完整 ID**（64 hex；不接受名称/短 ID/多目标），
+   且与 CURRENT/PREVIOUS/事务引用集合无重叠（即使同时错误出现在 retained 中，
+   保护优先）。
+4. 扩展 inspect 身份全匹配：完整 ID、名称、km.project 标签、镜像内容、
+   /workspace 挂载源；`probe-cleanup-failed` 条目须额外核验 km-probe-* 命名与
+   **只读挂载**，核验不了即拒绝（不放宽为仅标签匹配）。
+5. 实际状态 = exited；running/paused/restarting/created/dead 一律拒绝。
+6. 无未完成事务（含删除操作本身）。
+
+### 10.4 Docker 删除方式
+
+- 新增 `runtime.RemoveContainerGraceful`：`docker rm <完整ID>`，**无 -f、无 -v**；
+  既有带 `-f` 的 `RemoveContainer` 仅限 init 回滚/探测清理，不用于本功能。
+- rm 返回 0 仍须 inspect 确认不存在；错误或响应丢失 → 重新核验实态：
+  明确不存在 → 收尾；仍存在且资格成立 → 事务保留于 REMOVE_REQUESTED（内联不
+  重试，由显式 recover 重试）；仍存在但资格丧失或未知 → 停止写操作并诊断。
+- 外部进程在检查后重启目标 → 普通 rm 失败，不升级为强制删除。
+
+### 10.5 错误码与退出码
+
+- 不新增错误码：保护/身份/状态拒绝 → `KM_CONTAINER_CONFLICT`（消息含具体原因）；
+  未知目标（不在本项目 retained 且无待收尾记录）→ `KM_NOT_FOUND`；其余复用
+  KM_TRANSACTION_PENDING / KM_STATE_INVALID / KM_RESOURCE_UNKNOWN / KM_TIMEOUT。
+- 退出码遵循计划 §5 表：list 缺失条目 0；list 冲突/损坏/待恢复 1；remove
+  用法错误 2；拒绝确认 = KM_CANCELED 1。
+
+### 10.6 list 只读性（冻结）
+
+- 不取锁、不写任何文件、不安装脚本、不清扫；枚举用 `--no-trunc` 完整 ID 后逐个
+  inspect；角色 CURRENT/PREVIOUS/RETAINED/TRANSACTION/UNTRACKED；显示态
+  MISSING/UNKNOWN/CONFLICT 与实际状态分开；MISSING 不触发任何清理。
+- exit 0 仅当：记录可解析、无未完成事务、无角色冲突且查询完整；否则 exit 1
+  并展示可确认部分。

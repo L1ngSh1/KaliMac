@@ -7,6 +7,14 @@
 
 ### 新增
 
+- `km env list`：只读查看当前项目的环境资源总览（角色 CURRENT/PREVIOUS/RETAINED/
+  TRANSACTION/UNTRACKED、完整容器 ID、实际状态、可删除性）；MISSING/UNKNOWN/
+  CONFLICT 严格区分；不取锁、不写任何文件。
+- `km env remove <完整容器ID>`：显式删除一个已停止（exited）的 retained 保留容器。
+  仅接受完整 ID；当前环境/回退目标/事务资源始终受保护；普通 docker rm（无 -f/-v，
+  不自动 stop、不强制删除）；事务化账本收尾（journal 先行、rm 后确认不存在、
+  外科手术式移除条目），中断由 km env recover 收尾（永不重建容器）；失效记录
+  （容器已被外部删除）仅清理账本并明确说明。
 - `km env switch/rollback/recover`：项目环境切换与单代回退（合同冻结于
   docs/adr-environment-transactions.md）。switch 只接受本地引擎已存在的同平台镜像
   （不拉取不构建）：只读探测会话依赖 → 按镜像内容 ID 创建候选容器 → 停止并保留旧容器；

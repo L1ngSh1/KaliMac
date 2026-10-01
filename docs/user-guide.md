@@ -166,10 +166,13 @@ cd "$DEMO"                   # 或你实际的项目目录；新终端请填真�
 `km tools` 报告缺工具时，自己准备一个新镜像（`docker build`/`docker pull` 到本地引擎），然后显式切换：
 
 ```bash
+"$KM" env list                                  # 只看：哪些是当前环境/回退目标/保留容器，谁能删
 "$KM" env switch --image my-kali:v2 --dry-run   # 只读预览：当前/目标镜像、平台与全部影响
 "$KM" env switch --image my-kali:v2             # 交互终端会要求输入 yes 确认；脚本中须加 --yes
 "$KM" env rollback --dry-run                    # 新环境不合适？先预览回退
 "$KM" env rollback                              # 回到上一代（只保留一代）
+"$KM" env remove <完整容器ID> --dry-run          # 删除一个确认不要的保留容器（先预览）
+"$KM" env remove <完整容器ID> --yes              # 真正删除（可写层永久丢失，不可逆）
 "$KM" env recover --dry-run                     # 中断后恢复未完成事务（少见，按提示使用）
 ```
 
@@ -177,7 +180,7 @@ cd "$DEMO"                   # 或你实际的项目目录；新终端请填真�
 
 - 只切换**本地引擎上已存在**的同平台镜像（不自动拉取/构建/装工具）；目标按镜像内容 ID 锁定，构建期标签漂移不会静默换目标；同内容不同标签是明确 no-op。
 - 切换 = 新建候选容器 → 停止并保留旧容器；旧容器的可写层（容器里临时装的东西）不迁移。
-- **环境回退不会撤销新环境运行期间对项目文件的改动**（`/workspace` 就是 Mac 目录）。回退槽位只有一代：成功回退后再次 rollback 会明确提示无可回退记录；被换下的容器保留并登记在 `.km/env/retained.json`（不入 Git；核对完整 ID 后可人工 `docker rm` 清理，`km doctor` 会对账本与实际容器的一致性做核验）。
+- **环境回退不会撤销新环境运行期间对项目文件的改动**（`/workspace` 就是 Mac 目录）。回退槽位只有一代：成功回退后再次 rollback 会明确提示无可回退记录；被换下的容器保留并登记在 `.km/env/retained.json`（不入 Git）。`km env list` 会标明每个容器的角色与是否可删除；`km env remove <完整容器ID>` 可以删除一个已停止的保留容器——只删这一个容器，可写层内容永久丢失、项目文件与镜像不受影响；当前环境、回退目标和别的项目的容器永远拒绝删除。
 - 有未完成任务（`KM_SESSION_ACTIVE`/`KM_SESSION_UNKNOWN`）、身份冲突或平台不一致时拒绝切换；切换被强杀中断后，`run/stop/init/switch/rollback` 都会以 `KM_TRANSACTION_PENDING` 阻断，按提示先 `km env recover --dry-run` 再 `km env recover` 恢复（恢复方向由冻结规则决定，重复调用幂等）。
 - `--dry-run` 永远只读（不取锁、不写状态、不触碰容器）；确认只替代交互输入，不绕过任何检查。
 
