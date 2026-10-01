@@ -19,14 +19,18 @@ import (
 // recover 必须完成槽位轮换并收敛新态，而不是永远拒绝。
 func TestEnvRecoverCrashAtCommitIntentWithSlot(t *testing.T) {
 	f, dir, _, gen1ID := setupEnvPostSwitch(t)
-	cfgB := `{"schema_version":1,"name":"demo","image":"` + envImgBRef + `","platform":"linux/arm64"}`
+	// 备份必须捕获实际配置字节，不能写死 arm64（amd64 CI 会误判外部编辑）。
+	cfgB, err := os.ReadFile(filepath.Join(dir, project.ConfigFileName))
+	if err != nil {
+		t.Fatal(err)
+	}
 	candID := f.addContainer(envContainer{name: "km-" + envProjID + "-g2", state: "running", project: envProjID, image: envImgAID, mount: resolveDir(t, dir), opID: "e0000000000000003", role: "candidate"})
 	f.conts[gen1ID].state = "exited"
 	txn := &envtxn.Transaction{
 		OpID: "e0000000000000003", Kind: envtxn.KindSwitch, Stage: envtxn.StageCommitIntent,
 		Old:            envtxn.Snapshot{ContainerID: gen1ID, ContainerName: "km-" + envProjID + "-g1", ImageID: envImgBID, WasRunning: true, Generation: 1},
 		New:            envtxn.Snapshot{ContainerID: candID, ContainerName: "km-" + envProjID + "-g2", ImageID: envImgAID, WasRunning: true, Generation: 2},
-		ConfigBackup:   envtxn.NewFileBackup([]byte(cfgB)),
+		ConfigBackup:   envtxn.NewFileBackup(cfgB),
 		StateBackup:    envtxn.NewFileBackup(readStateBytes(t, dir)),
 		TargetImageRef: envImgARef,
 	}
@@ -283,11 +287,15 @@ func TestEnvRecoverCrashAtCandidateVerified(t *testing.T) {
 // P2-4：rollback PREPARED 阶段崩溃恢复（未发生任何变更 → 仅清除事务）。
 func TestEnvRecoverRollbackCrashAtPrepared(t *testing.T) {
 	f, dir, _, gen1ID := setupEnvPostSwitch(t)
+	cfgB, err := os.ReadFile(filepath.Join(dir, project.ConfigFileName))
+	if err != nil {
+		t.Fatal(err)
+	}
 	txn := &envtxn.Transaction{
 		OpID: "e0000000000000005", Kind: envtxn.KindRollback, Stage: envtxn.StagePrepared,
 		Old:          envtxn.Snapshot{ContainerID: gen1ID, ContainerName: "km-" + envProjID + "-g1", ImageID: envImgBID, WasRunning: true, Generation: 1},
 		New:          envtxn.Snapshot{ContainerID: envOldID, ContainerName: "km-" + envProjID, ImageID: envImgAID, WasRunning: true, Generation: 0},
-		ConfigBackup: envtxn.NewFileBackup([]byte(`{"schema_version":1,"name":"demo","image":"` + envImgBRef + `","platform":"linux/arm64"}`)),
+		ConfigBackup: envtxn.NewFileBackup(cfgB),
 		StateBackup:  envtxn.NewFileBackup(readStateBytes(t, dir)),
 		PrevImageRef: envImgARef,
 	}
