@@ -39,6 +39,8 @@ def main():
     project_id = None
     derived = 'km-release-drill:' + work.name
     image_built = False
+    base_tag = derived + '-base'
+    base_tagged = False
     live = None
     passed = False
 
@@ -207,7 +209,9 @@ def main():
 
         build_dir = work / 'image'
         build_dir.mkdir()
-        (build_dir / 'Dockerfile').write_text(f'FROM {base_id}\nRUN mkdir -p /opt/km-release && printf "B\\n" > /opt/km-release/marker\n')
+        run(['docker', 'tag', base_id, base_tag])
+        base_tagged = True
+        (build_dir / 'Dockerfile').write_text(f'FROM {base_tag}\nRUN mkdir -p /opt/km-release && printf "B\\n" > /opt/km-release/marker\n')
         run(['docker', 'build', '-q', '-t', derived, build_dir], timeout=120)
         image_built = True
         before = {p.relative_to(project).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
@@ -261,6 +265,8 @@ def main():
                 check('test containers: zero residue', left == '')
             if image_built:
                 run(['docker', 'image', 'rm', derived])
+            if base_tagged:
+                run(['docker', 'image', 'rm', base_tag])
             (args.evidence / 'summary.json').write_text(json.dumps({
                 'passed': passed, 'checks': checks, 'count': len(checks),
                 'archive': str(args.archive), 'sha256': hashlib.sha256(args.archive.read_bytes()).hexdigest(),
