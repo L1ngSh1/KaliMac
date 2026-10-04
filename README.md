@@ -2,12 +2,20 @@
 
 Mac 上精简、可靠的 Kali CLI 入口：在终端输入 `km 工具 参数`，在当前项目的 Kali 容器执行；项目文件留在 Mac，工具输出与退出状态回到原终端。
 
-状态：**会话恢复版（0.4.0-p3 候选）**。`init → run → shell → stop → 恢复` 闭环可用：非交互执行（会话级取消、退出码透传）+ 交互 bash（真实终端接管，作业控制/Ctrl-C/窗口尺寸跟随）。执行走最小会话内核（唯一会话身份 + 容器内侧进程组清理，SIGINT 目标退出码 130）；doctor 先解析有效 Docker endpoint（非本地引擎直接拒绝且不发引擎查询），并按记录的容器 ID、标签、挂载与镜像内容核验项目归属。
+状态：**`0.4.0-rc.1` 预发布候选**。支持项目独立环境、工具执行、交互 shell、会话查看/取消，
+以及环境切换、单代回退、资源清单、定向清理与事务恢复。
+
+- [下载候选安装包](https://github.com/L1ngSh1/KaliMac/releases/tag/v0.4.0-rc.1)
+- [首次上手指南](docs/user-guide.md) — 每一步都有命令与成功标志
+- [本版发布说明](docs/releases/v0.4.0-rc.1.md)
+
+项目文件通过 `/workspace` 双向共享；容器内修改项目文件会直接反映到 Mac。
+环境回退只回退运行环境，不回退项目文件。精选镜像包含 Python、curl、jq、file、OpenSSL 和 nmap。
 
 ## 依赖
 
 - macOS（首个验证平台：Apple Silicon）
-- Go 1.25+（构建）
+- Go 1.25+（仅从源码构建时需要）
 - 本机 Docker Desktop（P1 的 doctor 会检测；help/version 不需要）
 
 ## 快速开始
@@ -50,9 +58,9 @@ scripts/package.sh                                          # 分架构安装包
 `$PREFIX/share/km/BUILD-INFO`。打包过程不查询 Docker；若需关联已核验镜像内容 ID，显式设置
 `KM_IMAGE_CONTENT_ID=sha256:… scripts/package.sh`。
 平台边界：**darwin/arm64 为实测平台**（本机全量验证）；darwin/amd64 为交叉编译产物，未在真实硬件
-做过端到端测试；Linux 未测试（CI integration 作业首跑后另记）。镜像构建与来源见 `images/kali/`
-与 `tests/evidence/kali-mac-min-0.2/build-evidence.txt`。候选版本号、tag 与发布命令均为待审步骤，
-不会自动执行。
+做过端到端测试。Linux/amd64 已用于远端 CI 回归，不等于 Intel macOS 实机验证。
+安装包附带镜像 Dockerfile，但不含预构建的 Kali 镜像；首次构建需联网。
+具体发布验证与已知边界见[本版说明](docs/releases/v0.4.0-rc.1.md)。
 
 ## 文档
 
@@ -78,4 +86,4 @@ make all           # fmt-check + vet + test + build
 `bash tests/p0/run-p0.sh`（自动创建唯一标签的实验容器、生成证据到 `tests/p0/evidence/`、
 结束后清理并核对）。性能基线：`tests/perf/perf-baseline.sh`（单调时钟、逐样本退出码检查、
 配对 `docker exec` 对照）。CI 工作流见 `.github/workflows/ci.yml`（verify + 独立 integration
-作业；首次 push 前远端不会运行）。
+作业；master 推送和 PR 会触发，tag 本身不触发发布）。

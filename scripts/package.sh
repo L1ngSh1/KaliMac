@@ -49,7 +49,8 @@ image_ref: kali-mac-min:0.2
 image_content_id: $IMAGE_ID
 hardware_validation: pending
 EOF
-  (cd "$DIST/.stage-$ARCH" && tar -czf "$DIST/$PKG.tar.gz" "$PKG")
+  # macOS tar 默认保存扩展属性为 AppleDouble；发布包只包含显式文件。
+  (cd "$DIST/.stage-$ARCH" && COPYFILE_DISABLE=1 tar -czf "$DIST/$PKG.tar.gz" "$PKG")
 done
 
 rm -rf "$DIST/.stage-arm64" "$DIST/.stage-amd64"
