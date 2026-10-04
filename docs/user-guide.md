@@ -1,6 +1,6 @@
 # km 使用指南
 
-适用版本：`0.4.0-p3`（候选）。先读这份说明，开发设计与实验细节再看 ADR。
+适用版本：`0.4.0-rc.1`（候选）。先读这份说明，开发设计与实验细节再看 ADR。
 
 ## 1. 先理解：km 到底是什么？
 
@@ -18,7 +18,22 @@ Mac 终端输入 km python3 …  →  容器执行 python3 → 输出回到 Mac 
 
 ## 2. 第一次准备（在 Mac 终端）
 
-先启动 Docker Desktop。
+先启动 Docker Desktop。安装包用户只需 macOS 与本机 Docker Desktop；从源码构建时再准备 Go 1.25+。
+Apple Silicon 选择 `darwin-arm64`；Intel Mac 选择 `darwin-amd64`（交叉编译与校验和已覆盖，实机验收待补）。
+安装包不包含 Kali 镜像，附带 `images/kali/Dockerfile`；第一次构建需联网。
+
+从 [本版 Release](https://github.com/L1ngSh1/KaliMac/releases/tag/v0.4.0-rc.1) 下载对应压缩包与
+`SHA256SUMS`，放在同一个下载目录。下面以 Apple Silicon 为例：
+
+```bash
+shasum -a 256 km-0.4.0-rc.1-darwin-arm64.tar.gz
+grep 'km-0.4.0-rc.1-darwin-arm64.tar.gz' SHA256SUMS
+# 两行的 SHA256 必须一致，再解包；Intel 用户将 arm64 换为 amd64
+tar -xzf km-0.4.0-rc.1-darwin-arm64.tar.gz
+cd km-0.4.0-rc.1-darwin-arm64
+```
+
+只有一个架构的文件时按上述两行核对；下载了两个架构时可用 `shasum -a 256 -c SHA256SUMS` 一次核对。
 
 **路径 A（拿到安装包的新用户）**：解压对应架构的压缩包，在解压目录安装；不需要开发仓库：
 
@@ -27,7 +42,13 @@ PREFIX="$HOME/.local" ./install.sh
 export PATH="$HOME/.local/bin:$PATH"
 KM="$HOME/.local/bin/km"
 "$KM" version --verbose
+docker info --format '{{.ServerVersion}}'
+# 仍在解压目录；已有本地精选镜像时可跳过这一行
+docker build -t kali-mac-min:0.2 images/kali
 ```
+
+成功标志：版本是 `0.4.0-rc.1`，`commit` 与 Release 的源码提交相同，`worktree` 为 `clean`；
+Docker 输出服务端版本，镜像构建正常结束。安装脚本不替你修改 shell 配置；新终端需重新配置 PATH 或设置 `KM`。
 
 **路径 B（在开发仓库内）**：从仓库根目录执行：
 
@@ -39,7 +60,7 @@ docker info --format '{{.ServerVersion}}'
 docker build -t kali-mac-min:0.2 images/kali
 ```
 
-`KM` 保存可执行文件的绝对路径，这样切换目录后也能调用。首次镜像构建需要下载依赖；本地已有该镜像时可跳过构建。CLI 版本 `0.4.0-p3` 和镜像标签 `0.2` 是两套版本号。
+`KM` 保存可执行文件的绝对路径，这样切换目录后也能调用。首次镜像构建需要下载依赖；本地已有该镜像时可跳过构建。CLI 版本 `0.4.0-rc.1` 和镜像标签 `0.2` 是两套版本号。
 
 ### 为什么下面写的是 `"$KM"`，不是 `km`？
 
@@ -57,10 +78,11 @@ docker build -t kali-mac-min:0.2 images/kali
 
 ```bash
 mkdir -p "$HOME/Workspace"
-DEMO=$(mktemp -d "$HOME/Workspace/km-demo.XXXXXX")
+DEMO=$(mktemp -d "$HOME/Workspace/km 初次体验.XXXXXX")
 cd "$DEMO"
 "$KM" init --image kali-mac-min:0.2
 "$KM" doctor
+echo "$DEMO"
 ```
 
 这里创建的是全新练习目录，配置不会覆盖你的现有项目。记下 `echo "$DEMO"` 显示的位置，下次回到这里即可继续用。
@@ -77,6 +99,18 @@ cd "$DEMO"
 
 最后一条在练习项目根目录应输出 `/workspace`。短形式 `km TOOL …` 与长形式 `km run -- TOOL …` 等价；长形式的 `--` 是必需的。
 
+### 看状态和工具
+
+```bash
+"$KM" status
+"$KM" tools
+"$KM" env list
+```
+
+先完成上一小节的命令，再检查：`status` 显示 `running_idle`，`tools` 列出六项 AVAILABLE，
+`env list` 中当前容器角色为 CURRENT。`tools` 的 AVAILABLE 只代表 PATH 中存在该程序。
+首次 `run` 前的 doctor 可能提示“会话脚本未安装”；首次执行后再次检查即可。
+
 ### 验证文件共享
 
 ```bash
@@ -85,6 +119,8 @@ printf 'print("hello from a Mac file")\n' > hello.py
 "$KM" python3 -c 'from pathlib import Path; Path("result.txt").write_text("made in Kali\n")'
 cat result.txt
 ```
+
+成功标志：Python 输出 `hello from a Mac file`，Mac 的 `cat result.txt` 输出 `made in Kali`。
 
 `hello.py` 在 Mac 创建、在 Kali 执行；`result.txt` 在 Kali 创建、在 Mac 直接可读。**容器内对 `/workspace` 文件的修改和删除，也会影响 Mac 项目文件。**
 
@@ -132,10 +168,30 @@ cd "$DEMO"                   # 或你实际的项目目录；新终端请填真�
 "$KM" doctor                 # 有疑问先检查；正常使用无需每次都跑
 "$KM" python3 hello.py       # 单条命令，用完直接回到 Mac
 "$KM" stop                   # 当前没有 km 任务时，停止项目容器
+"$KM" status                 # 应显示 container_stopped
 "$KM" python3 hello.py       # 下次执行会自动启动已停止的容器
 ```
 
 连续操作就用上一节的 `shell → exit`，退出后再执行 `stop`。项目首次需要 `init`，不是每次运行都需要；目前也不需要单独的 `km start` 命令。
+
+成功标志：停止后状态为 `container_stopped`，再次执行脚本仍输出原来的内容；`result.txt` 仍在。
+结束练习时再运行 `"$KM" stop` 即可，下次回到打印出的练习目录继续使用。
+
+### 主动体验会话取消（两个 Mac 终端）
+
+终端 A 在练习项目中运行 `"$KM" run -- sleep 120`。终端 B 设置相同的 `KM`，
+`cd` 到同一个练习目录，然后分步执行：
+
+```bash
+"$KM" sessions
+# 从上一条输出完整复制 s 开头的会话 ID；下行是模板，先替换占位符
+"$KM" cancel <完整会话ID>
+"$KM" run -- printf 'recovered\n'
+```
+
+成功标志：会话从 ACTIVE 消失，终端 A 返回（TERM 通常为退出码 143），终端 B 输出 `recovered`。
+没有必要为了体验恢复去强杀终端。若真的遇到异常退出，仍按 sessions → 核对任务 → cancel 的顺序处理。
+查询成功但 ID 已不在列表时，cancel 会报告 `KM_SESSION_UNKNOWN`，不要把它理解成刚刚取消成功。
 
 ### 管道和重定向在哪执行？
 
@@ -208,19 +264,20 @@ cd "$DEMO"                   # 或你实际的项目目录；新终端请填真�
 
 仍然成立的行为约定：
 
-- 宿主进程被强杀（SIGKILL/关终端）时，容器内的 shell 可能继续运行；后续命令会被 `KM_SESSION_ACTIVE` 保护性阻断——它不是应该删除的“缓存”。恢复入口：**`km sessions` 查看会话，`km cancel <id>` 显式取消**（`<id>` 从 sessions 输出完整复制；取消只作用于当前项目，已结束的会话会得到幂等说明）。旧的 `docker exec <容器> /tmp/km-bin/km-ctl cancel <会话ID>` 保留为高级排障手段，普通恢复不再需要。
+- 宿主进程被强杀（SIGKILL/关终端）时，容器内的 shell 可能继续运行；后续命令会被 `KM_SESSION_ACTIVE` 保护性阻断——它不是应该删除的“缓存”。恢复入口：**`km sessions` 查看会话，`km cancel <id>` 显式取消**（`<id>` 从 sessions 输出完整复制；取消只作用于当前项目，查询成功但 ID 不在列表时会明确报错）。旧的 `docker exec <容器> /tmp/km-bin/km-ctl cancel <会话ID>` 保留为高级排障手段，普通恢复不再需要。
 - 被 `km cancel` 外部取消的运行中任务，其客户端退出码为工具真实状态（TERM=143）；Ctrl-C 的 130 语义不变。
 - 主动 `setsid … &` 脱离会话的进程不属于 km 的清理范围，会一直存活（可观测、可手动清理）。
 - `km shell` 每次启动会向容器安装/刷新一次会话脚本，热调用比裸 `docker exec` 慢约 160ms（2026-09 基线：km p50 203–207ms vs exec 45ms，见 tests/perf/evidence/ 与 CHANGELOG）。
 - `init` 后、首次 `run`/`shell` 之前运行 `doctor`，会话检查会显示一条预期中的警告「会话脚本未安装」（此时容器内还没有会话脚本可查）；首次 `run` 或 `shell` 之后该检查自动变为 OK。
 
-## 10. 现状与下一步
+## 10. 完成首次上手后
 
-上一版计划中的开发项（PTY 驱动器修正、终端快照与信号同步、管道/停止态作业清理、detach 结论更正、全量回归与指南实走）均已完成并有回归与验证记录，历史见 [验证记录](verification.md)。
+本版包含执行、交互 shell、状态/工具查询、会话恢复和环境生命周期管理。先把上述练习跑通，再在
+真实项目使用；首次体验不需要清理 CURRENT 或手动删除 `.km/`。
 
-当前方向（按 2026-09 goal 计划）：
+- 发布说明：[v0.4.0-rc.1](releases/v0.4.0-rc.1.md)。
+- 安装包入口与卸载：[安装包快速开始](package-quickstart.md)。卸载只删除 km 安装清单内文件，项目与容器仍保留。
+- 后续小步工程计划：[下一阶段计划](next-iteration-plan.md)。
+- 开发验证：[验证记录](verification.md)；命令细节：[CLI 合同](cli-contract.md)。
 
-1. 发布工程：安装/卸载方式、打包与校验和、双架构构建说明（进行中，见 README「开发」）。
-2. 可信性能基线：`tests/perf/perf-baseline.sh` 已按单调时钟、逐样本退出码检查、配对 docker exec 对照重写；结论以实测为准。
-
-更多细节：[CLI 合同](cli-contract.md)、[终端方案](adr-005-terminal-shell.md)、[会话内核](adr-004-session-execution.md)。
+当前仅发布 macOS 二进制；Linux/amd64 是 CI 回归平台，Intel macOS 实机状态单独记录。

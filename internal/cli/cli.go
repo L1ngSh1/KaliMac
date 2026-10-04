@@ -16,7 +16,7 @@ import (
 // Build identity defaults are useful for source builds; release packaging
 // overrides them with -ldflags. Keep the short version output stable.
 var (
-	Version       = "0.4.0-p3"
+	Version       = "0.4.0-rc.1"
 	BuildCommit   = "unknown"
 	BuildWorktree = "unknown"
 	BuildTarget   = ""
