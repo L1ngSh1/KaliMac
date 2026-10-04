@@ -134,6 +134,9 @@ def main():
         check('archive SHA256', sums[args.archive.name] == digest)
         with tarfile.open(args.archive, 'r:gz') as archive:
             members = archive.getmembers()
+            check('archive excludes macOS metadata files', all(
+                not any(p.startswith('._') or p in ('.DS_Store', '__MACOSX')
+                        for p in Path(m.name).parts) for m in members))
             check('archive contains only relative regular files/directories', all(
                 not Path(m.name).is_absolute() and '..' not in Path(m.name).parts
                 and (m.isfile() or m.isdir()) for m in members))
